@@ -39,5 +39,8 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
+      - name: Checking for peer dependency conflicts
+        run: yarn check:peer-deps:fix
+
       - name: Run type tests
         run: yarn test:types
