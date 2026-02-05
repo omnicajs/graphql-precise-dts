@@ -10,7 +10,6 @@
             "@/": [ "src/*" ],
             "~tests/": [ "tests/*" ],
         },
-        "types": [ "node", "rxjs" ],
         "resolveJsonModule": true,
         "strict": true,
         "skipLibCheck": true,
