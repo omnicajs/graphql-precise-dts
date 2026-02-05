@@ -1,0 +1,88 @@
+type Query {
+    user(id: ID!): User
+    users(filter: UsersFilter): [User!]!
+    userGroups(id: ID!): [Group!]!
+    ownerGroup(id: ID!): User
+    groupMembers(groudId: ID!): [User!]!
+}
+
+type Mutation {
+    createUser(input: CreateUserInput!): User!
+    addGroup(input: AddGroupInput!): Group!
+    removeGroup(id: ID!): RemoveGroupPayload!
+    changeOwner(input: ChangeOwnerInput!): User!
+}
+
+type Subscription {
+    userCreated: UserCreatedPayload!
+    ownerGroupChanged (groupId: ID!): OwnerGroupChangedPayload!
+}
+
+scalar DateTime
+
+interface User {
+    id: ID!
+    username: String!
+    firstName: String
+    lastName: String
+    isOnline: Boolean!
+    groups: [Group!]!
+    permissions: [Permission!]!
+}
+
+enum Permission {
+    GroupCreate
+    GroupEdit
+}
+
+interface Group {
+    id: ID!
+    name: String!
+    owner: User!
+    createdBy: User!
+    createdAt: DateTime!
+}
+
+input UsersFilter {
+    isOnline: Boolean!
+}
+
+input CreateUserInput {
+    name: String!
+    username: String!
+    firstName: String
+    lastName: String
+}
+
+input AddGroupInput {
+    name: String!
+    createdBy: ID!
+}
+
+type RemoveGroupPayload {
+    id: ID!
+}
+
+input ChangeOwnerInput {
+    id: ID!
+}
+
+type UserCreatedPayload implements User {
+    id: ID!
+    username: String!
+    firstName: String
+    lastName: String
+    isOnline: Boolean!
+    groups: [Group!]!
+    permissions: [Permission!]!
+    createdAt: DateTime!
+}
+
+type OwnerGroupChangedPayload implements Group {
+    id: ID!
+    name: String!
+    owner: User!
+    createdBy: User!
+    createdAt: DateTime!
+    changedAt: DateTime!
+}

@@ -1,0 +1,7 @@
+#import "../fragments/UserWithGroups.graphql"
+
+mutation createUser ($input: CreateUserInput!) {
+    createUser (input: $input) {
+        ...UserWithGroups
+    }
+}

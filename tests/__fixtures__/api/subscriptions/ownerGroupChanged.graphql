@@ -1,0 +1,8 @@
+#import "../fragments/GroupDetails.graphql"
+
+subscription ownerGroupChanged ($groupId: ID!) {
+    ownerGroupChanged (groupId: $groupId) {
+        ...GroupDetails
+        changedAt
+    }
+}

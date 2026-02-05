@@ -1,0 +1,12 @@
+#import "./UserDetails.graphql"
+
+fragment GroupDetails on Group {
+    id
+    name
+    owner {
+        ...UserDetails
+        permissions
+    }
+    createdBy { ...UserDetails }
+    createdAt
+}
