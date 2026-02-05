@@ -1,0 +1,14 @@
+# Dependency directories
+node_modules
+
+# yarn
+!.yarn
+.yarn/*
+!.yarn/releases
+
+.idea
+
+# Logs
+logs
+*.log
+yarn-error.log*
