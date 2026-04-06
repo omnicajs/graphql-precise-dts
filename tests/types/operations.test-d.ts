@@ -1,55 +1,57 @@
 import type { ApolloClient } from '@apollo/client'
 
-import type { GroupDetails as GroupDetailsFragment } from '~tests/__fixtures__/api/fragments/GroupDetails.graphql'
-import type { UserDetails as UserDetailsFragment } from '~tests/__fixtures__/api/fragments/UserDetails.graphql'
-import type { UserWithGroups as UserWithGroupsFragment } from '~tests/__fixtures__/api/fragments/UserWithGroups.graphql'
+import type { GroupDetails as GroupDetailsFragment } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'
+import type { UserDetails as UserDetailsFragment } from '~tests/fixtures/documents/fragments/UserDetails.graphql'
+import type { UserWithGroups as UserWithGroupsFragment } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
 
 import type {
     GroupMembersQuery,
     GroupMembersQueryVariables,
-} from '~tests/__fixtures__/api/queries/groupMembers.graphql'
+} from '~tests/fixtures/documents/queries/groupMembers.graphql'
 import type {
     OwnerGroupQuery,
     OwnerGroupQueryVariables,
-} from '~tests/__fixtures__/api/queries/ownerGroup.graphql'
+} from '~tests/fixtures/documents/queries/ownerGroup.graphql'
 import type {
     UserQuery,
     UserQueryVariables,
-} from '~tests/__fixtures__/api/queries/user.graphql'
+} from '~tests/fixtures/documents/queries/user.graphql'
 import type {
     UserGroupsQuery,
     UserGroupsQueryVariables,
-} from '~tests/__fixtures__/api/queries/userGroups.graphql'
+} from '~tests/fixtures/documents/queries/userGroups.graphql'
 import type {
     UsersQuery,
     UsersQueryVariables,
-} from '~tests/__fixtures__/api/queries/users.graphql'
+} from '~tests/fixtures/documents/queries/users.graphql'
 
 import type {
     AddGroupMutation,
     AddGroupMutationVariables,
-} from '~tests/__fixtures__/api/mutations/addGroup.graphql'
+} from '~tests/fixtures/documents/mutations/addGroup.graphql'
 import type {
     ChangeOwnerMutation,
     ChangeOwnerMutationVariables,
-} from '~tests/__fixtures__/api/mutations/changeOwner.graphql'
+} from '~tests/fixtures/documents/mutations/changeOwner.graphql'
 import type {
     CreateUserMutation,
-    CreateUserMutationVariables
-} from '~tests/__fixtures__/api/mutations/createUser.graphql'
+    CreateUserMutationVariables,
+} from '~tests/fixtures/documents/mutations/createUser.graphql'
 import type {
     RemoveGroupMutation,
     RemoveGroupMutationVariables,
-} from '~tests/__fixtures__/api/mutations/removeGroup.graphql'
+} from '~tests/fixtures/documents/mutations/removeGroup.graphql'
 
 import type {
     OwnerGroupChangedSubscription,
     OwnerGroupChangedSubscriptionVariables,
-} from '~tests/__fixtures__/api/subscriptions/ownerGroupChanged.graphql'
+} from '~tests/fixtures/documents/subscriptions/ownerGroupChanged.graphql'
 import type {
     UserCreatedSubscription,
     UserCreatedSubscriptionVariables,
-} from '~tests/__fixtures__/api/subscriptions/userCreated.graphql'
+} from '~tests/fixtures/documents/subscriptions/userCreated.graphql'
+
+import type { Permission } from '../fixtures/artifacts/schema'
 
 import {
     describe,
@@ -57,19 +59,19 @@ import {
     test,
 } from 'vitest'
 
-import { query as GroupMembersDocument } from '~tests/__fixtures__/api/queries/groupMembers.graphql'
-import { query as OwnerGroupDocument } from '~tests/__fixtures__/api/queries/ownerGroup.graphql'
-import { query as UserDocument } from '~tests/__fixtures__/api/queries/user.graphql'
-import { query as UserGroupsDocument } from '~tests/__fixtures__/api/queries/userGroups.graphql'
-import { query as UsersDocument } from '~tests/__fixtures__/api/queries/users.graphql'
+import { groupMembersQuery } from '~tests/fixtures/documents/queries/groupMembers.graphql'
+import { ownerGroupQuery } from '~tests/fixtures/documents/queries/ownerGroup.graphql'
+import { userQuery } from '~tests/fixtures/documents/queries/user.graphql'
+import { userGroupsQuery } from '~tests/fixtures/documents/queries/userGroups.graphql'
+import { usersQuery } from '~tests/fixtures/documents/queries/users.graphql'
 
-import { mutation as AddGroupDocument } from '~tests/__fixtures__/api/mutations/addGroup.graphql'
-import { mutation as ChangeOwnerDocument } from '~tests/__fixtures__/api/mutations/changeOwner.graphql'
-import { mutation as CreateUserDocument } from '~tests/__fixtures__/api/mutations/createUser.graphql'
-import { mutation as RemoveGroupDocument } from '~tests/__fixtures__/api/mutations/removeGroup.graphql'
+import { addGroupMutation } from '~tests/fixtures/documents/mutations/addGroup.graphql'
+import { changeOwnerMutation } from '~tests/fixtures/documents/mutations/changeOwner.graphql'
+import { createUserMutation } from '~tests/fixtures/documents/mutations/createUser.graphql'
+import { removeGroupMutation } from '~tests/fixtures/documents/mutations/removeGroup.graphql'
 
-import { subscription as OwnerGroupChangedDocument } from '~tests/__fixtures__/api/subscriptions/ownerGroupChanged.graphql'
-import { subscription as UserCreatedDocument } from '~tests/__fixtures__/api/subscriptions/userCreated.graphql'
+import { ownerGroupChangedSubscription } from '~tests/fixtures/documents/subscriptions/ownerGroupChanged.graphql'
+import { userCreatedSubscription } from '~tests/fixtures/documents/subscriptions/userCreated.graphql'
 
 declare const client: ApolloClient
 
@@ -79,22 +81,23 @@ describe('fragments', () => {
     describe('UserDetails', () => {
         test('signature match', () => {
             expectTypeOf<UserDetailsFragment>().toEqualTypeOf<{
+                __typename?: 'UserCreatedPayload';
                 id: string;
                 username: string;
-                firstName?: string | null;
-                lastName?: string | null;
+                firstName: string | null;
+                lastName: string | null;
                 isOnline: boolean;
             }>()
         })
 
         test('compatible with query result', async () => {
             const { data } = await client.query({
-                query: GroupMembersDocument,
+                query: groupMembersQuery,
                 variables: { groudId: '1' },
             })
 
             data!.groupMembers!.map(gm => {
-                expectTypeOf(gm).toMatchObjectType<UserDetailsFragment>()
+                expectTypeOf(gm).toEqualTypeOf<UserDetailsFragment>()
             })
         })
     })
@@ -102,36 +105,26 @@ describe('fragments', () => {
     describe('GroupDetails', () => {
         test('signature match', () => {
             expectTypeOf<GroupDetailsFragment>().toEqualTypeOf<{
+                __typename?: 'OwnerGroupChangedPayload';
                 id: string;
                 name: string;
                 owner: {
-                    id: string;
-                    username: string;
-                    firstName?: string | null;
-                    lastName?: string | null;
-                    isOnline: boolean;
-                    permissions: Array<'GroupCreate' | 'GroupEdit'>;
-                }
-                createdBy: {
-                    id: string;
-                    username: string;
-                    firstName?: string | null;
-                    lastName?: string | null;
-                    isOnline: boolean;
-                }
-                createdAt: string
+                    permissions: Array<Permission>;
+                } & UserDetailsFragment;
+                createdBy: UserDetailsFragment;
+                createdAt: string;
             }>()
         })
 
         test('compatible with query result', async () => {
             const { data } = await client.query({
-                query: UserGroupsDocument,
+                query: userGroupsQuery,
                 variables: { id: '1' },
             })
 
             expectTypeOf(data!).toEqualTypeOf<UserGroupsQuery>()
             data!.userGroups!.map(g => {
-                expectTypeOf(g).toMatchObjectType<GroupDetailsFragment>()
+                expectTypeOf(g).toEqualTypeOf<GroupDetailsFragment>()
 
                 expectTypeOf(g.owner).toMatchObjectType<UserDetailsFragment>()
                 expectTypeOf(g.createdBy).toMatchObjectType<UserDetailsFragment>()
@@ -146,48 +139,23 @@ describe('fragments', () => {
 
     describe('UserWithGroupsDetails', () => {
         test('signature match', () => {
-            expectTypeOf<UserWithGroupsFragment>().toEqualTypeOf<{
-                id: string;
-                username: string;
-                firstName?: string | null;
-                lastName?: string | null;
-                isOnline: boolean;
-                groups: Array<{
-                    id: string;
-                    name: string;
-                    owner: {
-                        id: string;
-                        username: string;
-                        firstName?: string | null;
-                        lastName?: string | null;
-                        isOnline: boolean;
-                        permissions: Array<'GroupCreate' | 'GroupEdit'>;
-                    }
-                    createdBy: {
-                        id: string;
-                        username: string;
-                        firstName?: string | null;
-                        lastName?: string | null;
-                        isOnline: boolean;
-                    }
-                    createdAt: string
-                }>
+            expectTypeOf<UserWithGroupsFragment>().toEqualTypeOf<UserDetailsFragment & {
+                groups: Array<GroupDetailsFragment>
             }>()
         })
 
         test('compatible with query result', async () => {
             const { data } = await client.query({
-                query: UserDocument,
+                query: userQuery,
                 variables: { id: '1' },
             })
 
-            expectTypeOf(data!.user!).toMatchObjectType<Omit<UserWithGroupsFragment, 'groups'>>()
-            data!.user!.groups.map(g => expectTypeOf(g).toMatchObjectType<GroupDetailsFragment>())
+            expectTypeOf(data!.user!).toEqualTypeOf<UserWithGroupsFragment>()
         })
 
         test('fragment fields correspond to the signatures of nested fragments', () => {
             expectTypeOf<UserWithGroupsFragment>().toMatchObjectType<UserDetailsFragment>()
-            expectTypeOf<Element<UserWithGroupsFragment['groups']>>().toMatchObjectType<GroupDetailsFragment>()
+            expectTypeOf<Element<UserWithGroupsFragment['groups']>>().toEqualTypeOf<GroupDetailsFragment>()
         })
     })
 })
@@ -196,7 +164,7 @@ describe('queries', () => {
     describe('get the owner of a group', () => {
         test('result', async () => {
             const { data } = await client.query({
-                query: OwnerGroupDocument,
+                query: ownerGroupQuery,
                 variables: { id: '1' },
             })
 
@@ -213,7 +181,7 @@ describe('queries', () => {
     describe('get user', () => {
         test('result', async () => {
             const { data } = await client.query({
-                query: UserDocument,
+                query: userQuery,
                 variables: { id: '1' },
             })
 
@@ -231,10 +199,9 @@ describe('queries', () => {
         test.each([
             { filter: { isOnline: true } },
             { filter: null },
-            undefined
         ])('result', async (variables) => {
             const { data } = await client.query({
-                query: UsersDocument,
+                query: usersQuery,
                 variables,
             })
 
@@ -243,7 +210,7 @@ describe('queries', () => {
 
         test('variables', () => {
             expectTypeOf<UsersQueryVariables>().toEqualTypeOf<{
-                filter?: { isOnline: boolean } | null
+                filter: { isOnline: boolean } | null
             }>()
         })
     })
@@ -251,7 +218,7 @@ describe('queries', () => {
     describe('get user groups', () => {
         test('result', async () => {
             const { data } = await client.query({
-                query: UserGroupsDocument,
+                query: userGroupsQuery,
                 variables: { id: '1' },
             })
 
@@ -268,7 +235,7 @@ describe('queries', () => {
     describe('get group members', () => {
         test('result', async () => {
             const { data } = await client.query({
-                query: GroupMembersDocument,
+                query: groupMembersQuery,
                 variables: { groudId: '1' },
             })
 
@@ -287,12 +254,12 @@ describe('mutations', () => {
     describe('adding a new group', () => {
         test('result', async () => {
             const { data } = await client.mutate({
-                mutation: AddGroupDocument,
+                mutation: addGroupMutation,
                 variables: {
                     input: {
                         name: 'test group',
                         createdBy: '1',
-                    }
+                    },
                 },
             })
 
@@ -312,11 +279,11 @@ describe('mutations', () => {
     describe('change group owner', () => {
         test('result', async () => {
             const { data } = await client.mutate({
-                mutation: ChangeOwnerDocument,
+                mutation: changeOwnerMutation,
                 variables: {
                     input: {
-                        id: '2'
-                    }
+                        id: '2',
+                    },
                 },
             })
 
@@ -334,14 +301,14 @@ describe('mutations', () => {
 
     describe('user creation', () => {
         test.each([
-            { name: 'user1', username: 'user1' },
-            { name: 'user1', username: 'user1', firstName: 'firstName' },
+            { name: 'user1', username: 'user1', firstName: null, lastName: null },
+            { name: 'user1', username: 'user1', firstName: 'firstName', lastName: null },
             { name: 'user1', username: 'user1', firstName: 'firstName', lastName: 'lastName' },
         ])('result', async (variables) => {
             const { data } = await client.mutate({
-                mutation: CreateUserDocument,
+                mutation: createUserMutation,
                 variables: {
-                    input: { ...variables }
+                    input: { ...variables },
                 },
             })
 
@@ -353,8 +320,8 @@ describe('mutations', () => {
                 input: {
                     name: string,
                     username: string,
-                    firstName?: string | null,
-                    lastName?: string | null,
+                    firstName: string | null,
+                    lastName: string | null,
                 }
             }>()
         })
@@ -363,7 +330,7 @@ describe('mutations', () => {
     describe('deleting a group', () => {
         test('result', async () => {
             const { data } = await client.mutate({
-                mutation: RemoveGroupDocument,
+                mutation: removeGroupMutation,
                 variables: { id: '1' },
             })
 
@@ -382,7 +349,7 @@ describe('subscriptions', () => {
     describe('change group owner', () => {
         test('result', async () => {
             const observable = client.subscribe({
-                query: OwnerGroupChangedDocument,
+                query: ownerGroupChangedSubscription,
                 variables: { groupId: '1' },
             })
 
@@ -401,7 +368,7 @@ describe('subscriptions', () => {
     describe('changing user data', () => {
         test('result', async () => {
             const observable = client.subscribe({
-                query: UserCreatedDocument,
+                query: userCreatedSubscription,
             })
 
             observable.subscribe(({ data }) => {
