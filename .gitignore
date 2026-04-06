@@ -1,6 +1,8 @@
 # Dependency directories
 node_modules
 
+dist
+
 # yarn
 !.yarn
 .yarn/*
@@ -12,3 +14,9 @@ node_modules
 logs
 *.log
 yarn-error.log*
+
+# Generated data
+src/generated
+
+# Coverage
+coverage
