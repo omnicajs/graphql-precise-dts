@@ -9,7 +9,7 @@ generate({
             plugins: [ './dist/codegen-plugin/index.js' ],
             config: {
                 prefix: '~tests/',
-                scope: 'fixtures/documents/fragments/',
+                scope: 'fixtures/documents/',
                 emit: 'types',
                 scalars: {
                     DateTime: 'string',

@@ -7,10 +7,10 @@ import type { Types } from '@graphql-codegen/plugin-helpers'
 
 import { FragmentDefinitionNode } from 'graphql/index'
 
-import { basename } from 'path'
 import { buildDefinitionRegistry } from '../model-builder'
 import { dirname } from 'path'
 import { getImportsBlocksForDeclaration } from '../planning/import-planner'
+import { isAbsolute } from 'path'
 import { join } from 'path'
 import { makeDocumentDeclarations } from '../planning/document-declarations'
 import { makeImportBlocks } from '../planning/import-planner'
@@ -38,6 +38,24 @@ const resolveScopeRoot = (scope?: string): string | undefined => {
     return normalizedScope.slice(0, lastSlashIndex + 1)
 }
 
+const resolveDocumentModulePath = (
+    documentLocation: string,
+    relativeMode: boolean
+): string => {
+    if (relativeMode || isAbsolute(documentLocation)) {
+        return normalizePath(relative(process.cwd(), documentLocation))
+    }
+
+    return normalizePath(documentLocation)
+}
+
+const makeRelativeModuleSpecifier = (path: string): string => {
+    if (path === DEFAULT_DOCUMENT_NAME) return path
+    if (path.startsWith('./') || path.startsWith('../')) return path
+
+    return `./${path}`
+}
+
 export const makeModuleLocation = (
     prefix: string,
     documentLocation?: string,
@@ -52,16 +70,22 @@ export const makeModuleLocation = (
             const scopeStartIndex = normalizedDocumentLocation.indexOf(scopeRoot)
 
             if (scopeStartIndex !== -1) {
-                return `${prefix}${normalizedDocumentLocation.slice(scopeStartIndex)}`
+                const scopedPath = normalizedDocumentLocation.slice(scopeStartIndex)
+
+                return prefix
+                    ? `${prefix}${scopedPath}`
+                    : makeRelativeModuleSpecifier(scopedPath)
             }
         }
     }
 
-    const fileName = relativeMode
-        ? relative(process.cwd(), documentLocation ?? DEFAULT_DOCUMENT_NAME)
-        : basename(documentLocation ?? DEFAULT_DOCUMENT_NAME)
+    const fileName = documentLocation
+        ? resolveDocumentModulePath(documentLocation, relativeMode)
+        : DEFAULT_DOCUMENT_NAME
 
-    return `${prefix}${fileName}`
+    return prefix
+        ? `${prefix}${fileName}`
+        : makeRelativeModuleSpecifier(fileName)
 }
 
 const renderDeclarations = (
