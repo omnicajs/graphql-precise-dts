@@ -38,35 +38,53 @@ const schema = buildSchema(`
     }
 `)
 
+const withTempOutput = async <T>(
+    run: (info: { outputFile: string; tempDir: string }) => Promise<T>
+): Promise<T> => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'graphql-typed-declaration-'))
+    const info = {
+        outputFile: join(tempDir, 'types.d.ts'),
+        tempDir,
+    }
+
+    try {
+        return await run(info)
+    } finally {
+        rmSync(tempDir, { recursive: true, force: true })
+    }
+}
+
 describe('plugin __typename support', () => {
     test('supports structured field override-type policies', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            id @opaque
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id @opaque
+                            }
                         }
-                    }
-                `),
-            }],
-            {
-                prefix: '~tests/',
-                directivePolicies: {
-                    opaque: {
-                        field: {
-                            effect: 'override-type',
-                            type: 'OpaqueId',
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    directivePolicies: {
+                        opaque: {
+                            field: {
+                                effect: 'override-type',
+                                type: 'OpaqueId',
+                            },
                         },
                     },
                 },
-            },
-            { outputFile: 'types.d.ts' }
-        )
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\t\t\tid: OpaqueId;`)
+            expect(result.content).toContain(`\t\t\tid: OpaqueId;`)
+        })
     })
 
     test('supports structured field nonnull policies', async () => {
@@ -80,303 +98,323 @@ describe('plugin __typename support', () => {
             }
         `)
 
-        const result = await plugin(
-            nullableSchema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserNickname on User {
-                        nickname @required
-                    }
-                `),
-            }],
-            {
-                prefix: '~tests/',
-                directivePolicies: {
-                    required: {
-                        field: {
-                            effect: 'nonnull',
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                nullableSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserNickname on User {
+                            nickname @required
+                        }
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    directivePolicies: {
+                        required: {
+                            field: {
+                                effect: 'nonnull',
+                            },
                         },
                     },
                 },
-            },
-            { outputFile: 'types.d.ts' }
-        )
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\t\tnickname: string;`)
-        expect(result.content).not.toContain(`\t\tnickname: string | null;`)
+            expect(result.content).toContain(`\t\tnickname: string;`)
+            expect(result.content).not.toContain(`\t\tnickname: string | null;`)
+        })
     })
 
     test('supports per-node directive policies', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            id @mask
-                            ... on UserPayload @mask {
-                                __typename
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id @mask
+                                ... on UserPayload @mask {
+                                    __typename
+                                }
                             }
                         }
-                    }
-                `),
-            }],
-            {
-                prefix: '~tests/',
-                directivePolicies: {
-                    mask: {
-                        field: {
-                            effect: 'ignore',
-                        },
-                        inlineFragment: {
-                            effect: 'conditional',
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    directivePolicies: {
+                        mask: {
+                            field: {
+                                effect: 'ignore',
+                            },
+                            inlineFragment: {
+                                effect: 'conditional',
+                            },
                         },
                     },
                 },
-            },
-            { outputFile: 'types.d.ts' }
-        )
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\t\t\tid: string;`)
-        expect(result.content).toContain(`\t\t\t__typename?: 'UserPayload' | 'AdminPayload';`)
-        expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+            expect(result.content).toContain(`\t\t\tid: string;`)
+            expect(result.content).toContain(`\t\t\t__typename?: 'UserPayload' | 'AdminPayload';`)
+            expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+        })
     })
 
     test('emits warnings for warn directive policies without changing shape', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            id @review
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id @review
+                            }
                         }
-                    }
-                `),
-            }],
-            {
-                prefix: '~tests/',
-                directivePolicies: {
-                    review: {
-                        field: {
-                            effect: 'warn',
-                            message: 'Directive "@review" needs manual verification',
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    directivePolicies: {
+                        review: {
+                            field: {
+                                effect: 'warn',
+                                message: 'Directive "@review" needs manual verification',
+                            },
                         },
                     },
                 },
-            },
-            { outputFile: 'types.d.ts' }
-        )
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\t\t\tid: string;`)
-        expect(warn).toHaveBeenCalledWith('Directive "@review" needs manual verification')
+            expect(result.content).toContain(`\t\t\tid: string;`)
+            expect(warn).toHaveBeenCalledWith('Directive "@review" needs manual verification')
+        })
         warn.mockRestore()
     })
 
     test('supports custom optional directive policies', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            id @mask
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id @mask
+                            }
                         }
-                    }
-                `),
-            }],
-            {
-                prefix: '~tests/',
-                directivePolicies: {
-                    mask: {
-                        field: {
-                            effect: 'conditional',
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    directivePolicies: {
+                        mask: {
+                            field: {
+                                effect: 'conditional',
+                            },
                         },
                     },
                 },
-            },
-            { outputFile: 'types.d.ts' }
-        )
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\t\t\tid?: string;`)
+            expect(result.content).toContain(`\t\t\tid?: string;`)
+        })
     })
 
     test('supports custom exclude directive policies', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            id
-                            ... on UserPayload @clientOnly {
-                                __typename
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                                ... on UserPayload @clientOnly {
+                                    __typename
+                                }
                             }
                         }
-                    }
-                `),
-            }],
-            {
-                prefix: '~tests/',
-                directivePolicies: {
-                    clientOnly: {
-                        inlineFragment: {
-                            effect: 'exclude',
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    directivePolicies: {
+                        clientOnly: {
+                            inlineFragment: {
+                                effect: 'exclude',
+                            },
                         },
                     },
                 },
-            },
-            { outputFile: 'types.d.ts' }
-        )
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\t\t\tid: string;`)
-        expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+            expect(result.content).toContain(`\t\t\tid: string;`)
+            expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+        })
     })
 
     test('ignores custom directives without shape policy', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            id @trace
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id @trace
+                            }
                         }
-                    }
-                `),
-            }],
-            {
-                prefix: '~tests/',
-                directivePolicies: {
-                    trace: {
-                        field: {
-                            effect: 'ignore',
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    directivePolicies: {
+                        trace: {
+                            field: {
+                                effect: 'ignore',
+                            },
                         },
                     },
                 },
-            },
-            { outputFile: 'types.d.ts' }
-        )
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\t\t\tid: string;`)
-        expect(result.content).not.toContain(`\t\t\tid?: string;`)
+            expect(result.content).toContain(`\t\t\tid: string;`)
+            expect(result.content).not.toContain(`\t\t\tid?: string;`)
+        })
     })
 
     test('renders runtime-conditional directives as optional selections in plugin output', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    query GroupOwnerQuery($withTypeName: Boolean!) {
-                        group {
-                            ...GroupOwner
-                        }
-                    }
-
-                    fragment GroupOwner on Group {
-                        owner {
-                            id
-                            ... on UserPayload @include(if: $withTypeName) {
-                                __typename
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        query GroupOwnerQuery($withTypeName: Boolean!) {
+                            group {
+                                ...GroupOwner
                             }
                         }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
 
-        expect(result.content).toContain([
-            `\t\towner: {`,
-            `\t\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
-            `\t\t\tid: string;`,
-        ].join('\n'))
-        expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                                ... on UserPayload @include(if: $withTypeName) {
+                                    __typename
+                                }
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\t\towner: {`,
+                `\t\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
+                `\t\t\tid: string;`,
+            ].join('\n'))
+            expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+        })
     })
 
     test('prunes statically excluded selections from plugin output', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            id
-                            ... on UserPayload @include(if: false) {
-                                __typename
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                                ... on UserPayload @include(if: false) {
+                                    __typename
+                                }
                             }
                         }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\t\t\tid: string;`)
-        expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+            expect(result.content).toContain(`\t\t\tid: string;`)
+            expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+        })
     })
 
     test('keeps explicit __typename selections in artifacts declarations', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            __typename
-                            id
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                __typename
+                                id
+                            }
                         }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
 
-        expect(result.content).toContain([
-            `\t\t__typename?: 'Group';`,
-            `\t\towner: {`,
-            `\t\t\t__typename: 'UserPayload';`,
-            `\t\t\tid: string;`,
-            `\t\t} | {`,
-            `\t\t\t__typename: 'AdminPayload';`,
-            `\t\t\tid: string;`,
-        ].join('\n'))
+            expect(result.content).toContain([
+                `\t\t__typename?: 'Group';`,
+                `\t\towner: {`,
+                `\t\t\t__typename: 'UserPayload';`,
+                `\t\t\tid: string;`,
+                `\t\t} | {`,
+                `\t\t\t__typename: 'AdminPayload';`,
+                `\t\t\tid: string;`,
+            ].join('\n'))
+        })
     })
 
     test('uses possible runtime types for fragment root typename on interfaces', async () => {
-        const result = await plugin(
-            schema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserDetails on User {
-                        id
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
+                            id
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
 
-        expect(result.content).toContain([
-            `\texport type UserDetails = {`,
-            `\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
-            `\t\tid: string;`,
-        ].join('\n'))
+            expect(result.content).toContain([
+                `\texport type UserDetails = {`,
+                `\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
+                `\t\tid: string;`,
+            ].join('\n'))
+        })
     })
 
     test('keeps distinct concrete shapes for interface fragments without explicit __typename', async () => {
@@ -400,36 +438,38 @@ describe('plugin __typename support', () => {
             }
         `)
 
-        const result = await plugin(
-            polymorphicSchema,
-            [{
-                location: 'polymorphic-user.graphql',
-                document: parse(`
-                    fragment UserDetails on User {
-                        id
-                        ... on UserPayload {
-                            permissions
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                polymorphicSchema,
+                [{
+                    location: 'polymorphic-user.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
+                            id
+                            ... on UserPayload {
+                                permissions
+                            }
+                            ... on AdminPayload {
+                                role
+                            }
                         }
-                        ... on AdminPayload {
-                            role
-                        }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
 
-        expect(result.content).toContain([
-            `\texport type UserDetails = {`,
-            `\t\t__typename?: 'UserPayload';`,
-            `\t\tid: string;`,
-            `\t\tpermissions: Array<string>;`,
-            `\t} | {`,
-            `\t\t__typename?: 'AdminPayload';`,
-            `\t\tid: string;`,
-            `\t\trole: string;`,
-        ].join('\n'))
+            expect(result.content).toContain([
+                `\texport type UserDetails = {`,
+                `\t\t__typename?: 'UserPayload';`,
+                `\t\tid: string;`,
+                `\t\tpermissions: Array<string>;`,
+                `\t} | {`,
+                `\t\t__typename?: 'AdminPayload';`,
+                `\t\tid: string;`,
+                `\t\trole: string;`,
+            ].join('\n'))
+        })
     })
 
     test('omits duplicated root typename when the same typename comes from a root spread', async () => {
@@ -453,35 +493,37 @@ describe('plugin __typename support', () => {
             }
         `)
 
-        const result = await plugin(
-            nestedSchema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserDetails on User {
-                        id
-                    }
-
-                    fragment UserWithGroups on User {
-                        ...UserDetails
-                        groups {
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                nestedSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
                             id
                         }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
 
-        expect(result.content).toContain([
-            `\texport type UserWithGroups = {`,
-            `\t\tgroups: Array<{`,
-            `\t\t\t__typename?: 'Group';`,
-            `\t\t\tid: string;`,
-            `\t\t}>;`,
-            `\t} & UserDetails`,
-        ].join('\n'))
+                        fragment UserWithGroups on User {
+                            ...UserDetails
+                            groups {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type UserWithGroups = {`,
+                `\t\tgroups: Array<{`,
+                `\t\t\t__typename?: 'Group';`,
+                `\t\t\tid: string;`,
+                `\t\t}>;`,
+                `\t} & UserDetails`,
+            ].join('\n'))
+        })
     })
 
     test('omits duplicated root typename for a spread imported from another document', async () => {
@@ -505,42 +547,44 @@ describe('plugin __typename support', () => {
             }
         `)
 
-        const result = await plugin(
-            nestedSchema,
-            [{
-                location: 'user-details.graphql',
-                document: parse(`
-                    fragment UserDetails on User {
-                        id
-                    }
-                `),
-            }, {
-                location: 'user-with-groups.graphql',
-                document: parse(`
-                    fragment UserWithGroups on User {
-                        ...UserDetails
-                        groups {
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                nestedSchema,
+                [{
+                    location: 'user-details.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
                             id
                         }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
+                    `),
+                }, {
+                    location: 'user-with-groups.graphql',
+                    document: parse(`
+                        fragment UserWithGroups on User {
+                            ...UserDetails
+                            groups {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
 
-        expect(result.content).toContain([
-            `declare module '~tests/user-with-groups.graphql' {`,
-            `\timport type { UserDetails } from '~tests/user-details.graphql'`,
-            ``,
-            `\texport type UserWithGroups = {`,
-            `\t\tgroups: Array<{`,
-            `\t\t\t__typename?: 'Group';`,
-            `\t\t\tid: string;`,
-            `\t\t}>;`,
-            `\t} & UserDetails`,
-            `}`,
-        ].join('\n'))
+            expect(result.content).toContain([
+                `declare module '~tests/user-with-groups.graphql' {`,
+                `\timport type { UserDetails } from '~tests/user-details.graphql'`,
+                ``,
+                `\texport type UserWithGroups = {`,
+                `\t\tgroups: Array<{`,
+                `\t\t\t__typename?: 'Group';`,
+                `\t\t\tid: string;`,
+                `\t\t}>;`,
+                `\t} & UserDetails`,
+                `}`,
+            ].join('\n'))
+        })
     })
 
     test('omits duplicated root typename when object fields are intersected with two root spreads sharing the same typename union', async () => {
@@ -572,40 +616,42 @@ describe('plugin __typename support', () => {
             }
         `)
 
-        const result = await plugin(
-            nestedSchema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserDetails on User {
-                        id
-                    }
-
-                    fragment UserPresence on User {
-                        isOnline
-                    }
-
-                    fragment UserWithGroups on User {
-                        ...UserDetails
-                        ...UserPresence
-                        groups {
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                nestedSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
                             id
                         }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
 
-        expect(result.content).toContain([
-            `\texport type UserWithGroups = {`,
-            `\t\tgroups: Array<{`,
-            `\t\t\t__typename?: 'Group';`,
-            `\t\t\tid: string;`,
-            `\t\t}>;`,
-            `\t} & UserDetails & UserPresence`,
-        ].join('\n'))
+                        fragment UserPresence on User {
+                            isOnline
+                        }
+
+                        fragment UserWithGroups on User {
+                            ...UserDetails
+                            ...UserPresence
+                            groups {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type UserWithGroups = {`,
+                `\t\tgroups: Array<{`,
+                `\t\t\t__typename?: 'Group';`,
+                `\t\t\tid: string;`,
+                `\t\t}>;`,
+                `\t} & UserDetails & UserPresence`,
+            ].join('\n'))
+        })
     })
 
     test('keeps root typename when object fields are intersected with two root spreads having different typename unions', async () => {
@@ -643,41 +689,43 @@ describe('plugin __typename support', () => {
             }
         `)
 
-        const result = await plugin(
-            nestedSchema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserDetails on User {
-                        id
-                    }
-
-                    fragment UserPresence on Presence {
-                        isOnline
-                    }
-
-                    fragment UserWithGroups on User {
-                        ...UserDetails
-                        ...UserPresence
-                        groups {
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                nestedSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
                             id
                         }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
 
-        expect(result.content).toContain([
-            `\texport type UserWithGroups = {`,
-            `\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
-            `\t\tgroups: Array<{`,
-            `\t\t\t__typename?: 'Group';`,
-            `\t\t\tid: string;`,
-            `\t\t}>;`,
-            `\t} & UserDetails & UserPresence`,
-        ].join('\n'))
+                        fragment UserPresence on Presence {
+                            isOnline
+                        }
+
+                        fragment UserWithGroups on User {
+                            ...UserDetails
+                            ...UserPresence
+                            groups {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type UserWithGroups = {`,
+                `\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
+                `\t\tgroups: Array<{`,
+                `\t\t\t__typename?: 'Group';`,
+                `\t\t\tid: string;`,
+                `\t\t}>;`,
+                `\t} & UserDetails & UserPresence`,
+            ].join('\n'))
+        })
     })
 
     test('renders graphql operations as typed document declarations', async () => {
@@ -692,30 +740,32 @@ describe('plugin __typename support', () => {
             }
         `)
 
-        const result = await plugin(
-            operationSchema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    query UserQuery($id: ID!) {
-                        user(id: $id) {
-                            id
-                            username
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                operationSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        query UserQuery($id: ID!) {
+                            user(id: $id) {
+                                id
+                                username
+                            }
                         }
-                    }
-                `),
-            }],
-            { prefix: '~tests/' },
-            { outputFile: 'types.d.ts' }
-        )
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
 
-        expect(result.content).toContain(`\texport type UserQueryQuery = {`)
-        expect(result.content).toContain(`\t\t__typename?: 'Query';`)
-        expect(result.content).toContain(`\t\tuser: {`)
-        expect(result.content).toContain(`\texport type UserQueryQueryVariables = Exact<{`)
-        expect(result.content).toContain(`\t\tid: string`)
-        expect(result.content).toContain(`\texport const userQueryQuery: TypedDocumentNode<UserQueryQuery, UserQueryQueryVariables>`)
-        expect(result.content).toContain(`\texport default userQueryQuery`)
+            expect(result.content).toContain(`\texport type UserQueryQuery = {`)
+            expect(result.content).toContain(`\t\t__typename?: 'Query';`)
+            expect(result.content).toContain(`\t\tuser: {`)
+            expect(result.content).toContain(`\texport type UserQueryQueryVariables = Exact<{`)
+            expect(result.content).toContain(`\t\tid: string`)
+            expect(result.content).toContain(`\texport const userQueryQuery: TypedDocumentNode<UserQueryQuery, UserQueryQueryVariables>`)
+            expect(result.content).toContain(`\texport default userQueryQuery`)
+        })
     })
 
     test('writes schema.d.ts next to the generated declarations and imports enums from it', async () => {
@@ -737,10 +787,7 @@ describe('plugin __typename support', () => {
             }
         `)
 
-        const tempDir = mkdtempSync(join(tmpdir(), 'graphql-typed-declaration-'))
-        const outputFile = join(tempDir, 'types.d.ts')
-
-        try {
+        await withTempOutput(async ({ outputFile, tempDir }) => {
             const result = await plugin(
                 enumSchema,
                 [{
@@ -768,14 +815,12 @@ describe('plugin __typename support', () => {
             expect(readFileSync(join(tempDir, 'schema.d.ts'), 'utf8')).toBe(
                 [
                     'export type Scalars = {',
-                    '    DateTime: { input: string; output: string; };',
+                    '\tDateTime: { input: string; output: string; };',
                     '};',
                     '',
                     `export type Permission = 'GroupCreate' | 'GroupEdit'`,
                 ].join('\n')
             )
-        } finally {
-            rmSync(tempDir, { recursive: true, force: true })
-        }
+        })
     })
 })
