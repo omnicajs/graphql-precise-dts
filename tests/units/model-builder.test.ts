@@ -251,7 +251,6 @@ describe('model builder', () => {
             : undefined
 
         expect(ownerField).not.toBeUndefined()
-
         expect(ownerField?.kind).toBe(DefinitionNodeKind.FIELD)
 
         const ownerValue = ownerField && 'value' in ownerField ? ownerField.value : undefined
@@ -296,6 +295,106 @@ describe('model builder', () => {
                         typeNames: [ 'AdminPayload' ],
                     },
                 }),
+                expect.objectContaining({
+                    kind: DefinitionNodeKind.FIELD,
+                    name: 'id',
+                    value: {
+                        kind: FieldValueKind.SCALAR,
+                        typeTs: 'string',
+                    },
+                }),
+                expect.objectContaining({
+                    kind: DefinitionNodeKind.INLINE_FRAGMENT,
+                    typeCondition: 'AdminPayload',
+                }),
+            ]),
+        }])
+    })
+
+    test('specializes nested interface selections without explicit __typename into concrete variants', () => {
+        const schema = buildSchema(`
+            interface User {
+                id: ID!
+            }
+
+            type UserPayload implements User {
+                id: ID!
+                permissions: [String!]!
+            }
+
+            type AdminPayload implements User {
+                id: ID!
+                role: String!
+            }
+
+            type Group {
+                owner: User!
+            }
+
+            type Query {
+                group: Group!
+            }
+        `)
+        const documents = [{
+            location: 'group.graphql',
+            document: parse(`
+                fragment GroupOwner on Group {
+                    owner {
+                        id
+                        ... on UserPayload {
+                            permissions
+                        }
+                        ... on AdminPayload {
+                            role
+                        }
+                    }
+                }
+            `),
+        }]
+
+        const registry = buildDefinitionRegistry(
+            {
+                fragment: [ 'GroupOwner' ],
+                enums: [],
+            },
+            {
+                schema,
+                fragmentsDefs: fragmentsDefs(documents),
+                customScalars: {},
+                directivePolicies: {},
+            }
+        )
+
+        const groupOwner = registry.fragments.get('GroupOwner')
+        const ownerField = groupOwner?.root.kind === FragmentRootKind.OBJECT
+            ? groupOwner.root.fields[0]
+            : undefined
+
+        expect(ownerField).not.toBeUndefined()
+        expect(ownerField?.kind).toBe(DefinitionNodeKind.FIELD)
+
+        const ownerValue = ownerField && 'value' in ownerField ? ownerField.value : undefined
+
+        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(FieldValueKind.UNION)
+        expect(ownerValue && 'variants' in ownerValue ? ownerValue.variants : undefined).toEqual([{
+            typeName: 'UserPayload',
+            fields: expect.arrayContaining([
+                expect.objectContaining({
+                    kind: DefinitionNodeKind.FIELD,
+                    name: 'id',
+                    value: {
+                        kind: FieldValueKind.SCALAR,
+                        typeTs: 'string',
+                    },
+                }),
+                expect.objectContaining({
+                    kind: DefinitionNodeKind.INLINE_FRAGMENT,
+                    typeCondition: 'UserPayload',
+                }),
+            ]),
+        }, {
+            typeName: 'AdminPayload',
+            fields: expect.arrayContaining([
                 expect.objectContaining({
                     kind: DefinitionNodeKind.FIELD,
                     name: 'id',

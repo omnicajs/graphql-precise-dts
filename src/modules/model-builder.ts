@@ -66,7 +66,7 @@ import {
     makeTypeRefForInput,
 } from './type-resolution'
 import { resolveSelectionDirectives } from './directives'
-import { shouldBuildUnionFragmentRoot } from './type-resolution'
+import { shouldBuildTypeSelectionUnion } from './type-resolution'
 import { shouldForceNonNull } from './directives'
 import { specializeTypeNameSelectionForConcreteType } from './type-resolution'
 import {
@@ -181,12 +181,6 @@ const makeTypeNameFieldValueModel = (
     }
 }
 
-const hasExplicitTypeNameSelection = (selections: readonly SelectionNode[] | undefined): boolean => {
-    return selections?.some(selection =>
-        selection.kind === Kind.FIELD && selection.name.value === '__typename'
-    ) ?? false
-}
-
 const makeScalarFieldValueModel = (
     typeName: string,
     customScalars: ConfigScalar
@@ -240,7 +234,7 @@ const makeInterfaceFieldValueModel = (
 ): FieldValueModel => {
     const interfaceType = getNamedType(type.currentType) as GraphQLInterfaceType
 
-    if (selections && type.selections && hasExplicitTypeNameSelection(selections)) {
+    if (selections && type.selections && shouldBuildTypeSelectionUnion(interfaceType, [ ...selections ])) {
         return makeInterfaceUnionFieldValueModel(type.selections, interfaceType, selections, context)
     }
 
@@ -497,7 +491,7 @@ const makeFragmentModel = (
 
     return {
         ...getFragmentTypeNames(graphqlDef, context.schema),
-        root: shouldBuildUnionFragmentRoot(fragmentType, selections)
+        root: shouldBuildTypeSelectionUnion(fragmentType, selections)
             ? makeFragmentUnionRoot(
                 fragmentType,
                 selections,

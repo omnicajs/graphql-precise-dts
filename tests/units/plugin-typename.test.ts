@@ -160,9 +160,18 @@ describe('plugin __typename support', () => {
                 outputInfo
             )
 
-            expect(result.content).toContain(`\t\t\tid: string;`)
-            expect(result.content).toContain(`\t\t\t__typename?: 'UserPayload' | 'AdminPayload';`)
-            expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
+            expect(result.content).toContain([
+                `\texport type GroupOwner = {`,
+                `\t\t__typename?: 'Group';`,
+                `\t\towner: {`,
+                `\t\t\t__typename?: 'UserPayload';`,
+                `\t\t\tid: string;`,
+                `\t\t} | {`,
+                `\t\t\t__typename: 'AdminPayload';`,
+                `\t\t\tid: string;`,
+                `\t\t};`,
+                `\t}`,
+            ].join('\n'))
         })
     })
 
@@ -329,10 +338,13 @@ describe('plugin __typename support', () => {
 
             expect(result.content).toContain([
                 `\t\towner: {`,
-                `\t\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
+                `\t\t\t__typename?: 'UserPayload';`,
                 `\t\t\tid: string;`,
+                `\t\t} | {`,
+                `\t\t\t__typename: 'AdminPayload';`,
+                `\t\t\tid: string;`,
+                `\t\t};`
             ].join('\n'))
-            expect(result.content).not.toContain(`\t\t\t__typename?: 'UserPayload';`)
         })
     })
 
@@ -384,10 +396,7 @@ describe('plugin __typename support', () => {
             expect(result.content).toContain([
                 `\t\t__typename?: 'Group';`,
                 `\t\towner: {`,
-                `\t\t\t__typename: 'UserPayload';`,
-                `\t\t\tid: string;`,
-                `\t\t} | {`,
-                `\t\t\t__typename: 'AdminPayload';`,
+                `\t\t\t__typename: 'UserPayload' | 'AdminPayload';`,
                 `\t\t\tid: string;`,
             ].join('\n'))
         })
@@ -468,6 +477,69 @@ describe('plugin __typename support', () => {
                 `\t\t__typename?: 'AdminPayload';`,
                 `\t\tid: string;`,
                 `\t\trole: string;`,
+            ].join('\n'))
+        })
+    })
+
+    test('keeps distinct concrete shapes for nested interface fields without explicit __typename', async () => {
+        const polymorphicSchema = buildSchema(`
+            type Query {
+                group: Group!
+            }
+
+            interface User {
+                id: ID!
+            }
+
+            type Group {
+                owner: User!
+            }
+
+            type UserPayload implements User {
+                id: ID!
+                permissions: [String!]!
+            }
+
+            type AdminPayload implements User {
+                id: ID!
+                role: String!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                polymorphicSchema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                                ... on UserPayload {
+                                    permissions
+                                }
+                                ... on AdminPayload {
+                                    role
+                                }
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type GroupOwner = {`,
+                `\t\t__typename?: 'Group';`,
+                `\t\towner: {`,
+                `\t\t\t__typename: 'UserPayload';`,
+                `\t\t\tid: string;`,
+                `\t\t\tpermissions: Array<string>;`,
+                `\t\t} | {`,
+                `\t\t\t__typename: 'AdminPayload';`,
+                `\t\t\tid: string;`,
+                `\t\t\trole: string;`,
             ].join('\n'))
         })
     })

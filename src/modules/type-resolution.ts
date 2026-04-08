@@ -46,16 +46,16 @@ export const makeNonNullTypeRef = (typeRef: TypeRef): TypeRef => {
         }
 }
 
-export const shouldBuildUnionFragmentRoot = (
-    fragmentType: GraphQLNamedType | undefined,
+export const shouldBuildTypeSelectionUnion = (
+    abstractType: GraphQLNamedType | undefined,
     selections: SelectionNode[]
-): fragmentType is GraphQLAbstractType => {
+): abstractType is GraphQLAbstractType => {
     const hasTypeSpecificInlineFragments = selections.some(selection =>
         selection.kind === Kind.INLINE_FRAGMENT && !!selection.typeCondition
     )
 
-    return !!fragmentType
-        && (isInterfaceType(fragmentType) || isUnionType(fragmentType))
+    return !!abstractType
+        && (isInterfaceType(abstractType) || isUnionType(abstractType))
         && hasTypeSpecificInlineFragments
 }
 
