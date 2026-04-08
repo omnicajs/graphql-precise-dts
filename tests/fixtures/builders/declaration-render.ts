@@ -110,10 +110,12 @@ export const inputField = (
     name: string,
     value: InputValueModel,
     nullable = true,
-    isList = false
+    isList = false,
+    optional = nullable
 ): InputFieldModel => ({
     name,
     typeRef: isList ? listType(nullable) : namedType(nullable),
+    optional,
     value,
 })
 

@@ -124,11 +124,61 @@ describe('declaration rendering', () => {
             expect(result).toContain('\t\t} | null;')
             expect(result).toContain('\texport type GetUserQueryQueryVariables = Exact<{')
             expect(result).toContain('\t\tid: string')
-            expect(result).toContain('\t\tfilter: {')
-            expect(result).toContain('\t\t\tstatus: UserStatus | null;')
+            expect(result).toContain('\t\tfilter?: {')
+            expect(result).toContain('\t\t\tstatus?: UserStatus | null;')
             expect(result).toContain('\t\t} | null;')
             expect(result).toContain('\texport const getUserQueryQuery: TypedDocumentNode<GetUserQueryQuery, GetUserQueryQueryVariables>')
             expect(result).toContain('\texport default getUserQueryQuery')
+        })
+
+        test('renders required and optional input fields separately from nullability', () => {
+            const result = renderDeclaration(
+                './documents',
+                declarationDefinitions(
+                    new Map(),
+                    new Map([
+                        ['UpdateUser', operation(
+                            OperationTypeNode.MUTATION,
+                            [],
+                            [
+                                inputField('input', inputObjectValue([
+                                    inputField('name', {
+                                        kind: FieldValueKind.SCALAR,
+                                        typeTs: 'string',
+                                    }, false, false, false),
+                                    inputField('nickname', {
+                                        kind: FieldValueKind.SCALAR,
+                                        typeTs: 'string',
+                                    }, true, false, true),
+                                    inputField('locale', {
+                                        kind: FieldValueKind.SCALAR,
+                                        typeTs: 'string',
+                                    }, true, false, false),
+                                    inputField('token', {
+                                        kind: FieldValueKind.SCALAR,
+                                        typeTs: 'string',
+                                    }, false, false, true),
+                                ]), false, false, false),
+                                inputField('traceId', {
+                                    kind: FieldValueKind.SCALAR,
+                                    typeTs: 'string',
+                                }, true, false, true),
+                            ],
+                            'Mutation'
+                        )],
+                    ])
+                ),
+                new Map()
+            )
+
+            expect(result).toContain('\texport type UpdateUserMutationVariables = Exact<{')
+            expect(result).toContain('\t\tinput: {')
+            expect(result).toContain('\t\t\tname: string;')
+            expect(result).toContain('\t\t\tnickname?: string | null;')
+            expect(result).toContain('\t\t\tlocale: string | null;')
+            expect(result).toContain('\t\t\ttoken?: string;')
+            expect(result).toContain('\t\t};')
+            expect(result).toContain('\t\ttraceId?: string | null;')
         })
 
         test('renders multiple fragments in declaration artifacts', () => {

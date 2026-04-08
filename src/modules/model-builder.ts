@@ -37,8 +37,10 @@ import type { VariableDefinitionNode } from 'graphql'
 import { TypeInfo } from 'graphql'
 
 import { capitalize } from '../lib/string'
-import { filterSelectionsForConcreteType } from './type-resolution'
-import { getFragmentTypeNames } from './type-resolution'
+import {
+    filterSelectionsForConcreteType,
+    getFragmentTypeNames,
+} from './type-resolution'
 import { getNamedType } from 'graphql'
 import {
     getScalarPrimitiveShapeTs,
@@ -51,13 +53,13 @@ import {
     isEnumType,
     isInputObjectType,
     isInterfaceType,
+    isNullableType,
     isObjectType,
 } from 'graphql'
 import { isScalarPrimitiveKey } from './scalar-type-mapping'
-import {
-    isScalarType,
-    isUnionType,
-} from 'graphql'
+import { isScalarType } from 'graphql'
+import { isUndefined } from '../lib/predicates'
+import { isUnionType } from 'graphql'
 import {
     makeNonNullTypeRef,
     makeTypeRefForField,
@@ -530,6 +532,7 @@ const makeInputValueModel = (
             fields: Object.values(namedType.getFields()).map(field => ({
                 name: field.name,
                 typeRef: makeTypeRefForInput(field.type),
+                optional: isNullableType(field.type) || !isUndefined(field.defaultValue),
                 value: makeInputValueModel(field.type, customScalars),
             })),
         }
@@ -541,10 +544,12 @@ const makeInputValueModel = (
 const makeOperationVariableModel = (
     variableName: string,
     type: GraphQLInputType,
-    customScalars: ConfigScalar
+    customScalars: ConfigScalar,
+    hasDefaultValue = false
 ): InputFieldModel => ({
     name: variableName,
     typeRef: makeTypeRefForInput(type),
+    optional: isNullableType(type) || hasDefaultValue,
     value: makeInputValueModel(type, customScalars),
 })
 
@@ -595,7 +600,8 @@ export const makeOperationModel = (
                         makeOperationVariableModel(
                             variableDefinition.variable.name.value,
                             variableType,
-                            context.customScalars
+                            context.customScalars,
+                            !isUndefined(variableDefinition.defaultValue)
                         ),
                     ] : []
             }),

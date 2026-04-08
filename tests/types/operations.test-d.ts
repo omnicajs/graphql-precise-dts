@@ -210,7 +210,7 @@ describe('queries', () => {
 
         test('variables', () => {
             expectTypeOf<UsersQueryVariables>().toEqualTypeOf<{
-                filter: { isOnline: boolean } | null
+                filter?: { isOnline: boolean } | null
             }>()
         })
     })
@@ -320,8 +320,8 @@ describe('mutations', () => {
                 input: {
                     name: string,
                     username: string,
-                    firstName: string | null,
-                    lastName: string | null,
+                    firstName?: string | null,
+                    lastName?: string | null,
                 }
             }>()
         })

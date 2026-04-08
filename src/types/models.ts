@@ -83,7 +83,9 @@ export type DefinitionNodeModel = FieldNodeModel | FragmentSpreadModel | Fragmen
 export type EnumDefinitionModel = { name: string; value: string }[]
 export type ScalarModel = ScalarShape<ScalarTsType, ScalarTsType>
 
-export type InputFieldModel = NamedTypedNode<InputValueModel>
+export type InputFieldModel = NamedTypedNode<InputValueModel> & {
+    optional?: boolean;
+}
 
 export type FragmentRootModel = {
     kind: FragmentRootKind.OBJECT;
