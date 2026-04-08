@@ -12,7 +12,7 @@ import {
     isScalarCustomKey,
     isScalarPrimitiveKey,
     resolveCustomScalarTypeTs,
-} from '../../src/modules/scalar-ts'
+} from '../../src/modules/scalar-type-mapping'
 
 describe('converting graphQL scalars to TS types', () => {
     test('resolves built-in scalar artifacts types', () => {

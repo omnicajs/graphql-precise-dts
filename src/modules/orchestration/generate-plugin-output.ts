@@ -1,8 +1,11 @@
 import type { DocumentDeclaration } from '../planning/document-declarations'
 import type { ImportBlocks } from '../planning/import-planner'
+import type { ModelContext } from '../../types/models'
 import type { PluginConfig } from '../../config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { Types } from '@graphql-codegen/plugin-helpers'
+
+import { FragmentDefinitionNode } from 'graphql/index'
 
 import { basename } from 'path'
 import { buildDefinitionRegistry } from '../model-builder'
@@ -16,6 +19,8 @@ import { relative } from 'path'
 import { renderDeclaration } from '../rendering/typed-declaration'
 import { renderSchemaDeclaration } from '../rendering/schema-declaration'
 import { writeFileSync } from 'fs'
+
+import { Kind } from 'graphql/index'
 
 const DEFAULT_DOCUMENT_NAME = '*.graphql'
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
@@ -72,6 +77,22 @@ const renderDeclarations = (
     .filter(Boolean)
     .join('\n\n')
 
+const findFragmentsDefs = (
+    documents: Parameters<PluginFunction<PluginConfig>>[1]
+): Map<string, FragmentDefinitionNode> => {
+    const fragments = new Map<string, FragmentDefinitionNode>()
+
+    documents.forEach(({ document }) =>
+        document?.definitions.forEach(definition => {
+            if (definition.kind === Kind.FRAGMENT_DEFINITION && !fragments.has(definition.name.value)) {
+                fragments.set(definition.name.value, definition)
+            }
+        })
+    )
+
+    return fragments
+}
+
 const makePrepend = (): string[] => [
     'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n',
 ]
@@ -95,15 +116,22 @@ export const generatePluginOutput = (
 
     const importBlocks = makeImportBlocks(schema, documents, schemaModulePath, declarationModuleLocation)
 
-    const defRegistry = buildDefinitionRegistry(
+    const fragmentDefinitions = findFragmentsDefs(documents)
+    const context = {
         schema,
-        documents,
+        fragmentsDefs: fragmentDefinitions instanceof Map
+            ? fragmentDefinitions
+            : findFragmentsDefs(fragmentDefinitions),
+        customScalars: config.scalars ?? {},
+        directivePolicies: config.directivePolicies ?? {},
+    } satisfies ModelContext
+
+    const defRegistry = buildDefinitionRegistry(
         {
             fragment: [ ...importBlocks.fragments.keys() ],
             enums: [ ...importBlocks.enums.keys() ],
         },
-        config.scalars ?? {},
-        config.directivePolicies ?? {}
+        context
     )
 
     mkdirSync(dirname(schemaOutputFile), { recursive: true })
@@ -112,13 +140,7 @@ export const generatePluginOutput = (
     return {
         prepend: makePrepend(),
         content: renderDeclarations(
-            makeDocumentDeclarations(
-                schema,
-                documents,
-                defRegistry,
-                config.scalars,
-                config.directivePolicies
-            ),
+            makeDocumentDeclarations(documents, defRegistry, context),
             importBlocks,
             declarationModuleLocation
         ),

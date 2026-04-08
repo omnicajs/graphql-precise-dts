@@ -6,7 +6,7 @@ import type {
 import type { Scalars } from '../../types/scalars'
 
 import { indent } from './primitives-render'
-import { isScalarPrimitiveKey } from '../scalar-ts'
+import { isScalarPrimitiveKey } from '../scalar-type-mapping'
 import { renderStringLiteralUnion } from './primitives-render'
 
 const primitiveScalarOrder = [

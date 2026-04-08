@@ -7,8 +7,6 @@ import type {
 } from '../types/scalars'
 import type { ScalarTsType } from '../config'
 
-import { isUndefined } from '../lib/predicates'
-
 const scalarPrimitiveTypesMap = {
     ID: { input: 'string', output: 'string' },
     String: { input: 'string', output: 'string' },
@@ -36,7 +34,7 @@ export const resolveCustomScalarTypeTs = (
     usage: ScalarUsage = 'output'
 ): ScalarTsType => {
     return typeof scalar === 'object' && scalar !== null
-        ? (usage in scalar && !isUndefined(scalar[usage])
+        ? (usage in scalar && typeof scalar[usage] !== 'undefined'
             ? scalar[usage]
             : 'unknown'
         )

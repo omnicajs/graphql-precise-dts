@@ -203,7 +203,7 @@ const renderInputObject = (fields: InputFieldModel[]): string => {
         ...fields.map(field =>
             indent(`${renderFieldRow(
                 field.name,
-                renderNullableTypeRef(field.typeRef, renderInputValue(field.value)),
+                renderNullableTypeRef(field.typeRef, renderInputValue(field.value))
             )}`)
         ),
         '}',

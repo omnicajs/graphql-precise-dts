@@ -6,6 +6,7 @@ import {
 
 import { buildSchema } from 'graphql'
 import { buildDefinitionRegistry } from '../../src/modules/model-builder'
+import { fragmentsDefs } from '../fixtures/builders/declaration-render'
 import { parse } from 'graphql'
 
 import {
@@ -32,24 +33,28 @@ describe('model builder', () => {
                 user: User!
             }
         `)
+        const documents = [{
+            location: 'user.graphql',
+            document: parse(`
+                fragment UserStatusFields on User {
+                    id
+                    createdAt
+                    status
+                }
+            `),
+        }]
 
         const registry = buildDefinitionRegistry(
-            schema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserStatusFields on User {
-                        id
-                        createdAt
-                        status
-                    }
-                `),
-            }],
             {
                 fragment: [],
                 enums: [ 'UserStatus' ],
             },
-            { String: 'DateIsoString' }
+            {
+                schema,
+                fragmentsDefs: fragmentsDefs(documents),
+                customScalars: { String: 'DateIsoString' },
+                directivePolicies: {},
+            }
         )
 
         expect(registry.enums.get('UserStatus')).toEqual([
@@ -90,30 +95,34 @@ describe('model builder', () => {
                 user: User!
             }
         `)
+        const documents = [{
+            location: 'user.graphql',
+            document: parse(`
+                fragment UserBase on User {
+                    id
+                }
+
+                fragment UserCard on User {
+                    ...UserBase
+                    status
+                    profile {
+                        bio
+                    }
+                }
+            `),
+        }]
 
         const registry = buildDefinitionRegistry(
-            schema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserBase on User {
-                        id
-                    }
-
-                    fragment UserCard on User {
-                        ...UserBase
-                        status
-                        profile {
-                            bio
-                        }
-                    }
-                `),
-            }],
             {
                 fragment: [ 'UserBase', 'UserCard' ],
                 enums: [ 'UserStatus' ],
             },
-            {}
+            {
+                schema,
+                fragmentsDefs: fragmentsDefs(documents),
+                customScalars: {},
+                directivePolicies: {},
+            }
         )
 
         expect(registry.fragments.get('UserBase')).toEqual(expect.objectContaining({
@@ -198,31 +207,35 @@ describe('model builder', () => {
                 group: Group!
             }
         `)
-
-        const registry = buildDefinitionRegistry(
-            schema,
-            [{
-                location: 'group.graphql',
-                document: parse(`
-                    fragment GroupOwner on Group {
-                        owner {
-                            __typename
-                            id
-                            ... on UserPayload {
-                                permissions
-                            }
-                            ... on AdminPayload {
-                                role
-                            }
+        const documents = [{
+            location: 'group.graphql',
+            document: parse(`
+                fragment GroupOwner on Group {
+                    owner {
+                        __typename
+                        id
+                        ... on UserPayload {
+                            permissions
+                        }
+                        ... on AdminPayload {
+                            role
                         }
                     }
-                `),
-            }],
+                }
+            `),
+        }]
+
+        const registry = buildDefinitionRegistry(
             {
                 fragment: [ 'GroupOwner' ],
                 enums: [],
             },
-            {}
+            {
+                schema,
+                fragmentsDefs: fragmentsDefs(documents),
+                customScalars: {},
+                directivePolicies: {},
+            }
         )
 
         const groupOwner = registry.fragments.get('GroupOwner')
@@ -311,31 +324,35 @@ describe('model builder', () => {
                 user: User!
             }
         `)
+        const documents = [{
+            location: 'user.graphql',
+            document: parse(`
+                fragment UserBase on User {
+                    id
+                }
 
-        const registry = buildDefinitionRegistry(
-            schema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserBase on User {
+                fragment UserCard on User {
+                    name @include(if: $withName)
+                    email @skip(if: true)
+                    ...UserBase @skip(if: $withoutBase)
+                    ... @include(if: false) {
                         id
                     }
+                }
+            `),
+        }]
 
-                    fragment UserCard on User {
-                        name @include(if: $withName)
-                        email @skip(if: true)
-                        ...UserBase @skip(if: $withoutBase)
-                        ... @include(if: false) {
-                            id
-                        }
-                    }
-                `),
-            }],
+        const registry = buildDefinitionRegistry(
             {
                 fragment: [ 'UserCard' ],
                 enums: [],
             },
-            {}
+            {
+                schema,
+                fragmentsDefs: fragmentsDefs(documents),
+                customScalars: {},
+                directivePolicies: {},
+            }
         )
 
         expect(registry.fragments.get('UserCard')).toEqual(expect.objectContaining({
@@ -375,28 +392,31 @@ describe('model builder', () => {
                 user: User!
             }
         `)
+        const documents = [{
+            location: 'user.graphql',
+            document: parse(`
+                fragment UserCard on User {
+                    id @mask
+                    name @trace
+                    email @clientOnly
+                }
+            `),
+        }]
 
         const registry = buildDefinitionRegistry(
-            schema,
-            [{
-                location: 'user.graphql',
-                document: parse(`
-                    fragment UserCard on User {
-                        id @mask
-                        name @trace
-                        email @clientOnly
-                    }
-                `),
-            }],
             {
                 fragment: [ 'UserCard' ],
                 enums: [],
             },
-            {},
             {
-                mask: { effect: 'conditional' },
-                trace: { effect: 'ignore' },
-                clientOnly: { effect: 'exclude' },
+                schema,
+                fragmentsDefs: fragmentsDefs(documents),
+                customScalars: {},
+                directivePolicies: {
+                    mask: { effect: 'conditional' },
+                    trace: { effect: 'ignore' },
+                    clientOnly: { effect: 'exclude' },
+                },
             }
         )
 

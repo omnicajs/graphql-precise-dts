@@ -10,12 +10,15 @@ import type {
 } from '../../../src/types/models'
 import type { OperationTypeNode } from 'graphql'
 
+import { parse } from 'graphql'
+
 import {
     DefinitionNodeKind,
     FieldValueKind,
     FragmentRootKind,
-    TypeRefKind,
 } from '../../../src/enums/model-kinds'
+import { Kind } from 'graphql'
+import { TypeRefKind } from '../../../src/enums/model-kinds'
 
 const baseNamedType = () => ({
     kind: TypeRefKind.NAMED as const,
@@ -133,3 +136,19 @@ export const declarationDefinitions = (
     fragments,
     operations,
 })
+
+export const fragmentsDefs = (
+    documents: Array<{ document: ReturnType<typeof parse> }>
+): Map<string, Extract<ReturnType<typeof parse>['definitions'][number], { kind: Kind.FRAGMENT_DEFINITION }>> => {
+    const fragmentsDefs = new Map<string, Extract<ReturnType<typeof parse>['definitions'][number], { kind: Kind.FRAGMENT_DEFINITION }>>()
+
+    documents.forEach(({ document }) => {
+        document.definitions.forEach(definition => {
+            if (definition.kind === Kind.FRAGMENT_DEFINITION) {
+                fragmentsDefs.set(definition.name.value, definition)
+            }
+        })
+    })
+
+    return fragmentsDefs
+}

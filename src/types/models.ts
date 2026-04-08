@@ -1,4 +1,11 @@
+import type {
+    ConfigDirectivePolicies,
+    ConfigScalar,
+} from '../config'
+import type { FragmentDefinitionNode } from 'graphql/index'
 import type { OperationTypeNode } from 'graphql'
+import type { PluginConfig } from '../config'
+import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { ScalarShape } from './scalars'
 import type { ScalarTsType } from '../config'
 import type { TypeRefKind } from '../enums/model-kinds'
@@ -8,6 +15,13 @@ import {
     FieldValueKind,
     FragmentRootKind,
 } from '../enums/model-kinds'
+
+export type ModelContext = {
+    schema: Parameters<PluginFunction<PluginConfig>>[0];
+    fragmentsDefs: Map<string, FragmentDefinitionNode>;
+    customScalars: ConfigScalar;
+    directivePolicies: ConfigDirectivePolicies;
+}
 
 export type TypeRef =
     | { kind: TypeRefKind.NAMED; name: string }

@@ -72,7 +72,7 @@ const getDirectivePolicy = (
 const markSelectionConditional = (
     resolved: ResolvedSelectionDirectives,
     directiveName: string
-): void => {
+) => {
     resolved.state = selectionStates.CONDITIONAL
     resolved.directives.push(directiveName)
 }
@@ -149,10 +149,8 @@ export const shouldForceNonNull = (
     directives: DirectiveNode[] = [],
     targetKind: DefinitionNodeKind,
     directivePolicies: ConfigDirectivePolicies = {}
-): boolean => {
-    return directives.some(directive => {
-        const policy = getDirectivePolicy(directive.name.value, targetKind, directivePolicies)
+): boolean => directives.some(directive => {
+    const policy = getDirectivePolicy(directive.name.value, targetKind, directivePolicies)
 
-        return policy?.effect === directivePolicyEffects.NONNULL
-    })
-}
+    return policy?.effect === directivePolicyEffects.NONNULL
+})

@@ -241,7 +241,7 @@ describe('type resolution for models', () => {
         expect(tagsField, 'tags field not found').not.toBeUndefined()
         expect(tagsField, 'tags field not found').not.toBeNull()
 
-        expect(makeTypeRefForField('tags', tagsField.type)).toEqual({
+        expect(makeTypeRefForField(tagsField.type)).toEqual({
             kind: TypeRefKind.NON_NULL,
             ofType: {
                 kind: TypeRefKind.LIST,

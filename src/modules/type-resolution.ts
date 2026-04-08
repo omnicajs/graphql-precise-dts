@@ -4,6 +4,9 @@ import type {
     FragmentDefinitionNode,
     GraphQLAbstractType,
     OperationDefinitionNode,
+    GraphQLInputType,
+    GraphQLNamedType,
+    GraphQLObjectType,
     GraphQLOutputType,
     GraphQLSchema,
 } from 'graphql'
@@ -33,6 +36,28 @@ import { Kind } from 'graphql'
 import { TypeRefKind } from '../enums/model-kinds'
 
 import { GraphQLString } from 'graphql'
+
+export const makeNonNullTypeRef = (typeRef: TypeRef): TypeRef => {
+    return typeRef.kind === TypeRefKind.NON_NULL
+        ? typeRef
+        : {
+            kind: TypeRefKind.NON_NULL,
+            ofType: typeRef,
+        }
+}
+
+export const shouldBuildUnionFragmentRoot = (
+    fragmentType: GraphQLNamedType | undefined,
+    selections: SelectionNode[]
+): fragmentType is GraphQLAbstractType => {
+    const hasTypeSpecificInlineFragments = selections.some(selection =>
+        selection.kind === Kind.INLINE_FRAGMENT && !!selection.typeCondition
+    )
+
+    return !!fragmentType
+        && (isInterfaceType(fragmentType) || isUnionType(fragmentType))
+        && hasTypeSpecificInlineFragments
+}
 
 export const getFragmentTypeNames = (
     fragmentDef: FragmentDefinitionNode,
@@ -64,55 +89,71 @@ const getTypeNamesForParentType = (
     return [ namedType.name ]
 }
 
+const makeFieldTypeSelection = (
+    selection: FieldNode,
+    fields: WeakMap<FieldNode, GraphQLOutputType>,
+    typeNames: WeakMap<FieldNode, string[]>,
+    getTypesForSelections: (selections: SelectionNode[]) => WeakMap<SelectionNode, TypeSelectionNode>
+): TypeSelectionNode | undefined => {
+    const isTypeName = selection.name.value === '__typename' && typeNames.has(selection)
+    const fieldType = fields.get(selection)
+    if (fieldType) {
+        return {
+            kind: DefinitionNodeKind.FIELD,
+            currentType: fieldType,
+            ...(isTypeName && { typeNames: typeNames.get(selection) }),
+            ...(selection.selectionSet?.selections
+                && { selections: getTypesForSelections([ ...selection.selectionSet.selections ]) }
+            ),
+        }
+    }
+
+    return isTypeName
+        ? {
+            kind: DefinitionNodeKind.FIELD,
+            currentType: new GraphQLNonNull(GraphQLString),
+            typeNames: typeNames.get(selection),
+        } : undefined
+}
+
+const makeTypeSelectionNode = (
+    selection: SelectionNode,
+    fields: WeakMap<FieldNode, GraphQLOutputType>,
+    typeNames: WeakMap<FieldNode, string[]>,
+    getTypesForSelections: (selections: SelectionNode[]) => WeakMap<SelectionNode, TypeSelectionNode>
+): TypeSelectionNode | undefined => {
+    switch (selection.kind) {
+        case Kind.FIELD:
+            return makeFieldTypeSelection(selection, fields, typeNames, getTypesForSelections)
+        case Kind.FRAGMENT_SPREAD:
+            return {
+                kind: DefinitionNodeKind.FRAGMENT_SPREAD,
+                name: selection.name.value,
+            }
+        case Kind.INLINE_FRAGMENT:
+            return {
+                kind: DefinitionNodeKind.INLINE_FRAGMENT,
+                ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
+                ...(selection.selectionSet.selections
+                    && { selections: getTypesForSelections([ ...selection.selectionSet.selections ]) }
+                ),
+            }
+    }
+}
+
 const makeTypeTreeForDef = (
     definition: FragmentDefinitionNode | OperationDefinitionNode,
     fields: WeakMap<FieldNode, GraphQLOutputType>,
     typeNames: WeakMap<FieldNode, string[]>
 ): WeakMap<SelectionNode, TypeSelectionNode> => {
-    const getTypesForSelections = (
-        selections: SelectionNode[]
-    ): WeakMap<SelectionNode, TypeSelectionNode> => {
+    const getTypesForSelections = (selections: SelectionNode[]): WeakMap<SelectionNode, TypeSelectionNode> => {
         const nodes = new WeakMap<SelectionNode, TypeSelectionNode>()
 
         selections.forEach(selection => {
             if (nodes.has(selection)) return
 
-            switch (selection.kind) {
-                case Kind.FIELD: {
-                    const isTypeName = selection.name.value === '__typename' && typeNames.has(selection)
-
-                    if (fields.has(selection)) {
-                        nodes.set(selection, {
-                            kind: DefinitionNodeKind.FIELD,
-                            currentType: fields.get(selection) as GraphQLOutputType,
-                            ...(isTypeName && { typeNames: typeNames.get(selection) }),
-                            ...(selection.selectionSet?.selections
-                                && { selections: getTypesForSelections([ ...selection.selectionSet.selections ]) }
-                            ),
-                        })
-                    } else if (isTypeName) {
-                        nodes.set(selection, {
-                            kind: DefinitionNodeKind.FIELD,
-                            currentType: new GraphQLNonNull(GraphQLString),
-                            typeNames: typeNames.get(selection),
-                        })
-                    }
-                    break
-                }
-                case Kind.FRAGMENT_SPREAD:
-                    nodes.set(selection, {
-                        kind: DefinitionNodeKind.FRAGMENT_SPREAD,
-                        name: selection.name.value,
-                    })
-                    break
-                case Kind.INLINE_FRAGMENT:
-                    nodes.set(selection, {
-                        kind: DefinitionNodeKind.INLINE_FRAGMENT,
-                        ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
-                        ...(selection.selectionSet.selections && { selections: getTypesForSelections([ ...selection.selectionSet.selections ]) }),
-                    })
-                    break
-            }
+            const typeSelection = makeTypeSelectionNode(selection, fields, typeNames, getTypesForSelections)
+            if (typeSelection) nodes.set(selection, typeSelection)
         })
 
         return nodes
@@ -148,18 +189,39 @@ export const getTypeForDefinition = (
     return makeTypeTreeForDef(graphqlDef, fields, typeNames)
 }
 
-export const makeTypeRefForField = (name: string, type: GraphQLOutputType): TypeRef => {
+export const makeTypeRefForInput = (type: GraphQLInputType): TypeRef => {
     if (isNonNullType(type)) {
         return {
             kind: TypeRefKind.NON_NULL,
-            ofType: makeTypeRefForField(name, type.ofType),
+            ofType: makeTypeRefForInput(type.ofType),
         }
     }
 
     if (isListType(type)) {
         return {
             kind: TypeRefKind.LIST,
-            ofType: makeTypeRefForField(name, type.ofType),
+            ofType: makeTypeRefForInput(type.ofType),
+        }
+    }
+
+    return {
+        kind: TypeRefKind.NAMED,
+        name: getNamedType(type).name,
+    }
+}
+
+export const makeTypeRefForField = (type: GraphQLOutputType): TypeRef => {
+    if (isNonNullType(type)) {
+        return {
+            kind: TypeRefKind.NON_NULL,
+            ofType: makeTypeRefForField(type.ofType),
+        }
+    }
+
+    if (isListType(type)) {
+        return {
+            kind: TypeRefKind.LIST,
+            ofType: makeTypeRefForField(type.ofType),
         }
     }
 
@@ -171,7 +233,7 @@ export const makeTypeRefForField = (name: string, type: GraphQLOutputType): Type
 
 export const filterSelectionsForConcreteType = (
     schema: GraphQLSchema,
-    concreteType: ReturnType<GraphQLSchema['getPossibleTypes']>[number],
+    concreteType: GraphQLObjectType,
     selections: SelectionNode[]
 ): SelectionNode[] => selections.flatMap<SelectionNode>(selection => {
     if (selection.kind !== Kind.INLINE_FRAGMENT || !selection.typeCondition) return [ selection ]
@@ -183,13 +245,10 @@ export const filterSelectionsForConcreteType = (
         return conditionType.name === concreteType.name ? [ selection ] : []
     }
 
-    if (isInterfaceType(conditionType) && concreteType.getInterfaces().some(type => type.name === conditionType.name)
-        || isUnionType(conditionType) && schema.getPossibleTypes(conditionType).some(type => type.name === concreteType.name)
-    ) {
-        return [ selection ]
-    }
-
-    return []
+    return (isInterfaceType(conditionType) && concreteType.getInterfaces().some(type => type.name === conditionType.name)
+        || isUnionType(conditionType) && schema.getPossibleTypes(conditionType).some(type => type.name === concreteType.name))
+        ? [ selection ]
+        : []
 })
 
 export const specializeTypeNameSelectionForConcreteType = (
