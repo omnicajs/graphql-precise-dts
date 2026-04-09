@@ -4,16 +4,16 @@ import {
     test,
 } from 'vitest'
 
+import { buildModelRegistry } from '../../src/models/builder'
 import { buildSchema } from 'graphql'
-import { buildDefinitionRegistry } from '../../src/modules/model-builder'
-import { fragmentsDefs } from '../fixtures/builders/declaration-render'
+import { makeTestModelContext } from '../fixtures/builders/model-context'
 import { parse } from 'graphql'
 
 import {
-    DefinitionNodeKind,
-    FieldValueKind,
     FragmentRootKind,
-} from '../../src/enums/model-kinds'
+    SelectionModelKind,
+    ValueModelKind,
+} from '../../src/models/kinds'
 
 describe('model builder', () => {
     test('collects registered enums and specified scalars', () => {
@@ -44,34 +44,33 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildDefinitionRegistry(
+        const registry = buildModelRegistry(
             {
-                fragment: [],
+                fragments: [],
                 enums: [ 'UserStatus' ],
             },
-            {
+            makeTestModelContext({
                 schema,
-                fragmentsDefs: fragmentsDefs(documents),
                 customScalars: { String: 'DateIsoString' },
-                directivePolicies: {},
-            }
+                documents,
+            })
         )
 
-        expect(registry.enums.get('UserStatus')).toEqual([
+        expect(registry.schema.enums.get('UserStatus')).toEqual([
             { name: 'ACTIVE', value: 'ACTIVE' },
             { name: 'BLOCKED', value: 'BLOCKED' },
         ])
 
-        expect(registry.scalars.get('String')).toEqual({
+        expect(registry.schema.scalars.get('String')).toEqual({
             input: 'DateIsoString',
             output: 'DateIsoString',
         })
-        expect(registry.scalars.get('ID')).toEqual({
+        expect(registry.schema.scalars.get('ID')).toEqual({
             input: 'string',
             output: 'string',
         })
 
-        expect(registry.fragments.size).toBe(0)
+        expect(registry.documents.fragments.size).toBe(0)
     })
 
     test('builds fragment models with nested objects, enums and fragment spreads', () => {
@@ -112,29 +111,27 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildDefinitionRegistry(
+        const registry = buildModelRegistry(
             {
-                fragment: [ 'UserBase', 'UserCard' ],
+                fragments: [ 'UserBase', 'UserCard' ],
                 enums: [ 'UserStatus' ],
             },
-            {
+            makeTestModelContext({
                 schema,
-                fragmentsDefs: fragmentsDefs(documents),
-                customScalars: {},
-                directivePolicies: {},
-            }
+                documents,
+            })
         )
 
-        expect(registry.fragments.get('UserBase')).toEqual(expect.objectContaining({
+        expect(registry.documents.fragments.get('UserBase')).toEqual(expect.objectContaining({
             onType: 'User',
             root: {
                 kind: FragmentRootKind.OBJECT,
                 fields: [expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: 'id',
                     responseName: 'id',
                     value: {
-                        kind: FieldValueKind.SCALAR,
+                        kind: ValueModelKind.SCALAR,
                         typeTs: 'string',
                     },
                     directives: [],
@@ -142,36 +139,36 @@ describe('model builder', () => {
             },
         }))
 
-        expect(registry.fragments.get('UserCard')).toEqual(expect.objectContaining({
+        expect(registry.documents.fragments.get('UserCard')).toEqual(expect.objectContaining({
             onType: 'User',
             root: {
                 kind: FragmentRootKind.OBJECT,
                 fields: expect.arrayContaining([expect.objectContaining({
-                    kind: DefinitionNodeKind.FRAGMENT_SPREAD,
+                    kind: SelectionModelKind.FRAGMENT_SPREAD,
                     name: 'UserBase',
                     onType: 'User',
                     directives: [],
                 }), expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: 'status',
                     responseName: 'status',
                     value: {
-                        kind: FieldValueKind.ENUM,
+                        kind: ValueModelKind.ENUM,
                         name: 'UserStatus',
                     },
                     directives: [],
                 }), expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: 'profile',
                     responseName: 'profile',
                     value: expect.objectContaining({
-                        kind: FieldValueKind.OBJECT,
+                        kind: ValueModelKind.OBJECT,
                         fields: [expect.objectContaining({
-                            kind: DefinitionNodeKind.FIELD,
+                            kind: SelectionModelKind.FIELD,
                             name: 'bio',
                             responseName: 'bio',
                             value: {
-                                kind: FieldValueKind.SCALAR,
+                                kind: ValueModelKind.SCALAR,
                                 typeTs: 'string',
                             },
                             directives: [],
@@ -225,20 +222,18 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildDefinitionRegistry(
+        const registry = buildModelRegistry(
             {
-                fragment: [ 'GroupOwner' ],
+                fragments: [ 'GroupOwner' ],
                 enums: [],
             },
-            {
+            makeTestModelContext({
                 schema,
-                fragmentsDefs: fragmentsDefs(documents),
-                customScalars: {},
-                directivePolicies: {},
-            }
+                documents,
+            })
         )
 
-        const groupOwner = registry.fragments.get('GroupOwner')
+        const groupOwner = registry.documents.fragments.get('GroupOwner')
 
         expect(groupOwner).not.toBeUndefined()
 
@@ -251,11 +246,11 @@ describe('model builder', () => {
             : undefined
 
         expect(ownerField).not.toBeUndefined()
-        expect(ownerField?.kind).toBe(DefinitionNodeKind.FIELD)
+        expect(ownerField?.kind).toBe(SelectionModelKind.FIELD)
 
         const ownerValue = ownerField && 'value' in ownerField ? ownerField.value : undefined
 
-        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(FieldValueKind.UNION)
+        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(ValueModelKind.UNION)
 
         const ownerVariants = ownerValue && 'variants' in ownerValue ? ownerValue.variants : undefined
 
@@ -264,23 +259,23 @@ describe('model builder', () => {
             typeName: 'UserPayload',
             fields: expect.arrayContaining([
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: '__typename',
                     value: {
-                        kind: FieldValueKind.TYPENAME,
+                        kind: ValueModelKind.TYPENAME,
                         typeNames: [ 'UserPayload' ],
                     },
                 }),
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: 'id',
                     value: {
-                        kind: FieldValueKind.SCALAR,
+                        kind: ValueModelKind.SCALAR,
                         typeTs: 'string',
                     },
                 }),
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.INLINE_FRAGMENT,
+                    kind: SelectionModelKind.INLINE_FRAGMENT,
                     typeCondition: 'UserPayload',
                 }),
             ]),
@@ -288,23 +283,23 @@ describe('model builder', () => {
             typeName: 'AdminPayload',
             fields: expect.arrayContaining([
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: '__typename',
                     value: {
-                        kind: FieldValueKind.TYPENAME,
+                        kind: ValueModelKind.TYPENAME,
                         typeNames: [ 'AdminPayload' ],
                     },
                 }),
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: 'id',
                     value: {
-                        kind: FieldValueKind.SCALAR,
+                        kind: ValueModelKind.SCALAR,
                         typeTs: 'string',
                     },
                 }),
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.INLINE_FRAGMENT,
+                    kind: SelectionModelKind.INLINE_FRAGMENT,
                     typeCondition: 'AdminPayload',
                 }),
             ]),
@@ -352,43 +347,41 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildDefinitionRegistry(
+        const registry = buildModelRegistry(
             {
-                fragment: [ 'GroupOwner' ],
+                fragments: [ 'GroupOwner' ],
                 enums: [],
             },
-            {
+            makeTestModelContext({
                 schema,
-                fragmentsDefs: fragmentsDefs(documents),
-                customScalars: {},
-                directivePolicies: {},
-            }
+                documents,
+            })
         )
 
-        const groupOwner = registry.fragments.get('GroupOwner')
+        const groupOwner = registry.documents.fragments.get('GroupOwner')
         const ownerField = groupOwner?.root.kind === FragmentRootKind.OBJECT
             ? groupOwner.root.fields[0]
             : undefined
 
         expect(ownerField).not.toBeUndefined()
-        expect(ownerField?.kind).toBe(DefinitionNodeKind.FIELD)
+        expect(ownerField?.kind).toBe(SelectionModelKind.FIELD)
 
         const ownerValue = ownerField && 'value' in ownerField ? ownerField.value : undefined
 
-        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(FieldValueKind.UNION)
+        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(ValueModelKind.UNION)
         expect(ownerValue && 'variants' in ownerValue ? ownerValue.variants : undefined).toEqual([{
             typeName: 'UserPayload',
             fields: expect.arrayContaining([
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: 'id',
                     value: {
-                        kind: FieldValueKind.SCALAR,
+                        kind: ValueModelKind.SCALAR,
                         typeTs: 'string',
                     },
                 }),
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.INLINE_FRAGMENT,
+                    kind: SelectionModelKind.INLINE_FRAGMENT,
                     typeCondition: 'UserPayload',
                 }),
             ]),
@@ -396,15 +389,15 @@ describe('model builder', () => {
             typeName: 'AdminPayload',
             fields: expect.arrayContaining([
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.FIELD,
+                    kind: SelectionModelKind.FIELD,
                     name: 'id',
                     value: {
-                        kind: FieldValueKind.SCALAR,
+                        kind: ValueModelKind.SCALAR,
                         typeTs: 'string',
                     },
                 }),
                 expect.objectContaining({
-                    kind: DefinitionNodeKind.INLINE_FRAGMENT,
+                    kind: SelectionModelKind.INLINE_FRAGMENT,
                     typeCondition: 'AdminPayload',
                 }),
             ]),
@@ -441,37 +434,35 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildDefinitionRegistry(
+        const registry = buildModelRegistry(
             {
-                fragment: [ 'UserCard' ],
+                fragments: [ 'UserCard' ],
                 enums: [],
             },
-            {
+            makeTestModelContext({
                 schema,
-                fragmentsDefs: fragmentsDefs(documents),
-                customScalars: {},
-                directivePolicies: {},
-            }
+                documents,
+            })
         )
 
-        expect(registry.fragments.get('UserCard')).toEqual(expect.objectContaining({
+        expect(registry.documents.fragments.get('UserCard')).toEqual(expect.objectContaining({
             root: {
                 kind: FragmentRootKind.OBJECT,
                 fields: [
                     expect.objectContaining({
-                        kind: DefinitionNodeKind.FIELD,
+                        kind: SelectionModelKind.FIELD,
                         name: 'name',
                         directives: [ 'include' ],
                     }),
                     expect.objectContaining({
-                        kind: DefinitionNodeKind.FRAGMENT_SPREAD,
+                        kind: SelectionModelKind.FRAGMENT_SPREAD,
                         name: 'UserBase',
                         directives: [ 'skip' ],
                     }),
                 ],
             },
         }))
-        const conditionalUserCard = registry.fragments.get('UserCard')
+        const conditionalUserCard = registry.documents.fragments.get('UserCard')
 
         expect(conditionalUserCard?.root.kind).toBe(FragmentRootKind.OBJECT)
         expect(conditionalUserCard?.root.kind === FragmentRootKind.OBJECT
@@ -502,37 +493,36 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildDefinitionRegistry(
+        const registry = buildModelRegistry(
             {
-                fragment: [ 'UserCard' ],
+                fragments: [ 'UserCard' ],
                 enums: [],
             },
-            {
+            makeTestModelContext({
                 schema,
-                fragmentsDefs: fragmentsDefs(documents),
-                customScalars: {},
                 directivePolicies: {
                     mask: { effect: 'conditional' },
                     trace: { effect: 'ignore' },
                     clientOnly: { effect: 'exclude' },
                 },
-            }
+                documents,
+            })
         )
 
-        const policyUserCard = registry.fragments.get('UserCard')
+        const policyUserCard = registry.documents.fragments.get('UserCard')
 
         expect(policyUserCard?.root.kind).toBe(FragmentRootKind.OBJECT)
         expect(policyUserCard?.root.kind === FragmentRootKind.OBJECT
             ? policyUserCard.root.fields
             : undefined).toEqual([
             expect.objectContaining({
-                kind: DefinitionNodeKind.FIELD,
+                kind: SelectionModelKind.FIELD,
                 name: 'id',
                 conditional: true,
                 directives: [ 'mask' ],
             }),
             expect.objectContaining({
-                kind: DefinitionNodeKind.FIELD,
+                kind: SelectionModelKind.FIELD,
                 name: 'name',
                 conditional: false,
                 directives: [],

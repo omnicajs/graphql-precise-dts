@@ -1,4 +1,4 @@
-# graphql-typed-declaration
+# graphql-precise-dts
 This plugin generates TypeScript declaration files for GraphQL documents and accounts for directives that can change the shape of the result.
 
 ## Working with directives

@@ -4,7 +4,7 @@ export enum TypeRefKind {
     NON_NULL = 'non-null',
 }
 
-export enum FieldValueKind {
+export enum ValueModelKind {
     SCALAR = 'scalar',
     TYPENAME = 'typename',
     ENUM = 'enum',
@@ -13,7 +13,7 @@ export enum FieldValueKind {
     UNKNOWN = 'unknown',
 }
 
-export enum DefinitionNodeKind {
+export enum SelectionModelKind {
     FIELD = 'field',
     FRAGMENT_SPREAD = 'fragmentSpread',
     INLINE_FRAGMENT = 'inlineFragment',

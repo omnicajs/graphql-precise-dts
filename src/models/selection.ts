@@ -1,23 +1,23 @@
 import type { GraphQLOutputType, SelectionNode } from 'graphql'
 
-import { DefinitionNodeKind } from '../enums/model-kinds'
+import { SelectionModelKind } from './kinds'
 
 export type TypeSelectionNode = TypeFieldNode | TypeFragmentSpreadNode | TypeFragmentInlineNode
 
 export type TypeFieldNode = {
-    kind: DefinitionNodeKind.FIELD
+    kind: SelectionModelKind.FIELD
     currentType: GraphQLOutputType;
     typeNames?: string[];
     selections?: WeakMap<SelectionNode, TypeSelectionNode>;
 }
 
 export type TypeFragmentSpreadNode = {
-    kind: DefinitionNodeKind.FRAGMENT_SPREAD;
+    kind: SelectionModelKind.FRAGMENT_SPREAD;
     name: string;
 }
 
 export type TypeFragmentInlineNode = {
-    kind: DefinitionNodeKind.INLINE_FRAGMENT;
+    kind: SelectionModelKind.INLINE_FRAGMENT;
     typeCondition?: string;
     selections?: WeakMap<SelectionNode, TypeSelectionNode>;
 }

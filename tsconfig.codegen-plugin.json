@@ -10,6 +10,6 @@
     },
     "include": [
         "src/index.ts",
-        "src/enums/model-kinds.ts"
+        "src/models/kinds.ts"
     ]
 }

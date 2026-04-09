@@ -1,19 +1,19 @@
-import type { ScalarShape } from './types/scalars'
+import type { ScalarShape } from './scalars/types'
 
-import { DefinitionNodeKind } from './enums/model-kinds'
+import { SelectionModelKind } from './models/kinds'
 
 export interface PluginConfig {
     prefix?: string;
     scope?: string;
     relativeToCwd?: boolean;
-    scalars?: ConfigScalar;
+    scalars?: ConfigScalars;
     directivePolicies?: ConfigDirectivePolicies;
 }
 
-export type ScalarTsType = string
-export type ConfigScalar = { [K in string]: ScalarTsType | Partial<ScalarShape<ScalarTsType, ScalarTsType>> }
+export type TsTypeString = string
+export type ConfigScalars = { [K in string]: TsTypeString | Partial<ScalarShape<TsTypeString, TsTypeString>> }
 
-export const directivePolicyEffects = {
+export const DIRECTIVE_POLICY_EFFECTS = {
     IGNORE: 'ignore',
     EXCLUDE: 'exclude',
     CONDITIONAL: 'conditional',
@@ -21,7 +21,7 @@ export const directivePolicyEffects = {
     OVERRIDE_TYPE: 'override-type',
     WARN: 'warn',
 } as const
-export type DirectivePolicyEffect = typeof directivePolicyEffects[keyof typeof directivePolicyEffects]
+export type DirectivePolicyEffect = typeof DIRECTIVE_POLICY_EFFECTS[keyof typeof DIRECTIVE_POLICY_EFFECTS]
 
 type Policy<
     T extends DirectivePolicyEffect,
@@ -29,12 +29,12 @@ type Policy<
 > = { effect: T } & Extra
 
 export type DirectivePolicy =
-    | Policy<typeof directivePolicyEffects.IGNORE>
-    | Policy<typeof directivePolicyEffects.EXCLUDE>
-    | Policy<typeof directivePolicyEffects.CONDITIONAL>
-    | Policy<typeof directivePolicyEffects.NONNULL>
-    | Policy<typeof directivePolicyEffects.OVERRIDE_TYPE, { type: string }>
-    | Policy<typeof directivePolicyEffects.WARN, { message?: string }>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.IGNORE>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.EXCLUDE>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.CONDITIONAL>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.NONNULL>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.OVERRIDE_TYPE, { type: string }>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.WARN, { message?: string }>
 
-export type DirectiveNodePolicies = Partial<Record<DefinitionNodeKind, DirectivePolicy>>
+export type DirectiveNodePolicies = Partial<Record<SelectionModelKind, DirectivePolicy>>
 export type ConfigDirectivePolicies = Record<string, DirectivePolicy | DirectiveNodePolicies>

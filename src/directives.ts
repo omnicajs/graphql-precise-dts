@@ -1,29 +1,29 @@
-import type { ConfigDirectivePolicies } from '../config'
+import type { ConfigDirectivePolicies } from './config'
 import type { DirectiveNode } from 'graphql'
 import type {
     DirectiveNodePolicies,
     DirectivePolicy,
-} from '../config'
+} from './config'
 import type { ValueNode } from 'graphql'
 
-import { DefinitionNodeKind } from '../enums/model-kinds'
 import { Kind } from 'graphql'
+import { SelectionModelKind } from './models/kinds'
 
-import { directivePolicyEffects } from '../config'
+import { DIRECTIVE_POLICY_EFFECTS } from './config'
 
-const conditionalDirectives = {
+const CONDITIONAL_DIRECTIVES = {
     INCLUDE: 'include',
     SKIP: 'skip',
 } as const
 
-export const CONDITIONAL_DIRECTIVES: ReadonlySet<string> = new Set(Object.values(conditionalDirectives))
+const conditionalDirectives: ReadonlySet<string> = new Set(Object.values(CONDITIONAL_DIRECTIVES))
 
-export const selectionStates = {
+export const SELECTION_STATES = {
     INCLUDED: 'included',
     EXCLUDED: 'excluded',
     CONDITIONAL: 'conditional',
 } as const
-export type ConditionalSelectionState = typeof selectionStates[keyof typeof selectionStates]
+export type ConditionalSelectionState = typeof SELECTION_STATES[keyof typeof SELECTION_STATES]
 
 export type ResolvedSelectionDirectives = {
     directives: string[];
@@ -34,7 +34,7 @@ export type ResolvedSelectionDirectives = {
 
 export const isConditionalSelectionState = (
     state: ConditionalSelectionState
-): boolean => state === selectionStates.CONDITIONAL
+): boolean => state === SELECTION_STATES.CONDITIONAL
 
 const getBooleanLiteral = (valueNode?: ValueNode): boolean | undefined => {
     if (!valueNode || valueNode.kind !== Kind.BOOLEAN) return
@@ -56,7 +56,7 @@ const isDirectiveNodePolicies = (
 
 const getDirectivePolicy = (
     directiveName: string,
-    targetKind: DefinitionNodeKind,
+    targetKind: SelectionModelKind,
     directivePolicies: ConfigDirectivePolicies = {}
 ): DirectivePolicy | undefined => {
     const policy = directivePolicies[directiveName]
@@ -73,7 +73,7 @@ const markSelectionConditional = (
     resolved: ResolvedSelectionDirectives,
     directiveName: string
 ) => {
-    resolved.state = selectionStates.CONDITIONAL
+    resolved.state = SELECTION_STATES.CONDITIONAL
     resolved.directives.push(directiveName)
 }
 
@@ -81,17 +81,17 @@ const resolveConditionalDirective = (
     directive: DirectiveNode,
     resolved: ResolvedSelectionDirectives
 ): ConditionalSelectionState | undefined => {
-    if (!CONDITIONAL_DIRECTIVES.has(directive.name.value)) return
+    if (!conditionalDirectives.has(directive.name.value)) return
 
     const ifValue = getDirectiveIfValue(directive)
 
-    if (directive.name.value === conditionalDirectives.SKIP) {
-        if (ifValue === true) return selectionStates.EXCLUDED
+    if (directive.name.value === CONDITIONAL_DIRECTIVES.SKIP) {
+        if (ifValue === true) return SELECTION_STATES.EXCLUDED
         if (ifValue === undefined) markSelectionConditional(resolved, directive.name.value)
 
         return
-    } else if (directive.name.value === conditionalDirectives.INCLUDE) {
-        if (ifValue === false) return selectionStates.EXCLUDED
+    } else if (directive.name.value === CONDITIONAL_DIRECTIVES.INCLUDE) {
+        if (ifValue === false) return SELECTION_STATES.EXCLUDED
         if (ifValue === undefined) markSelectionConditional(resolved, directive.name.value)
     }
 }
@@ -102,18 +102,18 @@ const applyDirectivePolicy = (
     resolved: ResolvedSelectionDirectives
 ): ConditionalSelectionState | undefined => {
     switch (policy.effect) {
-        case directivePolicyEffects.IGNORE:
-        case directivePolicyEffects.NONNULL:
+        case DIRECTIVE_POLICY_EFFECTS.IGNORE:
+        case DIRECTIVE_POLICY_EFFECTS.NONNULL:
             return
-        case directivePolicyEffects.EXCLUDE:
-            return selectionStates.EXCLUDED
-        case directivePolicyEffects.CONDITIONAL:
+        case DIRECTIVE_POLICY_EFFECTS.EXCLUDE:
+            return SELECTION_STATES.EXCLUDED
+        case DIRECTIVE_POLICY_EFFECTS.CONDITIONAL:
             markSelectionConditional(resolved, directive.name.value)
             return
-        case directivePolicyEffects.OVERRIDE_TYPE:
+        case DIRECTIVE_POLICY_EFFECTS.OVERRIDE_TYPE:
             resolved.overrideTypeTs = policy.type
             return
-        case directivePolicyEffects.WARN:
+        case DIRECTIVE_POLICY_EFFECTS.WARN:
             resolved.warnings.push(policy.message ?? `Directive "@${directive.name.value}" requires manual review`)
             return
     }
@@ -121,25 +121,25 @@ const applyDirectivePolicy = (
 
 export const resolveSelectionDirectives = (
     directives: DirectiveNode[] = [],
-    targetKind: DefinitionNodeKind,
+    targetKind: SelectionModelKind,
     directivePolicies: ConfigDirectivePolicies = {}
 ): ResolvedSelectionDirectives => {
     const resolved = {
         directives: [],
-        state: selectionStates.INCLUDED,
+        state: SELECTION_STATES.INCLUDED,
         warnings: [],
     } satisfies ResolvedSelectionDirectives
 
     for (const directive of directives) {
         const conditionalState = resolveConditionalDirective(directive, resolved)
-        if (conditionalState === selectionStates.EXCLUDED) return { ...resolved, state: selectionStates.EXCLUDED }
+        if (conditionalState === SELECTION_STATES.EXCLUDED) return { ...resolved, state: SELECTION_STATES.EXCLUDED }
         if (conditionalState) continue
 
         const policy = getDirectivePolicy(directive.name.value, targetKind, directivePolicies)
         if (!policy) continue
 
         const policyState = applyDirectivePolicy(directive, policy, resolved)
-        if (policyState === selectionStates.EXCLUDED) return { ...resolved, state: selectionStates.EXCLUDED }
+        if (policyState === SELECTION_STATES.EXCLUDED) return { ...resolved, state: SELECTION_STATES.EXCLUDED }
     }
 
     return resolved
@@ -147,10 +147,10 @@ export const resolveSelectionDirectives = (
 
 export const shouldForceNonNull = (
     directives: DirectiveNode[] = [],
-    targetKind: DefinitionNodeKind,
+    targetKind: SelectionModelKind,
     directivePolicies: ConfigDirectivePolicies = {}
 ): boolean => directives.some(directive => {
     const policy = getDirectivePolicy(directive.name.value, targetKind, directivePolicies)
 
-    return policy?.effect === directivePolicyEffects.NONNULL
+    return policy?.effect === DIRECTIVE_POLICY_EFFECTS.NONNULL
 })

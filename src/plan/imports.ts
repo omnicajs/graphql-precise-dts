@@ -1,17 +1,17 @@
 import type {
-    DeclarationDefinitions,
-    DefinitionNodeModel,
-    FieldValueModel,
-} from '../../types/models'
+    DocumentModels,
+    FieldValue,
+} from '../models/types'
 import type { FragmentDefinitionNode } from 'graphql'
-import type { FragmentModel } from '../../types/models'
+import type { FragmentModel } from '../models/types'
 import type {
     GraphQLInputType,
     GraphQLOutputType,
 } from 'graphql'
-import type { InputValueModel } from '../../types/models'
-import type { PluginConfig } from '../../config'
+import type { InputValue } from '../models/types'
+import type { PluginConfig } from '../config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import type { SelectionModel } from '../models/types'
 
 import { TypeInfo } from 'graphql'
 
@@ -23,55 +23,55 @@ import {
 } from 'graphql'
 
 import {
-    DefinitionNodeKind,
-    FieldValueKind,
     FragmentRootKind,
-} from '../../enums/model-kinds'
+    SelectionModelKind,
+    ValueModelKind,
+} from '../models/kinds'
 
-export type ImportBlocks = {
+export type ImportMap = {
     fragments: Map<string, string>,
     enums: Map<string, string>,
 }
 
-type ImportBlockCollector = {
-    blocks: ImportBlocks
+type ImportMapCollector = {
+    imports: ImportMap
     addEnum(typeNode: GraphQLInputType | GraphQLOutputType): void
     addFragment(name: string, location?: string): void
 }
 
-type DeclarationImportCollector = {
+type DocumentImportCollector = {
     imports: Map<string, string>
-    importMap: ImportBlocks
+    importMap: ImportMap
 }
 
-const createImportBlockCollector = (
+const createImportMapCollector = (
     schemaModulePath: string,
     moduleLocation: (location?: string) => string
-): ImportBlockCollector => {
-    const blocks: ImportBlocks = {
+): ImportMapCollector => {
+    const imports: ImportMap = {
         fragments: new Map<string, string>(),
         enums: new Map<string, string>(),
     }
 
     return {
-        blocks,
+        imports,
         addEnum(typeNode) {
             const namedType = getNamedType(typeNode)
-            if (isEnumType(namedType) && !blocks.enums.has(namedType.name)) {
-                blocks.enums.set(namedType.name, schemaModulePath)
+            if (isEnumType(namedType) && !imports.enums.has(namedType.name)) {
+                imports.enums.set(namedType.name, schemaModulePath)
             }
         },
         addFragment(name, location) {
-            if (!blocks.fragments.has(name)) {
-                blocks.fragments.set(name, moduleLocation(location))
+            if (!imports.fragments.has(name)) {
+                imports.fragments.set(name, moduleLocation(location))
             }
         },
     }
 }
 
-const createImportBlockVisitor = (
+const createImportMapVisitor = (
     typeInfo: TypeInfo,
-    collector: ImportBlockCollector,
+    collector: ImportMapCollector,
     location?: string
 ) => ({
     EnumValue() {
@@ -91,13 +91,13 @@ const createImportBlockVisitor = (
     },
 })
 
-export const makeImportBlocks = (
+export const makeImportMap = (
     schema: Parameters<PluginFunction<PluginConfig>>[0],
     documents: Parameters<PluginFunction<PluginConfig>>[1],
     schemaModulePath: string,
     moduleLocation: (location: string | undefined) => string
-): ImportBlocks => {
-    const collector = createImportBlockCollector(schemaModulePath, moduleLocation)
+): ImportMap => {
+    const collector = createImportMapCollector(schemaModulePath, moduleLocation)
 
     documents.forEach(documentFile => {
         if (!documentFile.document) return
@@ -107,94 +107,94 @@ export const makeImportBlocks = (
             documentFile.document,
             visitWithTypeInfo(
                 typeInfo,
-                createImportBlockVisitor(typeInfo, collector, documentFile.location)
+                createImportMapVisitor(typeInfo, collector, documentFile.location)
             )
         )
     })
 
-    return collector.blocks
+    return collector.imports
 }
 
-const visitDefinitionNodes = (
-    collector: DeclarationImportCollector,
-    definitions: DefinitionNodeModel[] = []
-) => definitions.forEach(definition => visitDefinitionNode(collector, definition))
+const visitSelectionModels = (
+    collector: DocumentImportCollector,
+    selections: SelectionModel[] = []
+) => selections.forEach(selection => visitSelectionModel(collector, selection))
 
 const visitFieldValueImports = (
-    collector: DeclarationImportCollector,
-    value: FieldValueModel
+    collector: DocumentImportCollector,
+    value: FieldValue
 ) => {
     switch (value.kind) {
-        case FieldValueKind.ENUM: {
+        case ValueModelKind.ENUM: {
             const importPath = collector.importMap.enums.get(value.name)
             if (importPath && !collector.imports.has(value.name)) {
                 collector.imports.set(value.name, importPath)
             }
             return
         }
-        case FieldValueKind.OBJECT:
-            visitDefinitionNodes(collector, value.fields)
+        case ValueModelKind.OBJECT:
+            visitSelectionModels(collector, value.fields)
             return
-        case FieldValueKind.UNION:
-            value.variants.forEach(({ fields }) => visitDefinitionNodes(collector, fields))
+        case ValueModelKind.UNION:
+            value.variants.forEach(({ fields }) => visitSelectionModels(collector, fields))
     }
 }
 
-const visitDefinitionNode = (
-    collector: DeclarationImportCollector,
-    definition: DefinitionNodeModel
+const visitSelectionModel = (
+    collector: DocumentImportCollector,
+    selection: SelectionModel
 ) => {
-    switch (definition.kind) {
-        case DefinitionNodeKind.FRAGMENT_SPREAD: {
-            const importPath = collector.importMap.fragments.get(definition.name)
-            if (importPath && !collector.imports.has(definition.name)) {
-                collector.imports.set(definition.name, importPath)
+    switch (selection.kind) {
+        case SelectionModelKind.FRAGMENT_SPREAD: {
+            const importPath = collector.importMap.fragments.get(selection.name)
+            if (importPath && !collector.imports.has(selection.name)) {
+                collector.imports.set(selection.name, importPath)
             }
             return
         }
-        case DefinitionNodeKind.INLINE_FRAGMENT:
-            visitDefinitionNodes(collector, definition.selections)
+        case SelectionModelKind.INLINE_FRAGMENT:
+            visitSelectionModels(collector, selection.selections)
             return
-        case DefinitionNodeKind.FIELD:
-            visitFieldValueImports(collector, definition.value)
+        case SelectionModelKind.FIELD:
+            visitFieldValueImports(collector, selection.value)
     }
 }
 
 const visitInputValueImports = (
-    collector: DeclarationImportCollector,
-    value: InputValueModel
+    collector: DocumentImportCollector,
+    value: InputValue
 ) => {
     switch (value.kind) {
-        case FieldValueKind.ENUM: {
+        case ValueModelKind.ENUM: {
             const importPath = collector.importMap.enums.get(value.name)
             if (importPath && !collector.imports.has(value.name)) {
                 collector.imports.set(value.name, importPath)
             }
             return
         }
-        case FieldValueKind.OBJECT:
+        case ValueModelKind.OBJECT:
             value.fields.forEach(field => visitInputValueImports(collector, field.value))
             return
     }
 }
 
 const visitFragmentImports = (
-    collector: DeclarationImportCollector,
+    collector: DocumentImportCollector,
     fragment: FragmentModel
 ) => {
     if (fragment.root.kind === FragmentRootKind.UNION) {
-        fragment.root.variants.forEach(({ fields }) => visitDefinitionNodes(collector, fields))
+        fragment.root.variants.forEach(({ fields }) => visitSelectionModels(collector, fields))
         return
     }
 
-    visitDefinitionNodes(collector, fragment.root.fields)
+    visitSelectionModels(collector, fragment.root.fields)
 }
 
-export const getImportsBlocksForDeclaration = (
-    { fragments, operations }: DeclarationDefinitions,
-    importMap: ImportBlocks
+export const collectImportsForDocumentModels = (
+    { fragments, operations }: DocumentModels,
+    importMap: ImportMap
 ): Map<string, string> => {
-    const collector: DeclarationImportCollector = {
+    const collector: DocumentImportCollector = {
         imports: new Map<string, string>(),
         importMap,
     }
@@ -203,7 +203,7 @@ export const getImportsBlocksForDeclaration = (
 
     operations.forEach(({ variables, result }) => {
         variables.forEach(variable => visitInputValueImports(collector, variable.value))
-        visitDefinitionNodes(collector, result)
+        visitSelectionModels(collector, result)
     })
 
     return collector.imports

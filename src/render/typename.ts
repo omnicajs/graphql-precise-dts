@@ -1,9 +1,9 @@
-import type { DefinitionNodeModel } from '../../types/models'
+import type { SelectionModel } from '../models/types'
 
 import {
-    DefinitionNodeKind,
-    FieldValueKind,
-} from '../../enums/model-kinds'
+    SelectionModelKind,
+    ValueModelKind,
+} from '../models/kinds'
 
 export type ResolvedTypenameSelection = {
     present: boolean;
@@ -22,13 +22,13 @@ const haveSameTypeNames = (left: string[], right: string[]): boolean => {
 }
 
 const collectTypenameSelections = (
-    selections: DefinitionNodeModel[],
+    selections: SelectionModel[],
     withinConditional = false
 ): ResolvedTypenameSelection[] => selections.flatMap(selection => {
     const isConditional = withinConditional || !!selection.conditional
 
-    if (selection.kind === DefinitionNodeKind.FIELD) {
-        if (selection.value.kind !== FieldValueKind.TYPENAME) return []
+    if (selection.kind === SelectionModelKind.FIELD) {
+        if (selection.value.kind !== ValueModelKind.TYPENAME) return []
         if (selection.name !== '__typename' || selection.responseName !== '__typename') return []
 
         return [{
@@ -38,13 +38,13 @@ const collectTypenameSelections = (
         }]
     }
 
-    return selection.kind === DefinitionNodeKind.INLINE_FRAGMENT
+    return selection.kind === SelectionModelKind.INLINE_FRAGMENT
         ? collectTypenameSelections(selection.selections, isConditional)
         : []
 })
 
 export const resolveTypenameSelection = (
-    selections: DefinitionNodeModel[],
+    selections: SelectionModel[],
     fallbackTypeNames: string[] = []
 ): ResolvedTypenameSelection => {
     const typenameSelections = collectTypenameSelections(selections)
@@ -72,12 +72,12 @@ export const resolveTypenameSelection = (
 }
 
 export const hasRootSpreadWithSameTypeNames = (
-    selections: DefinitionNodeModel[],
+    selections: SelectionModel[],
     typeNames: string[]
 ): boolean => {
     const rootSpreads = selections.filter(
-        (selection): selection is Extract<DefinitionNodeModel, { kind: DefinitionNodeKind.FRAGMENT_SPREAD }> =>
-            selection.kind === DefinitionNodeKind.FRAGMENT_SPREAD
+        (selection): selection is Extract<SelectionModel, { kind: SelectionModelKind.FRAGMENT_SPREAD }> =>
+            selection.kind === SelectionModelKind.FRAGMENT_SPREAD
     )
 
     return rootSpreads.length > 0 && rootSpreads.every(selection => {

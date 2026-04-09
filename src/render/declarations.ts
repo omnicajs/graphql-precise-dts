@@ -1,28 +1,27 @@
 import type {
-    DeclarationDefinitions,
-    DefinitionNodeModel,
-    FieldValueModel,
+    DocumentModels,
+    FieldValue,
     FragmentModel,
-    FragmentRootModel,
-    InputFieldModel,
-    InputValueModel,
+    FragmentRoot,
+    InputField,
+    InputValue,
     OperationModel,
-} from '../../types/models'
-import type { TypeRef } from '../../types/models'
+    SelectionModel,
+} from '../models/types'
+import type { TypeRef } from '../models/types'
 
-import { capitalize } from '../../lib/string'
-import { indent } from './primitives-render'
-import { hasRootSpreadWithSameTypeNames } from './typename-render'
-import { renderStringLiteralUnion } from './primitives-render'
-import { resolveTypenameSelection } from './typename-render'
-import { uncapitalize } from '../../lib/string'
+import { capitalize, indent } from '../lib/strings'
+import { hasRootSpreadWithSameTypeNames } from './typename'
+import { renderStringLiteralUnion } from './basic'
+import { resolveTypenameSelection } from './typename'
+import { uncapitalize } from '../lib/strings'
 
 import {
-    DefinitionNodeKind,
-    FieldValueKind,
     FragmentRootKind,
-} from '../../enums/model-kinds'
-import { TypeRefKind } from '../../enums/model-kinds'
+    SelectionModelKind,
+    TypeRefKind,
+    ValueModelKind,
+} from '../models/kinds'
 
 type RenderedSelections = {
     rows: string[];
@@ -60,13 +59,13 @@ const renderNonNullTypeRef = (typeRef: TypeRef, value: string): string => {
 }
 
 const renderSelections = (
-    selections: DefinitionNodeModel[],
+    selections: SelectionModel[],
     withinConditional = false
 ): RenderedSelections => selections.reduce<RenderedSelections>((result, selection) => {
     const isConditional = withinConditional || !!selection.conditional
 
     switch (selection.kind) {
-        case DefinitionNodeKind.FIELD:
+        case SelectionModelKind.FIELD:
             if (selection.name === '__typename' && selection.responseName === '__typename') {
                 return result
             }
@@ -80,13 +79,13 @@ const renderSelections = (
                 isConditional
             ))
             return result
-        case DefinitionNodeKind.INLINE_FRAGMENT: {
+        case SelectionModelKind.INLINE_FRAGMENT: {
             const nested = renderSelections(selection.selections, isConditional)
             result.rows.push(...nested.rows)
             result.spreads.push(...nested.spreads)
             return result
         }
-        case DefinitionNodeKind.FRAGMENT_SPREAD:
+        case SelectionModelKind.FRAGMENT_SPREAD:
             result.spreads.push(isConditional ? `Partial<${selection.name}>` : selection.name)
             return result
     }
@@ -110,7 +109,7 @@ const renderObjectType = (rows: string[], spreads: string[] = []): string => [
 ].join(' & ')
 
 const renderObjectSelections = (
-    fields: DefinitionNodeModel[],
+    fields: SelectionModel[],
     typeNames: string[],
     options?: {
         requiredFallbackTypename?: boolean;
@@ -134,31 +133,31 @@ const renderObjectSelections = (
 }
 
 const renderFragmentUnionRoot = (
-    root: Extract<FragmentRootModel, { kind: FragmentRootKind.UNION }>
+    root: Extract<FragmentRoot, { kind: FragmentRootKind.UNION }>
 ): string => root.variants
     .map(variant => renderObjectSelections(variant.fields, [ variant.typeName ]))
     .join(' | ')
 
 const renderFragmentObjectRoot = (
-    fields: DefinitionNodeModel[],
+    fields: SelectionModel[],
     rootTypeNames: string[]
 ): string => renderObjectSelections(fields, rootTypeNames, {
     omitFallbackTypenameWhenSpreadMatches: true,
 })
 
-const renderFieldValue = (field: FieldValueModel): string => {
+const renderFieldValue = (field: FieldValue): string => {
     switch (field.kind) {
-        case FieldValueKind.SCALAR:
+        case ValueModelKind.SCALAR:
             return field.typeTs
-        case FieldValueKind.TYPENAME:
+        case ValueModelKind.TYPENAME:
             return renderStringLiteralUnion(field.typeNames)
-        case FieldValueKind.ENUM:
+        case ValueModelKind.ENUM:
             return field.name
-        case FieldValueKind.OBJECT:
+        case ValueModelKind.OBJECT:
             return renderObjectSelections(field.fields, field.typeNames ?? [], {
                 omitFallbackTypenameWhenSpreadMatches: true,
             })
-        case FieldValueKind.UNION:
+        case ValueModelKind.UNION:
             return field.variants
                 .map(variant => renderObjectSelections(
                     variant.fields,
@@ -181,13 +180,13 @@ const renderTypeBody = (fragment: FragmentModel): string => {
         )
 }
 
-const renderInputValue = (value: InputValueModel): string => {
+const renderInputValue = (value: InputValue): string => {
     switch (value.kind) {
-        case FieldValueKind.SCALAR:
+        case ValueModelKind.SCALAR:
             return value.typeTs
-        case FieldValueKind.ENUM:
+        case ValueModelKind.ENUM:
             return value.name
-        case FieldValueKind.OBJECT:
+        case ValueModelKind.OBJECT:
             return renderInputObject(value.fields)
         default:
             console.warn('Unknown input type')
@@ -195,7 +194,7 @@ const renderInputValue = (value: InputValueModel): string => {
     }
 }
 
-const renderInputObject = (fields: InputFieldModel[]): string => {
+const renderInputObject = (fields: InputField[]): string => {
     if (!fields.length) return '{ [key: string]: never }'
 
     return [
@@ -231,7 +230,7 @@ const renderOperationDeclaration = (
 
 export const renderDeclaration = (
     path: string,
-    { fragments, operations }: DeclarationDefinitions,
+    { fragments, operations }: DocumentModels,
     importsMap: Map<string, string>
 ): string => {
     if (!fragments.size && !operations.size) return ''

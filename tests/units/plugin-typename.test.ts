@@ -8,7 +8,7 @@ import {
 import { buildSchema } from 'graphql'
 import { join } from 'path'
 import { mkdtempSync } from 'fs'
-import { makeModuleLocation } from '../../src/modules/orchestration/generate-plugin-output'
+import { makeModuleSpecifier } from '../../src/path'
 import { parse } from 'graphql'
 import { plugin } from '../../src'
 import {
@@ -42,7 +42,7 @@ const schema = buildSchema(`
 const withTempOutput = async <T>(
     run: (info: { outputFile: string; tempDir: string }) => Promise<T>
 ): Promise<T> => {
-    const tempDir = mkdtempSync(join(tmpdir(), 'graphql-typed-declaration-'))
+    const tempDir = mkdtempSync(join(tmpdir(), 'graphql-precise-dts-'))
     const info = {
         outputFile: join(tempDir, 'types.d.ts'),
         tempDir,
@@ -57,7 +57,7 @@ const withTempOutput = async <T>(
 
 describe('plugin module path resolution', () => {
     test('uses the scoped suffix when document location matches scope root', () => {
-        expect(makeModuleLocation(
+        expect(makeModuleSpecifier(
             '~tests/',
             'tests/fixtures/documents/fragments/UserDetails.graphql',
             false,
@@ -66,7 +66,7 @@ describe('plugin module path resolution', () => {
     })
 
     test('adds ./ to the scoped suffix when prefix is empty', () => {
-        expect(makeModuleLocation(
+        expect(makeModuleSpecifier(
             '',
             'tests/fixtures/documents/fragments/UserDetails.graphql',
             false,
@@ -75,7 +75,7 @@ describe('plugin module path resolution', () => {
     })
 
     test('uses the normalized document path when scope does not match and relativeToCwd is disabled', () => {
-        expect(makeModuleLocation(
+        expect(makeModuleSpecifier(
             '~tests/',
             'queries/index.graphql',
             false,
@@ -86,7 +86,7 @@ describe('plugin module path resolution', () => {
     test('uses the path relative to cwd when scope does not match and relativeToCwd is enabled', () => {
         const absoluteDocumentLocation = join(process.cwd(), 'queries/index.graphql')
 
-        expect(makeModuleLocation(
+        expect(makeModuleSpecifier(
             '~tests/',
             absoluteDocumentLocation,
             true,
@@ -97,7 +97,7 @@ describe('plugin module path resolution', () => {
     test('adds ./ to the relative path when prefix is empty and relativeToCwd is enabled', () => {
         const absoluteDocumentLocation = join(process.cwd(), 'queries/index.graphql')
 
-        expect(makeModuleLocation(
+        expect(makeModuleSpecifier(
             '',
             absoluteDocumentLocation,
             true,
@@ -106,7 +106,7 @@ describe('plugin module path resolution', () => {
     })
 
     test('uses the normalized document path when scope is omitted and relativeToCwd is disabled', () => {
-        expect(makeModuleLocation(
+        expect(makeModuleSpecifier(
             '~tests/',
             'mutations/index.graphql'
         )).toBe('~tests/mutations/index.graphql')
@@ -115,7 +115,7 @@ describe('plugin module path resolution', () => {
     test('uses the path relative to cwd for absolute document locations when relativeToCwd is disabled', () => {
         const absoluteDocumentLocation = join(process.cwd(), 'mutations/index.graphql')
 
-        expect(makeModuleLocation(
+        expect(makeModuleSpecifier(
             '~tests/',
             absoluteDocumentLocation,
             false
@@ -123,11 +123,11 @@ describe('plugin module path resolution', () => {
     })
 
     test('falls back to the default document name when location is missing', () => {
-        expect(makeModuleLocation('~tests/')).toBe('~tests/*.graphql')
+        expect(makeModuleSpecifier('~tests/')).toBe('~tests/*.graphql')
     })
 
     test('keeps the default document name unchanged when prefix is empty', () => {
-        expect(makeModuleLocation('')).toBe('*.graphql')
+        expect(makeModuleSpecifier('')).toBe('*.graphql')
     })
 
     test('keeps distinct module ids for documents with the same basename when scope does not match', async () => {

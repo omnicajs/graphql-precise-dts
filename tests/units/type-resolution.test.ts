@@ -1,15 +1,15 @@
-import type { DefinitionNodeModel } from '../../src/types/models'
 import type {
     FieldNode,
     FragmentDefinitionNode,
     GraphQLObjectType,
 } from 'graphql'
+import type { SelectionModel } from '../../src/models/types'
 import type { SelectionNode } from 'graphql'
 import type {
     TypeFieldNode,
     TypeFragmentInlineNode,
     TypeSelectionNode,
-} from '../../src/types/selection'
+} from '../../src/models/selection'
 
 import {
     describe,
@@ -18,22 +18,22 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
-import { filterSelectionsForConcreteType } from '../../src/modules/type-resolution'
+import { filterSelectionsForConcreteType } from '../../src/models/resolve'
 import { getNamedType } from 'graphql'
 import {
     getFragmentTypeNames,
     getTypeForDefinition,
     makeTypeRefForField,
-} from '../../src/modules/type-resolution'
+} from '../../src/models/resolve'
 import { parse } from 'graphql'
-import { specializeTypeNameSelectionForConcreteType } from '../../src/modules/type-resolution'
+import { specializeTypeNameSelectionForConcreteType } from '../../src/models/resolve'
 
-import {
-    DefinitionNodeKind,
-    FieldValueKind,
-} from '../../src/enums/model-kinds'
 import { Kind } from 'graphql'
-import { TypeRefKind } from '../../src/enums/model-kinds'
+import {
+    SelectionModelKind,
+    TypeRefKind,
+    ValueModelKind,
+} from '../../src/models/kinds'
 
 const getFragmentDefinition = (source: string): FragmentDefinitionNode => {
     const document = parse(source)
@@ -174,7 +174,7 @@ describe('type resolution for models', () => {
         const ownerSelection = getSelectionNode(fragment, 0) as FieldNode
         const ownerTyped = getTypedSelection(tree, ownerSelection) as TypeFieldNode
 
-        expect(ownerTyped.kind, 'Expected owner selection with nested typed selections').toBe(DefinitionNodeKind.FIELD)
+        expect(ownerTyped.kind, 'Expected owner selection with nested typed selections').toBe(SelectionModelKind.FIELD)
 
         expect(getNamedType(ownerTyped.currentType).name).toBe('User')
         expect(ownerTyped.selections).not.toBeUndefined()
@@ -189,22 +189,22 @@ describe('type resolution for models', () => {
 
         // typeName field check
         expect(typenameTyped).toMatchObject({
-            kind: DefinitionNodeKind.FIELD,
+            kind: SelectionModelKind.FIELD,
             typeNames: [ 'UserPayload' ],
         })
 
         // id field check
-        expect(idTyped.kind, 'Expected typed field for id').toBe(DefinitionNodeKind.FIELD)
+        expect(idTyped.kind, 'Expected typed field for id').toBe(SelectionModelKind.FIELD)
         expect(getNamedType((idTyped as TypeFieldNode).currentType).name).toBe('ID')
 
         // spread definition check
         expect(spreadTyped).toEqual({
-            kind: DefinitionNodeKind.FRAGMENT_SPREAD,
+            kind: SelectionModelKind.FRAGMENT_SPREAD,
             name: 'UserCore',
         })
 
         // inline definition check
-        expect(inlineTyped.kind, 'Expected inline fragment with typed selections').toBe(DefinitionNodeKind.INLINE_FRAGMENT)
+        expect(inlineTyped.kind, 'Expected inline fragment with typed selections').toBe(SelectionModelKind.INLINE_FRAGMENT)
         expect((inlineTyped as TypeFragmentInlineNode).typeCondition).toBe('UserPayload')
 
         expect(nestedSelections[3]).not.toBeUndefined()
@@ -220,7 +220,7 @@ describe('type resolution for models', () => {
         const inlineFragmentSelections = (inlineTyped as TypeFragmentInlineNode).selections as WeakMap<SelectionNode, TypeSelectionNode>
         const permissionsTyped = getTypedSelection(inlineFragmentSelections, permissionsSelection as SelectionNode)
 
-        expect(permissionsTyped.kind, 'Expected typed field for permissions').toBe(DefinitionNodeKind.FIELD)
+        expect(permissionsTyped.kind, 'Expected typed field for permissions').toBe(SelectionModelKind.FIELD)
         expect(getNamedType((permissionsTyped as TypeFieldNode).currentType).name).toBe('String')
     })
 
@@ -332,8 +332,8 @@ describe('type resolution for models', () => {
     })
 
     test('specializes only typename field values for the concrete type', () => {
-        const definitions = [{
-            kind: DefinitionNodeKind.FIELD,
+        const selections = [{
+            kind: SelectionModelKind.FIELD,
             name: '__typename',
             responseName: '__typename',
             typeRef: {
@@ -344,12 +344,12 @@ describe('type resolution for models', () => {
                 },
             },
             value: {
-                kind: FieldValueKind.TYPENAME,
+                kind: ValueModelKind.TYPENAME,
                 typeNames: [ 'UserPayload', 'AdminPayload' ],
             },
             directives: [],
         }, {
-            kind: DefinitionNodeKind.FIELD,
+            kind: SelectionModelKind.FIELD,
             name: 'id',
             responseName: 'id',
             typeRef: {
@@ -360,14 +360,14 @@ describe('type resolution for models', () => {
                 },
             },
             value: {
-                kind: FieldValueKind.SCALAR,
+                kind: ValueModelKind.SCALAR,
                 typeTs: 'string',
             },
             directives: [],
-        }] satisfies DefinitionNodeModel[]
+        }] satisfies SelectionModel[]
 
-        expect(specializeTypeNameSelectionForConcreteType(definitions, 'UserPayload')).toEqual([{
-            kind: DefinitionNodeKind.FIELD,
+        expect(specializeTypeNameSelectionForConcreteType(selections, 'UserPayload')).toEqual([{
+            kind: SelectionModelKind.FIELD,
             name: '__typename',
             responseName: '__typename',
             typeRef: {
@@ -378,10 +378,10 @@ describe('type resolution for models', () => {
                 },
             },
             value: {
-                kind: FieldValueKind.TYPENAME,
+                kind: ValueModelKind.TYPENAME,
                 typeNames: [ 'UserPayload' ],
             },
             directives: [],
-        }, definitions[1]])
+        }, selections[1]])
     })
 })

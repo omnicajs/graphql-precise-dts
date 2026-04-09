@@ -1,14 +1,15 @@
-import type {
+import {
     ConfigDirectivePolicies,
-    ConfigScalar,
+    ConfigScalars,
 } from '../config'
-import type { DefinitionNodeModel } from '../types/models'
-import type { DefRegistry } from '../types/registry'
-import type { EnumDefinitionModel } from '../types/models'
+import type { EnumValueEntries } from './types'
 import type { FieldNode } from 'graphql'
-import type { FieldValueModel } from '../types/models'
+import type { FieldValue } from './types'
 import type { FragmentDefinitionNode } from 'graphql'
-import type { FragmentModel, FragmentRootModel } from '../types/models'
+import type {
+    FragmentModel,
+    FragmentRoot,
+} from './types'
 import type {
     GraphQLAbstractType,
     GraphQLInputType,
@@ -18,37 +19,41 @@ import type {
     GraphQLObjectType,
 } from 'graphql'
 import type {
-    InputFieldModel,
-    InputValueModel,
-} from '../types/models'
-import type { ModelContext } from '../types/models'
+    InputField,
+    InputValue,
+} from './types'
+import type { ModelContext } from './types'
+import type { ModelRegistry } from './registry'
 import type { OperationDefinitionNode } from 'graphql'
-import type { OperationModel } from '../types/models'
+import type { OperationModel } from './types'
 import type { PluginConfig } from '../config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
-import type { ResolvedSelectionDirectives } from './directives'
-import type { ScalarModel } from '../types/models'
-import type { Scalars } from '../types/scalars'
+import type { ResolvedSelectionDirectives } from '../directives'
+import type { ScalarModelShape } from './types'
+import type { Scalars } from '../scalars/types'
+import type { SelectionModel } from './types'
 import type { SelectionNode } from 'graphql'
-import type { TypeFieldNode } from '../types/selection'
-import type { TypeSelectionNode } from '../types/selection'
+import type {
+    TypeFieldNode,
+    TypeSelectionNode,
+} from './selection'
 import type { VariableDefinitionNode } from 'graphql'
 
 import { TypeInfo } from 'graphql'
 
-import { capitalize } from '../lib/string'
+import { capitalize } from '../lib/strings'
 import {
     filterSelectionsForConcreteType,
     getFragmentTypeNames,
-} from './type-resolution'
+} from './resolve'
 import { getNamedType } from 'graphql'
 import {
     getScalarPrimitiveShapeTs,
     getScalarTsShape,
     getScalarTsType,
-} from './scalar-type-mapping'
-import { getTypeForDefinition } from './type-resolution'
-import { isConditionalSelectionState } from './directives'
+} from '../scalars/builder'
+import { getTypeForDefinition } from './resolve'
+import { isConditionalSelectionState } from '../directives'
 import {
     isEnumType,
     isInputObjectType,
@@ -56,7 +61,7 @@ import {
     isNullableType,
     isObjectType,
 } from 'graphql'
-import { isScalarPrimitiveKey } from './scalar-type-mapping'
+import { isScalarPrimitiveKey } from '../scalars/builder'
 import { isScalarType } from 'graphql'
 import { isUndefined } from '../lib/predicates'
 import { isUnionType } from 'graphql'
@@ -64,25 +69,28 @@ import {
     makeNonNullTypeRef,
     makeTypeRefForField,
     makeTypeRefForInput,
-} from './type-resolution'
-import { resolveSelectionDirectives } from './directives'
-import { shouldBuildTypeSelectionUnion } from './type-resolution'
-import { shouldForceNonNull } from './directives'
-import { specializeTypeNameSelectionForConcreteType } from './type-resolution'
+} from './resolve'
+import { resolveSelectionDirectives } from '../directives'
+import { shouldBuildTypeSelectionUnion } from './resolve'
+import { shouldForceNonNull } from '../directives'
+import { specializeTypeNameSelectionForConcreteType } from './resolve'
 import {
     visit,
     visitWithTypeInfo,
 } from 'graphql'
 
+import { FragmentRootKind } from './kinds'
 import {
-    DefinitionNodeKind,
-    FieldValueKind,
-    FragmentRootKind,
-} from '../enums/model-kinds'
-import { Kind } from 'graphql'
-import { OperationTypeNode } from 'graphql'
+    Kind,
+    OperationTypeNode,
+} from 'graphql'
+import {
+    SelectionModelKind,
+    ValueModelKind,
+} from './kinds'
 
-import { selectionStates } from './directives'
+import { SELECTION_STATES } from '../directives'
+
 import { specifiedScalarTypes } from 'graphql'
 
 type ResolvedSelectionContext = {
@@ -91,15 +99,9 @@ type ResolvedSelectionContext = {
     resolvedDirectives: ResolvedSelectionDirectives;
 }
 
-type RegisteredDefinitions = {
-    fragment: string[];
+type RegisteredNames = {
+    fragments: string[];
     enums: string[];
-}
-
-type DefinitionRegistryState = {
-    scalars: Map<string, ScalarModel>;
-    enums: Map<string, EnumDefinitionModel>;
-    fragments: Map<string, FragmentModel>;
 }
 
 const collectPrimitiveScalar = (
@@ -155,58 +157,58 @@ const collectUsedPrimitiveScalars = (
     return usedScalars
 }
 
-const makeDefinitionsForFieldSelections = (
+const makeSelectionsForFields = (
     selections: readonly SelectionNode[] | undefined,
     selectionTypes: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
     context: ModelContext
-): DefinitionNodeModel[] => {
+): SelectionModel[] => {
     if (!selections || !selectionTypes) return []
 
-    return makeDefinitionsModel(
+    return makeSelectionModels(
         [ ...selections ],
         selectionTypes,
         context
     )
 }
 
-const makeTypeNameFieldValueModel = (
+const makeTypeNameFieldValue = (
     type: TypeFieldNode,
     field: FieldNode
-): Extract<FieldValueModel, { kind: FieldValueKind.TYPENAME }> | undefined => {
+): Extract<FieldValue, { kind: ValueModelKind.TYPENAME }> | undefined => {
     if (field.name.value !== '__typename' || !type.typeNames?.length) return
 
     return {
-        kind: FieldValueKind.TYPENAME,
+        kind: ValueModelKind.TYPENAME,
         typeNames: type.typeNames,
     }
 }
 
-const makeScalarFieldValueModel = (
+const makeScalarFieldValue = (
     typeName: string,
-    customScalars: ConfigScalar
-): Extract<FieldValueModel, { kind: FieldValueKind.SCALAR }> => ({
-    kind: FieldValueKind.SCALAR,
+    customScalars: ConfigScalars
+): Extract<FieldValue, { kind: ValueModelKind.SCALAR }> => ({
+    kind: ValueModelKind.SCALAR,
     typeTs: getScalarTsType(typeName, customScalars),
 })
 
-const makeEnumFieldValueModel = (
+const makeEnumFieldValue = (
     typeName: string
-): Extract<FieldValueModel, { kind: FieldValueKind.ENUM }> => ({
-    kind: FieldValueKind.ENUM,
+): Extract<FieldValue, { kind: ValueModelKind.ENUM }> => ({
+    kind: ValueModelKind.ENUM,
     name: typeName,
 })
 
-const makeInterfaceUnionFieldValueModel = (
+const makeInterfaceUnionFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode>,
     interfaceType: GraphQLInterfaceType,
     selections: readonly SelectionNode[],
     context: ModelContext
-): Extract<FieldValueModel, { kind: FieldValueKind.UNION }> => ({
-    kind: FieldValueKind.UNION,
+): Extract<FieldValue, { kind: ValueModelKind.UNION }> => ({
+    kind: ValueModelKind.UNION,
     variants: context.schema.getPossibleTypes(interfaceType).map(possibleType => ({
         typeName: possibleType.name,
         fields: specializeTypeNameSelectionForConcreteType(
-            makeDefinitionsModel(
+            makeSelectionModels(
                 filterSelectionsForConcreteType(context.schema, possibleType, [ ...selections ]),
                 typeSelections,
                 context
@@ -216,49 +218,49 @@ const makeInterfaceUnionFieldValueModel = (
     })),
 })
 
-const makeInterfaceObjectFieldValueModel = (
+const makeInterfaceObjectFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
     interfaceType: GraphQLInterfaceType,
     selections: readonly SelectionNode[] | undefined,
     context: ModelContext
-): Extract<FieldValueModel, { kind: FieldValueKind.OBJECT }> => ({
-    kind: FieldValueKind.OBJECT,
+): Extract<FieldValue, { kind: ValueModelKind.OBJECT }> => ({
+    kind: ValueModelKind.OBJECT,
     typeNames: context.schema.getPossibleTypes(interfaceType).map(possibleType => possibleType.name),
-    fields: makeDefinitionsForFieldSelections(selections, typeSelections, context),
+    fields: makeSelectionsForFields(selections, typeSelections, context),
 })
 
-const makeInterfaceFieldValueModel = (
+const makeInterfaceFieldValue = (
     type: TypeFieldNode,
     selections: readonly SelectionNode[] | undefined,
     context: ModelContext
-): FieldValueModel => {
+): FieldValue => {
     const interfaceType = getNamedType(type.currentType) as GraphQLInterfaceType
 
     if (selections && type.selections && shouldBuildTypeSelectionUnion(interfaceType, [ ...selections ])) {
-        return makeInterfaceUnionFieldValueModel(type.selections, interfaceType, selections, context)
+        return makeInterfaceUnionFieldValue(type.selections, interfaceType, selections, context)
     }
 
-    return makeInterfaceObjectFieldValueModel(type.selections, interfaceType, selections, context)
+    return makeInterfaceObjectFieldValue(type.selections, interfaceType, selections, context)
 }
 
-const makeObjectFieldValueModel = (
+const makeObjectFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
     selections: readonly SelectionNode[] | undefined,
     objectType: GraphQLObjectType,
     context: ModelContext
-): Extract<FieldValueModel, { kind: FieldValueKind.OBJECT }> => ({
-    kind: FieldValueKind.OBJECT,
+): Extract<FieldValue, { kind: ValueModelKind.OBJECT }> => ({
+    kind: ValueModelKind.OBJECT,
     typeNames: [ objectType.name ],
-    fields: makeDefinitionsForFieldSelections(selections, typeSelections, context),
+    fields: makeSelectionsForFields(selections, typeSelections, context),
 })
 
 const makeUnionFieldVariant = (
     selection: SelectionNode,
     typedSelection: TypeSelectionNode | undefined,
     context: ModelContext
-): { typeName: string; fields: DefinitionNodeModel[] } | undefined => {
+): { typeName: string; fields: SelectionModel[] } | undefined => {
     if (selection.kind !== Kind.INLINE_FRAGMENT) return
-    if (!typedSelection || typedSelection.kind !== DefinitionNodeKind.INLINE_FRAGMENT) return
+    if (!typedSelection || typedSelection.kind !== SelectionModelKind.INLINE_FRAGMENT) return
     if (!typedSelection.selections) return
 
     const typeName = selection.typeCondition?.name.value ?? typedSelection.typeCondition
@@ -266,7 +268,7 @@ const makeUnionFieldVariant = (
 
     return {
         typeName,
-        fields: makeDefinitionsModel(
+        fields: makeSelectionModels(
             [ ...selection.selectionSet.selections ],
             typedSelection.selections,
             context
@@ -274,12 +276,12 @@ const makeUnionFieldVariant = (
     }
 }
 
-const makeUnionFieldValueModel = (
+const makeUnionFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
     selections: readonly SelectionNode[] | undefined,
     context: ModelContext
-): Extract<FieldValueModel, { kind: FieldValueKind.UNION }> => ({
-    kind: FieldValueKind.UNION,
+): Extract<FieldValue, { kind: ValueModelKind.UNION }> => ({
+    kind: ValueModelKind.UNION,
     variants: selections
         ? selections
             .map(selection => makeUnionFieldVariant(selection, typeSelections?.get(selection), context))
@@ -287,33 +289,33 @@ const makeUnionFieldValueModel = (
         : [],
 })
 
-const makeFieldModel = (
+const makeFieldValue = (
     type: TypeFieldNode,
     field: FieldNode,
     context: ModelContext
-): FieldValueModel => {
+): FieldValue => {
     const namedType = getNamedType(type.currentType)
-    const typeNameValue = makeTypeNameFieldValueModel(type, field)
+    const typeNameValue = makeTypeNameFieldValue(type, field)
     const selections = field.selectionSet?.selections
 
     if (typeNameValue) return typeNameValue
-    if (isScalarType(namedType)) return makeScalarFieldValueModel(namedType.name, context.customScalars)
-    if (isEnumType(namedType)) return makeEnumFieldValueModel(namedType.name)
-    if (isInterfaceType(namedType)) return makeInterfaceFieldValueModel(type, selections, context)
-    if (isObjectType(namedType)) return makeObjectFieldValueModel(type.selections, selections, namedType, context)
-    if (isUnionType(namedType)) return makeUnionFieldValueModel(type.selections, selections, context)
+    if (isScalarType(namedType)) return makeScalarFieldValue(namedType.name, context.customScalars)
+    if (isEnumType(namedType)) return makeEnumFieldValue(namedType.name)
+    if (isInterfaceType(namedType)) return makeInterfaceFieldValue(type, selections, context)
+    if (isObjectType(namedType)) return makeObjectFieldValue(type.selections, selections, namedType, context)
+    if (isUnionType(namedType)) return makeUnionFieldValue(type.selections, selections, context)
 
-    return { kind: FieldValueKind.UNKNOWN, reason: 'Unknown type' }
+    return { kind: ValueModelKind.UNKNOWN, reason: 'Unknown type' }
 }
 
 const emitDirectiveWarnings = (warnings: string[]) => warnings.forEach(message => console.warn(message))
 
-const getSelectionDefinitionKind = (selection: SelectionNode): DefinitionNodeKind => {
+const getSelectionDefinitionKind = (selection: SelectionNode): SelectionModelKind => {
     return selection.kind === Kind.FIELD
-        ? DefinitionNodeKind.FIELD
+        ? SelectionModelKind.FIELD
         : selection.kind === Kind.FRAGMENT_SPREAD
-            ? DefinitionNodeKind.FRAGMENT_SPREAD
-            : DefinitionNodeKind.INLINE_FRAGMENT
+            ? SelectionModelKind.FRAGMENT_SPREAD
+            : SelectionModelKind.INLINE_FRAGMENT
 }
 
 const resolveSelectionContext = (
@@ -328,7 +330,7 @@ const resolveSelectionContext = (
         directivePolicies
     )
 
-    if (resolvedDirectives.state === selectionStates.EXCLUDED) return
+    if (resolvedDirectives.state === SELECTION_STATES.EXCLUDED) return
 
     emitDirectiveWarnings(resolvedDirectives.warnings)
 
@@ -341,27 +343,27 @@ const resolveSelectionContext = (
     }
 }
 
-const makeFieldDefinitionModel = (
+const makeFieldSelectionModel = (
     selection: Extract<SelectionNode, { kind: Kind.FIELD }>,
     context: ModelContext,
     selectionContext: ResolvedSelectionContext
-): DefinitionNodeModel | undefined => {
-    if (selectionContext.fieldType.kind !== DefinitionNodeKind.FIELD) return
+): Extract<SelectionModel, { kind: SelectionModelKind.FIELD }> | undefined => {
+    if (selectionContext.fieldType.kind !== SelectionModelKind.FIELD) return
 
     const typeRef = makeTypeRefForField(selectionContext.fieldType.currentType)
 
     return {
-        kind: DefinitionNodeKind.FIELD,
+        kind: SelectionModelKind.FIELD,
         name: selection.name.value,
         responseName: selection.alias?.value ?? selection.name.value,
         typeRef: shouldForceNonNull(
             selection.directives ? [ ...selection.directives ] : [],
-            DefinitionNodeKind.FIELD,
+            SelectionModelKind.FIELD,
             context.directivePolicies
         )
             ? makeNonNullTypeRef(typeRef)
             : typeRef,
-        value: makeFieldModel(
+        value: makeFieldValue(
             selectionContext.fieldType,
             selection,
             context
@@ -372,18 +374,18 @@ const makeFieldDefinitionModel = (
     }
 }
 
-const makeFragmentSpreadDefinitionModel = (
+const makeFragmentSpreadSelectionModel = (
     selection: Extract<SelectionNode, { kind: Kind.FRAGMENT_SPREAD }>,
     context: ModelContext,
     selectionContext: ResolvedSelectionContext
-): DefinitionNodeModel | undefined => {
-    if (selectionContext.fieldType.kind !== DefinitionNodeKind.FRAGMENT_SPREAD) return
+): Extract<SelectionModel, { kind: SelectionModelKind.FRAGMENT_SPREAD }> | undefined => {
+    if (selectionContext.fieldType.kind !== SelectionModelKind.FRAGMENT_SPREAD) return
 
-    const spreadFragment = context.fragmentsDefs.get(selection.name.value)
+    const spreadFragment = context.fragmentDefinitions.get(selection.name.value)
     if (!spreadFragment) return
 
     return {
-        kind: DefinitionNodeKind.FRAGMENT_SPREAD,
+        kind: SelectionModelKind.FRAGMENT_SPREAD,
         name: selection.name.value,
         ...getFragmentTypeNames(spreadFragment, context.schema),
         conditional: selectionContext.isConditional,
@@ -391,16 +393,16 @@ const makeFragmentSpreadDefinitionModel = (
     }
 }
 
-const makeInlineFragmentDefinitionModel = (
+const makeInlineFragmentSelectionModel = (
     selection: Extract<SelectionNode, { kind: Kind.INLINE_FRAGMENT }>,
     context: ModelContext,
     selectionContext: ResolvedSelectionContext
-): DefinitionNodeModel | undefined => {
-    if (selectionContext.fieldType.kind === DefinitionNodeKind.INLINE_FRAGMENT && selectionContext.fieldType.selections) {
+): Extract<SelectionModel, { kind: SelectionModelKind.INLINE_FRAGMENT }> | undefined => {
+    if (selectionContext.fieldType.kind === SelectionModelKind.INLINE_FRAGMENT && selectionContext.fieldType.selections) {
         return {
-            kind: DefinitionNodeKind.INLINE_FRAGMENT,
+            kind: SelectionModelKind.INLINE_FRAGMENT,
             ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
-            selections: makeDefinitionsModel(
+            selections: makeSelectionModels(
                 [ ...selection.selectionSet.selections ],
                 selectionContext.fieldType.selections,
                 context
@@ -411,11 +413,11 @@ const makeInlineFragmentDefinitionModel = (
     }
 }
 
-const makeSelectionDefinitionModel = (
+const makeSelectionModel = (
     selection: SelectionNode,
     typeSelection: TypeSelectionNode | undefined,
     context: ModelContext
-): DefinitionNodeModel | undefined => {
+): SelectionModel | undefined => {
     const selectionContext = resolveSelectionContext(
         selection,
         typeSelection,
@@ -425,27 +427,27 @@ const makeSelectionDefinitionModel = (
     if (!selectionContext) return
 
     if (selection.kind === Kind.FIELD) {
-        return makeFieldDefinitionModel(selection, context, selectionContext)
+        return makeFieldSelectionModel(selection, context, selectionContext)
     }
 
     if (selection.kind === Kind.FRAGMENT_SPREAD) {
-        return makeFragmentSpreadDefinitionModel(selection, context, selectionContext)
+        return makeFragmentSpreadSelectionModel(selection, context, selectionContext)
     }
 
-    return makeInlineFragmentDefinitionModel(selection, context, selectionContext)
+    return makeInlineFragmentSelectionModel(selection, context, selectionContext)
 }
 
-const makeDefinitionsModel = (
+const makeSelectionModels = (
     selections: SelectionNode[] = [],
     typesForSelectionsNode: WeakMap<SelectionNode, TypeSelectionNode>,
     context: ModelContext
-): DefinitionNodeModel[] => selections.reduce<DefinitionNodeModel[]>((definitions, selection) => {
+): SelectionModel[] => selections.reduce<SelectionModel[]>((selectionModels, selection) => {
     const typeSelection = typesForSelectionsNode.get(selection)
-    const definition = makeSelectionDefinitionModel(selection, typeSelection, context)
+    const selectionModel = makeSelectionModel(selection, typeSelection, context)
 
-    if (definition) definitions.push(definition)
+    if (selectionModel) selectionModels.push(selectionModel)
 
-    return definitions
+    return selectionModels
 }, [])
 
 const makeFragmentUnionRoot = (
@@ -453,12 +455,12 @@ const makeFragmentUnionRoot = (
     selections: SelectionNode[],
     selectionTypes: WeakMap<SelectionNode, TypeSelectionNode>,
     context: ModelContext
-): Extract<FragmentRootModel, { kind: FragmentRootKind.UNION }> => ({
+): Extract<FragmentRoot, { kind: FragmentRootKind.UNION }> => ({
     kind: FragmentRootKind.UNION,
     variants: context.schema.getPossibleTypes(fragmentType).map(type => ({
         typeName: type.name,
         fields: specializeTypeNameSelectionForConcreteType(
-            makeDefinitionsModel(
+            makeSelectionModels(
                 filterSelectionsForConcreteType(context.schema, type, selections),
                 selectionTypes,
                 context
@@ -472,9 +474,9 @@ const makeFragmentObjectRoot = (
     selections: SelectionNode[],
     selectionTypes: WeakMap<SelectionNode, TypeSelectionNode>,
     context: ModelContext
-): Extract<FragmentRootModel, { kind: FragmentRootKind.OBJECT }> => ({
+): Extract<FragmentRoot, { kind: FragmentRootKind.OBJECT }> => ({
     kind: FragmentRootKind.OBJECT,
-    fields: makeDefinitionsModel(
+    fields: makeSelectionModels(
         selections,
         selectionTypes,
         context
@@ -506,45 +508,45 @@ const makeFragmentModel = (
     }
 }
 
-const makeInputValueModel = (
+const makeInputValue = (
     type: GraphQLInputType,
-    customScalars: ConfigScalar
-): InputValueModel => {
+    customScalars: ConfigScalars
+): InputValue => {
     const namedType = getNamedType(type)
 
     if (isScalarType(namedType)) {
-        return { kind: FieldValueKind.SCALAR, typeTs: getScalarTsType(namedType.name, customScalars) }
+        return { kind: ValueModelKind.SCALAR, typeTs: getScalarTsType(namedType.name, customScalars) }
     }
 
     if (isEnumType(namedType)) {
-        return { kind: FieldValueKind.ENUM, name: namedType.name }
+        return { kind: ValueModelKind.ENUM, name: namedType.name }
     }
 
     if (isInputObjectType(namedType)) {
         return {
-            kind: FieldValueKind.OBJECT,
+            kind: ValueModelKind.OBJECT,
             fields: Object.values(namedType.getFields()).map(field => ({
                 name: field.name,
                 typeRef: makeTypeRefForInput(field.type),
                 optional: isNullableType(field.type) || !isUndefined(field.defaultValue),
-                value: makeInputValueModel(field.type, customScalars),
+                value: makeInputValue(field.type, customScalars),
             })),
         }
     }
 
-    return { kind: FieldValueKind.UNKNOWN, reason: 'Unknown input type' }
+    return { kind: ValueModelKind.UNKNOWN, reason: 'Unknown input type' }
 }
 
-const makeOperationVariableModel = (
+const makeOperationVariable = (
     variableName: string,
     type: GraphQLInputType,
-    customScalars: ConfigScalar,
+    customScalars: ConfigScalars,
     hasDefaultValue = false
-): InputFieldModel => ({
+): InputField => ({
     name: variableName,
     typeRef: makeTypeRefForInput(type),
     optional: isNullableType(type) || hasDefaultValue,
-    value: makeInputValueModel(type, customScalars),
+    value: makeInputValue(type, customScalars),
 })
 
 const getRootTypeForOperation = (
@@ -591,7 +593,7 @@ export const makeOperationModel = (
 
                 return variableType
                     ? [
-                        makeOperationVariableModel(
+                        makeOperationVariable(
                             variableDefinition.variable.name.value,
                             variableType,
                             context.customScalars,
@@ -599,7 +601,7 @@ export const makeOperationModel = (
                         ),
                     ] : []
             }),
-        result: makeDefinitionsModel(
+        result: makeSelectionModels(
             [ ...graphqlDef.selectionSet.selections ],
             selectionTypes,
             context
@@ -607,42 +609,46 @@ export const makeOperationModel = (
     }
 }
 
-const createDefinitionRegistryState = (): DefinitionRegistryState => ({
-    scalars: new Map<string, ScalarModel>(),
-    enums: new Map<string, EnumDefinitionModel>(),
-    fragments: new Map<string, FragmentModel>(),
+const createModelRegistry = (): ModelRegistry => ({
+    schema: {
+        scalars: new Map<string, ScalarModelShape>(),
+        enums: new Map<string, EnumValueEntries>(),
+    },
+    documents: {
+        fragments: new Map<string, FragmentModel>(),
+    },
 })
 
 const registerCustomScalars = (
-    registry: DefinitionRegistryState,
+    scalars: Map<string, ScalarModelShape>,
     schema: Parameters<PluginFunction<PluginConfig>>[0],
-    customScalars: ConfigScalar
+    customScalars: ConfigScalars
 ) => Object.keys(customScalars).forEach(scalarName => {
     const scalarType = schema.getType(scalarName)
 
-    if (isScalarType(scalarType) && !registry.scalars.has(scalarName)) {
-        registry.scalars.set(scalarName, getScalarTsShape(scalarName, customScalars))
+    if (isScalarType(scalarType) && !scalars.has(scalarName)) {
+        scalars.set(scalarName, getScalarTsShape(scalarName, customScalars))
     }
 })
 
 const registerPrimitiveScalars = (
-    registry: DefinitionRegistryState,
+    scalars: Map<string, ScalarModelShape>,
     usedPrimitiveScalars: Set<keyof Scalars>
 ) => specifiedScalarTypes.forEach(({ name }) => {
-    if (usedPrimitiveScalars.has(name as keyof Scalars) && !registry.scalars.has(name)) {
-        registry.scalars.set(name, getScalarPrimitiveShapeTs(name as keyof Scalars))
+    if (usedPrimitiveScalars.has(name as keyof Scalars) && !scalars.has(name)) {
+        scalars.set(name, getScalarPrimitiveShapeTs(name as keyof Scalars))
     }
 })
 
 const registerEnums = (
-    registry: DefinitionRegistryState,
+    enums: Map<string, EnumValueEntries>,
     schema: Parameters<PluginFunction<PluginConfig>>[0],
     importEnumsName: string[]
 ) => importEnumsName.forEach(enumName => {
     const enumType = schema.getType(enumName)
 
-    if (isEnumType(enumType) && !registry.enums.has(enumName)) {
-        registry.enums.set(enumName, enumType.getValues().map(v => ({
+    if (isEnumType(enumType) && !enums.has(enumName)) {
+        enums.set(enumName, enumType.getValues().map(v => ({
             name: v.name,
             value: v.value,
         })))
@@ -650,28 +656,28 @@ const registerEnums = (
 })
 
 const registerFragments = (
-    registry: DefinitionRegistryState,
+    fragments: Map<string, FragmentModel>,
     importFragmentsName: string[],
     context: ModelContext
 ) => {
-    for (const [ key, def ] of context.fragmentsDefs.entries()) {
-        if (importFragmentsName.includes(key) && !registry.fragments.has(key)) {
-            registry.fragments.set(key, makeFragmentModel(def, context))
+    for (const [ key, def ] of context.fragmentDefinitions.entries()) {
+        if (importFragmentsName.includes(key) && !fragments.has(key)) {
+            fragments.set(key, makeFragmentModel(def, context))
         }
     }
 }
 
-export const buildDefinitionRegistry = (
-    registered: RegisteredDefinitions,
+export const buildModelRegistry = (
+    registeredNames: RegisteredNames,
     context: ModelContext
-): DefRegistry => {
-    const registry = createDefinitionRegistryState()
+): ModelRegistry => {
+    const registry = createModelRegistry()
     const usedPrimitiveScalars = collectUsedPrimitiveScalars(context.schema)
 
-    registerCustomScalars(registry, context.schema, context.customScalars)
-    registerPrimitiveScalars(registry, usedPrimitiveScalars)
-    registerEnums(registry, context.schema, registered.enums)
-    registerFragments(registry, registered.fragment, context)
+    registerCustomScalars(registry.schema.scalars, context.schema, context.customScalars)
+    registerPrimitiveScalars(registry.schema.scalars, usedPrimitiveScalars)
+    registerEnums(registry.schema.enums, context.schema, registeredNames.enums)
+    registerFragments(registry.documents.fragments, registeredNames.fragments, context)
 
     return registry
 }

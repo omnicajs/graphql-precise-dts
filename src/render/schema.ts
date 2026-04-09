@@ -1,13 +1,11 @@
-import type { DefRegistry } from '../../types/registry'
-import type {
-    EnumDefinitionModel,
-    ScalarModel,
-} from '../../types/models'
-import type { Scalars } from '../../types/scalars'
+import type { EnumValueEntries } from '../models/types'
+import type { ModelSchemaRegistry } from '../models/registry'
+import type { ScalarModelShape } from '../models/types'
+import type { Scalars } from '../scalars/types'
 
-import { indent } from './primitives-render'
-import { isScalarPrimitiveKey } from '../scalar-type-mapping'
-import { renderStringLiteralUnion } from './primitives-render'
+import { indent } from '../lib/strings'
+import { isScalarPrimitiveKey } from '../scalars/builder'
+import { renderStringLiteralUnion } from './basic'
 
 const primitiveScalarOrder = [
     'ID',
@@ -17,7 +15,7 @@ const primitiveScalarOrder = [
     'Float',
 ] as const satisfies ReadonlyArray<keyof Scalars>
 
-const sortScalarEntries = (defScalars: Map<string, ScalarModel>) => [ ...defScalars.entries() ]
+const sortScalarEntries = (scalars: Map<string, ScalarModelShape>) => [ ...scalars.entries() ]
     .sort(([ leftName ], [ rightName ]) => {
         const leftPrimitive = isScalarPrimitiveKey(leftName)
         const rightPrimitive = isScalarPrimitiveKey(rightName)
@@ -34,11 +32,11 @@ const sortScalarEntries = (defScalars: Map<string, ScalarModel>) => [ ...defScal
 
 const renderScalarEntry = (
     scalarName: string,
-    scalarDefinition: ScalarModel
-): string => indent(`${scalarName}: { input: ${scalarDefinition.input}; output: ${scalarDefinition.output}; };`)
+    scalar: ScalarModelShape
+): string => indent(`${scalarName}: { input: ${scalar.input}; output: ${scalar.output}; };`)
 
-const renderScalarsDeclaration = (defScalars: Map<string, ScalarModel>): string => {
-    const scalarEntries = sortScalarEntries(defScalars)
+const renderScalarsDeclaration = (scalars: Map<string, ScalarModelShape>): string => {
+    const scalarEntries = sortScalarEntries(scalars)
     if (!scalarEntries.length) return ''
 
     return [
@@ -50,12 +48,12 @@ const renderScalarsDeclaration = (defScalars: Map<string, ScalarModel>): string 
     ].join('\n')
 }
 
-const renderEnumsDeclarations = (defEnums: Map<string, EnumDefinitionModel>): string[] => [ ...defEnums.entries() ]
+const renderEnumsDeclarations = (enums: Map<string, EnumValueEntries>): string[] => [ ...enums.entries() ]
     .map(([ enumName, enumDefinition ]) => `export type ${enumName} = ${renderStringLiteralUnion(
         enumDefinition.map(({ value }) => String(value))
     )}`)
 
-export const renderSchemaDeclaration = (defRegistry: DefRegistry) => [
-    renderScalarsDeclaration(defRegistry.scalars),
-    ...renderEnumsDeclarations(defRegistry.enums),
+export const renderSchemaDeclaration = (schemaRegistry: ModelSchemaRegistry) => [
+    renderScalarsDeclaration(schemaRegistry.scalars),
+    ...renderEnumsDeclarations(schemaRegistry.enums),
 ].filter(Boolean).join('\n\n')

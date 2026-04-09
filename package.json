@@ -1,5 +1,5 @@
 {
-    "name": "graphql-typed-declaration",
+    "name": "graphql-precise-dts",
     "description": "GraphQL files type declaration generator",
     "version": "0.0.0",
     "main": "./src/index.ts",

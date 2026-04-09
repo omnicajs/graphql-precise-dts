@@ -1,4 +1,4 @@
-import type { ConfigScalar } from '../../src/config'
+import type { ConfigScalars } from '../../src/config'
 
 import {
     describe,
@@ -12,7 +12,7 @@ import {
     isScalarCustomKey,
     isScalarPrimitiveKey,
     resolveCustomScalarTypeTs,
-} from '../../src/modules/scalar-type-mapping'
+} from '../../src/scalars/builder'
 
 describe('converting graphQL scalars to TS types', () => {
     test('resolves built-in scalar artifacts types', () => {
@@ -43,7 +43,7 @@ describe('converting graphQL scalars to TS types', () => {
     })
 
     test('detects only own custom scalar keys', () => {
-        const inheritedScalars = Object.create({ DateTime: 'Date' }) as ConfigScalar
+        const inheritedScalars = Object.create({ DateTime: 'Date' }) as ConfigScalars
         inheritedScalars.JSON = '{ [key: string]: unknown }'
 
         expect(isScalarCustomKey('JSON', inheritedScalars)).toBe(true)
@@ -75,7 +75,7 @@ describe('converting graphQL scalars to TS types', () => {
     })
 
     test('prefers custom scalar map entries over built-in scalars', () => {
-        const customScalars: ConfigScalar = {
+        const customScalars: ConfigScalars = {
             String: { output: 'CustomString' },
             DateTime: 'Date',
         }
@@ -87,7 +87,7 @@ describe('converting graphQL scalars to TS types', () => {
     })
 
     test('resolves custom scalar direction through getScalarTsType', () => {
-        const customScalars: ConfigScalar = {
+        const customScalars: ConfigScalars = {
             DateTime: {
                 input: 'string',
                 output: 'Date',
@@ -99,7 +99,7 @@ describe('converting graphQL scalars to TS types', () => {
     })
 
     test('returns unknown through getScalarTsType when partial config misses requested direction', () => {
-        const customScalars: ConfigScalar = {
+        const customScalars: ConfigScalars = {
             DateTime: {
                 input: 'string',
             },

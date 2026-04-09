@@ -1,27 +1,27 @@
-import type {
-    DeclarationDefinitions,
-    DefinitionNodeModel,
-    FieldNodeModel,
-    FieldValueModel,
+import {
+    DocumentModels,
+    FieldSelectionModel,
+    FieldValue,
     FragmentModel,
-    InputFieldModel,
-    InputValueModel,
+    InputField,
+    InputValue,
     OperationModel,
-} from '../../../src/types/models'
+} from '../../../src/models/types'
 import type { OperationTypeNode } from 'graphql'
-
-import { parse } from 'graphql'
+import type {
+    SelectionModel,
+    TypeRef,
+} from '../../../src/models/types'
 
 import {
-    DefinitionNodeKind,
-    FieldValueKind,
     FragmentRootKind,
-} from '../../../src/enums/model-kinds'
-import { Kind } from 'graphql'
-import { TypeRefKind } from '../../../src/enums/model-kinds'
+    SelectionModelKind,
+    TypeRefKind,
+    ValueModelKind,
+} from '../../../src/models/kinds'
 
-const baseNamedType = () => ({
-    kind: TypeRefKind.NAMED as const,
+const baseNamedType = (): Extract<TypeRef, { kind: TypeRefKind.NAMED }> => ({
+    kind: TypeRefKind.NAMED,
     name: 'Ignored',
 })
 
@@ -32,8 +32,8 @@ export const namedType = (nullable = true) => nullable
         ofType: baseNamedType(),
     }
 
-const baseListType = () => ({
-    kind: TypeRefKind.LIST as const,
+const baseListType = (): Extract<TypeRef, { kind: TypeRefKind.LIST }> => ({
+    kind: TypeRefKind.LIST,
     ofType: namedType(false),
 })
 
@@ -46,12 +46,12 @@ export const listType = (nullable = true) => nullable
 
 export const field = (
     responseName: string,
-    value: FieldValueModel,
+    value: FieldValue,
     nullable = true,
     isList = false,
     directives: string[] = []
-): FieldNodeModel => ({
-    kind: DefinitionNodeKind.FIELD,
+): Extract<FieldSelectionModel, { kind: SelectionModelKind.FIELD }> => ({
+    kind: SelectionModelKind.FIELD,
     name: responseName,
     responseName,
     typeRef: isList ? listType(nullable) : namedType(nullable),
@@ -59,44 +59,46 @@ export const field = (
     directives,
 })
 
-export const scalar = (type: string): FieldValueModel => ({
-    kind: FieldValueKind.SCALAR,
+export const scalar = (type: string): Extract<FieldValue, { kind: ValueModelKind.SCALAR }> => ({
+    kind: ValueModelKind.SCALAR,
     typeTs: type,
 })
 
-export const typenameValue = (...typeNames: string[]): FieldValueModel => ({
-    kind: FieldValueKind.TYPENAME,
+export const typenameValue = (...typeNames: string[]): FieldValue => ({
+    kind: ValueModelKind.TYPENAME,
     typeNames,
 })
 
-export const enumValue = (name: string): FieldValueModel => ({
-    kind: FieldValueKind.ENUM,
+export const enumValue = (name: string): FieldValue => ({
+    kind: ValueModelKind.ENUM,
     name,
 })
 
 export const objectValue = (
-    fields: DefinitionNodeModel[],
+    fields: SelectionModel[],
     typeNames?: string[]
-): FieldValueModel => ({
-    kind: FieldValueKind.OBJECT,
+): Extract<FieldValue, { kind: ValueModelKind.OBJECT }> => ({
+    kind: ValueModelKind.OBJECT,
     fields,
     ...(typeNames && { typeNames }),
 })
 
-export const inputObjectValue = (fields: InputFieldModel[]): InputValueModel => ({
-    kind: FieldValueKind.OBJECT,
+export const inputObjectValue = (
+    fields: InputField[]
+): Extract<InputValue, { kind: ValueModelKind.OBJECT }> => ({
+    kind: ValueModelKind.OBJECT,
     fields,
 })
 
 export const unionValue = (
-    variants: Array<{ typeName: string; fields: DefinitionNodeModel[] }>
-): FieldValueModel => ({
-    kind: FieldValueKind.UNION,
+    variants: Array<{ typeName: string; fields: SelectionModel[] }>
+): FieldValue => ({
+    kind: ValueModelKind.UNION,
     variants,
 })
 
 export const fragment = (
-    fields: DefinitionNodeModel[],
+    fields: SelectionModel[],
     onType: string
 ): FragmentModel => ({
     onType,
@@ -108,11 +110,11 @@ export const fragment = (
 
 export const inputField = (
     name: string,
-    value: InputValueModel,
+    value: InputValue,
     nullable = true,
     isList = false,
     optional = nullable
-): InputFieldModel => ({
+): InputField => ({
     name,
     typeRef: isList ? listType(nullable) : namedType(nullable),
     optional,
@@ -121,8 +123,8 @@ export const inputField = (
 
 export const operation = (
     operationType: OperationTypeNode,
-    result: DefinitionNodeModel[],
-    variables: InputFieldModel[] = [],
+    result: SelectionModel[],
+    variables: InputField[] = [],
     onType = 'Query'
 ): OperationModel => ({
     operationType,
@@ -132,25 +134,9 @@ export const operation = (
 })
 
 export const declarationDefinitions = (
-    fragments: DeclarationDefinitions['fragments'],
-    operations: DeclarationDefinitions['operations'] = new Map()
-): DeclarationDefinitions => ({
+    fragments: Map<string, FragmentModel>,
+    operations: Map<string, OperationModel> = new Map()
+): DocumentModels => ({
     fragments,
     operations,
 })
-
-export const fragmentsDefs = (
-    documents: Array<{ document: ReturnType<typeof parse> }>
-): Map<string, Extract<ReturnType<typeof parse>['definitions'][number], { kind: Kind.FRAGMENT_DEFINITION }>> => {
-    const fragmentsDefs = new Map<string, Extract<ReturnType<typeof parse>['definitions'][number], { kind: Kind.FRAGMENT_DEFINITION }>>()
-
-    documents.forEach(({ document }) => {
-        document.definitions.forEach(definition => {
-            if (definition.kind === Kind.FRAGMENT_DEFINITION) {
-                fragmentsDefs.set(definition.name.value, definition)
-            }
-        })
-    })
-
-    return fragmentsDefs
-}

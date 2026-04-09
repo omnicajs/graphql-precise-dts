@@ -1,4 +1,3 @@
-import type { DefinitionNodeModel } from '../types/models'
 import type {
     FieldNode,
     FragmentDefinitionNode,
@@ -10,12 +9,15 @@ import type {
     GraphQLOutputType,
     GraphQLSchema,
 } from 'graphql'
+import type { SelectionModel } from './types'
 import type { SelectionNode } from 'graphql'
-import type { TypeRef } from '../types/models'
-import type { TypeSelectionNode } from '../types/selection'
+import type { TypeRef } from './types'
+import type { TypeSelectionNode } from './selection'
 
-import { GraphQLNonNull } from 'graphql'
-import { TypeInfo } from 'graphql'
+import {
+    GraphQLNonNull,
+    TypeInfo,
+} from 'graphql'
 
 import {
     getNamedType,
@@ -28,12 +30,12 @@ import {
     visitWithTypeInfo,
 } from 'graphql'
 
-import {
-    DefinitionNodeKind,
-    FieldValueKind,
-} from '../enums/model-kinds'
 import { Kind } from 'graphql'
-import { TypeRefKind } from '../enums/model-kinds'
+import {
+    SelectionModelKind,
+    TypeRefKind,
+    ValueModelKind,
+} from './kinds'
 
 import { GraphQLString } from 'graphql'
 
@@ -99,7 +101,7 @@ const makeFieldTypeSelection = (
     const fieldType = fields.get(selection)
     if (fieldType) {
         return {
-            kind: DefinitionNodeKind.FIELD,
+            kind: SelectionModelKind.FIELD,
             currentType: fieldType,
             ...(isTypeName && { typeNames: typeNames.get(selection) }),
             ...(selection.selectionSet?.selections
@@ -110,7 +112,7 @@ const makeFieldTypeSelection = (
 
     return isTypeName
         ? {
-            kind: DefinitionNodeKind.FIELD,
+            kind: SelectionModelKind.FIELD,
             currentType: new GraphQLNonNull(GraphQLString),
             typeNames: typeNames.get(selection),
         } : undefined
@@ -127,12 +129,12 @@ const makeTypeSelectionNode = (
             return makeFieldTypeSelection(selection, fields, typeNames, getTypesForSelections)
         case Kind.FRAGMENT_SPREAD:
             return {
-                kind: DefinitionNodeKind.FRAGMENT_SPREAD,
+                kind: SelectionModelKind.FRAGMENT_SPREAD,
                 name: selection.name.value,
             }
         case Kind.INLINE_FRAGMENT:
             return {
-                kind: DefinitionNodeKind.INLINE_FRAGMENT,
+                kind: SelectionModelKind.INLINE_FRAGMENT,
                 ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
                 ...(selection.selectionSet.selections
                     && { selections: getTypesForSelections([ ...selection.selectionSet.selections ]) }
@@ -252,15 +254,15 @@ export const filterSelectionsForConcreteType = (
 })
 
 export const specializeTypeNameSelectionForConcreteType = (
-    definitions: DefinitionNodeModel[],
+    selections: SelectionModel[],
     typeName: string
-): DefinitionNodeModel[] => definitions.map(definition => {
-    if (definition.kind !== DefinitionNodeKind.FIELD || definition.name !== '__typename') return definition
+): SelectionModel[] => selections.map(selection => {
+    if (selection.kind !== SelectionModelKind.FIELD || selection.name !== '__typename') return selection
 
     return {
-        ...definition,
+        ...selection,
         value: {
-            kind: FieldValueKind.TYPENAME,
+            kind: ValueModelKind.TYPENAME,
             typeNames: [ typeName ],
         },
     }

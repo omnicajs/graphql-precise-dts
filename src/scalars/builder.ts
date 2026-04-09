@@ -1,11 +1,11 @@
-import type { ConfigScalar } from '../config'
+import type { ConfigScalars } from '../config'
 import type {
     ScalarPrimitiveMap,
     ScalarShape,
     Scalars,
-    ScalarUsage,
-} from '../types/scalars'
-import type { ScalarTsType } from '../config'
+} from './types'
+import type { ScalarUsage } from './types'
+import type { TsTypeString } from '../config'
 
 import { isUndefined } from '../lib/predicates'
 
@@ -32,9 +32,9 @@ export const getScalarPrimitiveShapeTs = <TScalar extends keyof Scalars>(
     })
 
 export const resolveCustomScalarTypeTs = (
-    scalar: ScalarTsType | Partial<ScalarShape<ScalarTsType, ScalarTsType>>,
+    scalar: TsTypeString | Partial<ScalarShape<TsTypeString, TsTypeString>>,
     usage: ScalarUsage = 'output'
-): ScalarTsType => {
+): TsTypeString => {
     return typeof scalar === 'object' && scalar !== null
         ? (usage in scalar && !isUndefined(scalar[usage])
             ? scalar[usage]
@@ -46,15 +46,15 @@ export const resolveCustomScalarTypeTs = (
 export const isScalarPrimitiveKey = (key: string): key is keyof Scalars => {
     return key in scalarPrimitiveTypesMap
 }
-export const isScalarCustomKey = (key: string, listScalars: ConfigScalar): boolean => {
+export const isScalarCustomKey = (key: string, listScalars: ConfigScalars): boolean => {
     return Object.prototype.hasOwnProperty.call(listScalars, key)
 }
 
 export const getScalarTsType = (
     namedType: string,
-    customScalars: ConfigScalar = {},
+    customScalars: ConfigScalars = {},
     usage: ScalarUsage = 'output'
-): ScalarTsType => {
+): TsTypeString => {
     return isScalarCustomKey(namedType, customScalars)
         ? resolveCustomScalarTypeTs(customScalars[namedType], usage)
         : isScalarPrimitiveKey(namedType)
@@ -64,8 +64,8 @@ export const getScalarTsType = (
 
 export const getScalarTsShape = (
     namedType: string,
-    customScalars: ConfigScalar = {}
-): ScalarShape<ScalarTsType, ScalarTsType> => ({
+    customScalars: ConfigScalars = {}
+): ScalarShape<TsTypeString, TsTypeString> => ({
     input: getScalarTsType(namedType, customScalars, 'input'),
     output: getScalarTsType(namedType, customScalars, 'output'),
 })
