@@ -42,5 +42,5 @@ jobs:
       - name: Checking for peer dependency conflicts
         run: yarn check:peer-deps:fix
 
-      - name: Run type tests
-        run: yarn test:types
+      - name: Run tests
+        run: yarn test
