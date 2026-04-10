@@ -30,9 +30,9 @@ import { specializeTypeNameSelectionForConcreteType } from '../../src/models/res
 
 import { Kind } from 'graphql'
 import {
-    SelectionModelKind,
-    TypeRefKind,
-    ValueModelKind,
+    SELECTION_MODEL_KIND,
+    TYPE_REF_KIND,
+    VALUE_MODEL_KIND,
 } from '../../src/models/kinds'
 
 const getFragmentDefinition = (source: string): FragmentDefinitionNode => {
@@ -174,7 +174,7 @@ describe('type resolution for models', () => {
         const ownerSelection = getSelectionNode(fragment, 0) as FieldNode
         const ownerTyped = getTypedSelection(tree, ownerSelection) as TypeFieldNode
 
-        expect(ownerTyped.kind, 'Expected owner selection with nested typed selections').toBe(SelectionModelKind.FIELD)
+        expect(ownerTyped.kind, 'Expected owner selection with nested typed selections').toBe(SELECTION_MODEL_KIND.FIELD)
 
         expect(getNamedType(ownerTyped.currentType).name).toBe('User')
         expect(ownerTyped.selections).not.toBeUndefined()
@@ -189,22 +189,22 @@ describe('type resolution for models', () => {
 
         // typeName field check
         expect(typenameTyped).toMatchObject({
-            kind: SelectionModelKind.FIELD,
+            kind: SELECTION_MODEL_KIND.FIELD,
             typeNames: [ 'UserPayload' ],
         })
 
         // id field check
-        expect(idTyped.kind, 'Expected typed field for id').toBe(SelectionModelKind.FIELD)
+        expect(idTyped.kind, 'Expected typed field for id').toBe(SELECTION_MODEL_KIND.FIELD)
         expect(getNamedType((idTyped as TypeFieldNode).currentType).name).toBe('ID')
 
         // spread definition check
         expect(spreadTyped).toEqual({
-            kind: SelectionModelKind.FRAGMENT_SPREAD,
+            kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
             name: 'UserCore',
         })
 
         // inline definition check
-        expect(inlineTyped.kind, 'Expected inline fragment with typed selections').toBe(SelectionModelKind.INLINE_FRAGMENT)
+        expect(inlineTyped.kind, 'Expected inline fragment with typed selections').toBe(SELECTION_MODEL_KIND.INLINE_FRAGMENT)
         expect((inlineTyped as TypeFragmentInlineNode).typeCondition).toBe('UserPayload')
 
         expect(nestedSelections[3]).not.toBeUndefined()
@@ -220,7 +220,7 @@ describe('type resolution for models', () => {
         const inlineFragmentSelections = (inlineTyped as TypeFragmentInlineNode).selections as WeakMap<SelectionNode, TypeSelectionNode>
         const permissionsTyped = getTypedSelection(inlineFragmentSelections, permissionsSelection as SelectionNode)
 
-        expect(permissionsTyped.kind, 'Expected typed field for permissions').toBe(SelectionModelKind.FIELD)
+        expect(permissionsTyped.kind, 'Expected typed field for permissions').toBe(SELECTION_MODEL_KIND.FIELD)
         expect(getNamedType((permissionsTyped as TypeFieldNode).currentType).name).toBe('String')
     })
 
@@ -242,13 +242,13 @@ describe('type resolution for models', () => {
         expect(tagsField, 'tags field not found').not.toBeNull()
 
         expect(makeTypeRefForField(tagsField.type)).toEqual({
-            kind: TypeRefKind.NON_NULL,
+            kind: TYPE_REF_KIND.NON_NULL,
             ofType: {
-                kind: TypeRefKind.LIST,
+                kind: TYPE_REF_KIND.LIST,
                 ofType: {
-                    kind: TypeRefKind.NON_NULL,
+                    kind: TYPE_REF_KIND.NON_NULL,
                     ofType: {
-                        kind: TypeRefKind.NAMED,
+                        kind: TYPE_REF_KIND.NAMED,
                         name: 'String',
                     },
                 },
@@ -333,52 +333,52 @@ describe('type resolution for models', () => {
 
     test('specializes only typename field values for the concrete type', () => {
         const selections = [{
-            kind: SelectionModelKind.FIELD,
+            kind: SELECTION_MODEL_KIND.FIELD,
             name: '__typename',
             responseName: '__typename',
             typeRef: {
-                kind: TypeRefKind.NON_NULL,
+                kind: TYPE_REF_KIND.NON_NULL,
                 ofType: {
-                    kind: TypeRefKind.NAMED,
+                    kind: TYPE_REF_KIND.NAMED,
                     name: 'String',
                 },
             },
             value: {
-                kind: ValueModelKind.TYPENAME,
+                kind: VALUE_MODEL_KIND.TYPENAME,
                 typeNames: [ 'UserPayload', 'AdminPayload' ],
             },
             directives: [],
         }, {
-            kind: SelectionModelKind.FIELD,
+            kind: SELECTION_MODEL_KIND.FIELD,
             name: 'id',
             responseName: 'id',
             typeRef: {
-                kind: TypeRefKind.NON_NULL,
+                kind: TYPE_REF_KIND.NON_NULL,
                 ofType: {
-                    kind: TypeRefKind.NAMED,
+                    kind: TYPE_REF_KIND.NAMED,
                     name: 'ID',
                 },
             },
             value: {
-                kind: ValueModelKind.SCALAR,
+                kind: VALUE_MODEL_KIND.SCALAR,
                 typeTs: 'string',
             },
             directives: [],
         }] satisfies SelectionModel[]
 
         expect(specializeTypeNameSelectionForConcreteType(selections, 'UserPayload')).toEqual([{
-            kind: SelectionModelKind.FIELD,
+            kind: SELECTION_MODEL_KIND.FIELD,
             name: '__typename',
             responseName: '__typename',
             typeRef: {
-                kind: TypeRefKind.NON_NULL,
+                kind: TYPE_REF_KIND.NON_NULL,
                 ofType: {
-                    kind: TypeRefKind.NAMED,
+                    kind: TYPE_REF_KIND.NAMED,
                     name: 'String',
                 },
             },
             value: {
-                kind: ValueModelKind.TYPENAME,
+                kind: VALUE_MODEL_KIND.TYPENAME,
                 typeNames: [ 'UserPayload' ],
             },
             directives: [],

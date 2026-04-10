@@ -32,18 +32,18 @@ import {
 
 import { Kind } from 'graphql'
 import {
-    SelectionModelKind,
-    TypeRefKind,
-    ValueModelKind,
+    SELECTION_MODEL_KIND,
+    TYPE_REF_KIND,
+    VALUE_MODEL_KIND,
 } from './kinds'
 
 import { GraphQLString } from 'graphql'
 
 export const makeNonNullTypeRef = (typeRef: TypeRef): TypeRef => {
-    return typeRef.kind === TypeRefKind.NON_NULL
+    return typeRef.kind === TYPE_REF_KIND.NON_NULL
         ? typeRef
         : {
-            kind: TypeRefKind.NON_NULL,
+            kind: TYPE_REF_KIND.NON_NULL,
             ofType: typeRef,
         }
 }
@@ -101,7 +101,7 @@ const makeFieldTypeSelection = (
     const fieldType = fields.get(selection)
     if (fieldType) {
         return {
-            kind: SelectionModelKind.FIELD,
+            kind: SELECTION_MODEL_KIND.FIELD,
             currentType: fieldType,
             ...(isTypeName && { typeNames: typeNames.get(selection) }),
             ...(selection.selectionSet?.selections
@@ -112,7 +112,7 @@ const makeFieldTypeSelection = (
 
     return isTypeName
         ? {
-            kind: SelectionModelKind.FIELD,
+            kind: SELECTION_MODEL_KIND.FIELD,
             currentType: new GraphQLNonNull(GraphQLString),
             typeNames: typeNames.get(selection),
         } : undefined
@@ -129,12 +129,12 @@ const makeTypeSelectionNode = (
             return makeFieldTypeSelection(selection, fields, typeNames, getTypesForSelections)
         case Kind.FRAGMENT_SPREAD:
             return {
-                kind: SelectionModelKind.FRAGMENT_SPREAD,
+                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                 name: selection.name.value,
             }
         case Kind.INLINE_FRAGMENT:
             return {
-                kind: SelectionModelKind.INLINE_FRAGMENT,
+                kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                 ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
                 ...(selection.selectionSet.selections
                     && { selections: getTypesForSelections([ ...selection.selectionSet.selections ]) }
@@ -194,20 +194,20 @@ export const getTypeForDefinition = (
 export const makeTypeRefForInput = (type: GraphQLInputType): TypeRef => {
     if (isNonNullType(type)) {
         return {
-            kind: TypeRefKind.NON_NULL,
+            kind: TYPE_REF_KIND.NON_NULL,
             ofType: makeTypeRefForInput(type.ofType),
         }
     }
 
     if (isListType(type)) {
         return {
-            kind: TypeRefKind.LIST,
+            kind: TYPE_REF_KIND.LIST,
             ofType: makeTypeRefForInput(type.ofType),
         }
     }
 
     return {
-        kind: TypeRefKind.NAMED,
+        kind: TYPE_REF_KIND.NAMED,
         name: getNamedType(type).name,
     }
 }
@@ -215,20 +215,20 @@ export const makeTypeRefForInput = (type: GraphQLInputType): TypeRef => {
 export const makeTypeRefForField = (type: GraphQLOutputType): TypeRef => {
     if (isNonNullType(type)) {
         return {
-            kind: TypeRefKind.NON_NULL,
+            kind: TYPE_REF_KIND.NON_NULL,
             ofType: makeTypeRefForField(type.ofType),
         }
     }
 
     if (isListType(type)) {
         return {
-            kind: TypeRefKind.LIST,
+            kind: TYPE_REF_KIND.LIST,
             ofType: makeTypeRefForField(type.ofType),
         }
     }
 
     return {
-        kind: TypeRefKind.NAMED,
+        kind: TYPE_REF_KIND.NAMED,
         name: getNamedType(type).name,
     }
 }
@@ -257,12 +257,12 @@ export const specializeTypeNameSelectionForConcreteType = (
     selections: SelectionModel[],
     typeName: string
 ): SelectionModel[] => selections.map(selection => {
-    if (selection.kind !== SelectionModelKind.FIELD || selection.name !== '__typename') return selection
+    if (selection.kind !== SELECTION_MODEL_KIND.FIELD || selection.name !== '__typename') return selection
 
     return {
         ...selection,
         value: {
-            kind: ValueModelKind.TYPENAME,
+            kind: VALUE_MODEL_KIND.TYPENAME,
             typeNames: [ typeName ],
         },
     }

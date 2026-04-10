@@ -9,7 +9,7 @@ import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 
 import { TypeInfo } from 'graphql'
 
-import { makeOperationModel } from '../models/builder'
+import { makeOperationModel } from '../models/documents-builder'
 import {
     visit,
     visitWithTypeInfo,

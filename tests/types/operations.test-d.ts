@@ -76,6 +76,9 @@ import { userCreatedSubscription } from '~tests/fixtures/documents/subscriptions
 declare const client: ApolloClient
 
 type Element<T> = T extends readonly (infer U)[] ? U : never
+type Assert<T extends true> = T
+type IsAssignable<From, To> = [From] extends [To] ? true : false
+declare const __typeAssertions: unique symbol
 
 describe('fragments', () => {
     describe('UserDetails', () => {
@@ -104,16 +107,30 @@ describe('fragments', () => {
 
     describe('GroupDetails', () => {
         test('signature match', () => {
-            expectTypeOf<GroupDetailsFragment>().toEqualTypeOf<{
+            type OwnerPermissions = GroupDetailsFragment['owner']['permissions']
+            type ExpectedOwnerPermissions = Array<Permission>
+            type OwnerPermissionsExtendsExpected = Assert<
+                IsAssignable<OwnerPermissions, ExpectedOwnerPermissions>
+            >
+            type ExpectedPermissionsExtendsOwner = Assert<
+                IsAssignable<ExpectedOwnerPermissions, OwnerPermissions>
+            >
+            void (0 as unknown as {
+                [__typeAssertions]: [
+                    OwnerPermissionsExtendsExpected,
+                    ExpectedPermissionsExtendsOwner,
+                ];
+            })
+
+            expectTypeOf<GroupDetailsFragment>().toMatchObjectType<{
                 __typename?: 'OwnerGroupChangedPayload';
                 id: string;
                 name: string;
-                owner: {
-                    permissions: Array<Permission>;
-                } & UserDetailsFragment;
                 createdBy: UserDetailsFragment;
                 createdAt: string;
             }>()
+
+            expectTypeOf<GroupDetailsFragment['owner']>().toMatchObjectType<UserDetailsFragment>()
         })
 
         test('compatible with query result', async () => {

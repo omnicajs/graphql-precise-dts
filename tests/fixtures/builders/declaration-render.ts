@@ -14,33 +14,33 @@ import type {
 } from '../../../src/models/types'
 
 import {
-    FragmentRootKind,
-    SelectionModelKind,
-    TypeRefKind,
-    ValueModelKind,
+    FRAGMENT_ROOT_KIND,
+    SELECTION_MODEL_KIND,
+    TYPE_REF_KIND,
+    VALUE_MODEL_KIND,
 } from '../../../src/models/kinds'
 
-const baseNamedType = (): Extract<TypeRef, { kind: TypeRefKind.NAMED }> => ({
-    kind: TypeRefKind.NAMED,
+const baseNamedType = (): Extract<TypeRef, { kind: typeof TYPE_REF_KIND.NAMED }> => ({
+    kind: TYPE_REF_KIND.NAMED,
     name: 'Ignored',
 })
 
 export const namedType = (nullable = true) => nullable
     ? baseNamedType()
     : {
-        kind: TypeRefKind.NON_NULL as const,
+        kind: TYPE_REF_KIND.NON_NULL,
         ofType: baseNamedType(),
     }
 
-const baseListType = (): Extract<TypeRef, { kind: TypeRefKind.LIST }> => ({
-    kind: TypeRefKind.LIST,
+const baseListType = (): Extract<TypeRef, { kind: typeof TYPE_REF_KIND.LIST }> => ({
+    kind: TYPE_REF_KIND.LIST,
     ofType: namedType(false),
 })
 
 export const listType = (nullable = true) => nullable
     ? baseListType()
     : {
-        kind: TypeRefKind.NON_NULL as const,
+        kind: TYPE_REF_KIND.NON_NULL,
         ofType: baseListType(),
     }
 
@@ -50,8 +50,8 @@ export const field = (
     nullable = true,
     isList = false,
     directives: string[] = []
-): Extract<FieldSelectionModel, { kind: SelectionModelKind.FIELD }> => ({
-    kind: SelectionModelKind.FIELD,
+): FieldSelectionModel => ({
+    kind: SELECTION_MODEL_KIND.FIELD,
     name: responseName,
     responseName,
     typeRef: isList ? listType(nullable) : namedType(nullable),
@@ -59,41 +59,41 @@ export const field = (
     directives,
 })
 
-export const scalar = (type: string): Extract<FieldValue, { kind: ValueModelKind.SCALAR }> => ({
-    kind: ValueModelKind.SCALAR,
+export const scalar = (type: string): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.SCALAR }> => ({
+    kind: VALUE_MODEL_KIND.SCALAR,
     typeTs: type,
 })
 
 export const typenameValue = (...typeNames: string[]): FieldValue => ({
-    kind: ValueModelKind.TYPENAME,
+    kind: VALUE_MODEL_KIND.TYPENAME,
     typeNames,
 })
 
 export const enumValue = (name: string): FieldValue => ({
-    kind: ValueModelKind.ENUM,
+    kind: VALUE_MODEL_KIND.ENUM,
     name,
 })
 
 export const objectValue = (
     fields: SelectionModel[],
     typeNames?: string[]
-): Extract<FieldValue, { kind: ValueModelKind.OBJECT }> => ({
-    kind: ValueModelKind.OBJECT,
+): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
+    kind: VALUE_MODEL_KIND.OBJECT,
     fields,
     ...(typeNames && { typeNames }),
 })
 
 export const inputObjectValue = (
     fields: InputField[]
-): Extract<InputValue, { kind: ValueModelKind.OBJECT }> => ({
-    kind: ValueModelKind.OBJECT,
+): Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
+    kind: VALUE_MODEL_KIND.OBJECT,
     fields,
 })
 
 export const unionValue = (
     variants: Array<{ typeName: string; fields: SelectionModel[] }>
 ): FieldValue => ({
-    kind: ValueModelKind.UNION,
+    kind: VALUE_MODEL_KIND.UNION,
     variants,
 })
 
@@ -103,7 +103,7 @@ export const fragment = (
 ): FragmentModel => ({
     onType,
     root: {
-        kind: FragmentRootKind.OBJECT,
+        kind: FRAGMENT_ROOT_KIND.OBJECT,
         fields,
     },
 })

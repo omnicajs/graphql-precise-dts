@@ -1,8 +1,12 @@
+import type { DocumentModelBundle } from '../plan/declarations'
 import type {
     DocumentModels,
     FieldValue,
     FragmentModel,
     FragmentRoot,
+} from '../models/types'
+import type { ImportMap } from '../plan/imports'
+import type {
     InputField,
     InputValue,
     OperationModel,
@@ -10,17 +14,19 @@ import type {
 } from '../models/types'
 import type { TypeRef } from '../models/types'
 
-import { capitalize, indent } from '../lib/strings'
+import { capitalize } from '../lib/strings'
+import { collectImportsForDocumentModels } from '../plan/imports'
+import { indent } from '../lib/strings'
 import { hasRootSpreadWithSameTypeNames } from './typename'
 import { renderStringLiteralUnion } from './basic'
 import { resolveTypenameSelection } from './typename'
 import { uncapitalize } from '../lib/strings'
 
 import {
-    FragmentRootKind,
-    SelectionModelKind,
-    TypeRefKind,
-    ValueModelKind,
+    FRAGMENT_ROOT_KIND,
+    SELECTION_MODEL_KIND,
+    TYPE_REF_KIND,
+    VALUE_MODEL_KIND,
 } from '../models/kinds'
 
 type RenderedSelections = {
@@ -38,22 +44,22 @@ const wrapNullable = (value: string): string => `${value} | null`
 
 const renderNullableTypeRef = (typeRef: TypeRef, value: string): string => {
     switch (typeRef.kind) {
-        case TypeRefKind.NAMED:
+        case TYPE_REF_KIND.NAMED:
             return wrapNullable(value)
-        case TypeRefKind.LIST:
+        case TYPE_REF_KIND.LIST:
             return wrapNullable(`Array<${renderNullableTypeRef(typeRef.ofType, value)}>`)
-        case TypeRefKind.NON_NULL:
+        case TYPE_REF_KIND.NON_NULL:
             return renderNonNullTypeRef(typeRef.ofType, value)
     }
 }
 
 const renderNonNullTypeRef = (typeRef: TypeRef, value: string): string => {
     switch (typeRef.kind) {
-        case TypeRefKind.NAMED:
+        case TYPE_REF_KIND.NAMED:
             return value
-        case TypeRefKind.LIST:
+        case TYPE_REF_KIND.LIST:
             return `Array<${renderNullableTypeRef(typeRef.ofType, value)}>`
-        case TypeRefKind.NON_NULL:
+        case TYPE_REF_KIND.NON_NULL:
             return renderNonNullTypeRef(typeRef.ofType, value)
     }
 }
@@ -65,7 +71,7 @@ const renderSelections = (
     const isConditional = withinConditional || !!selection.conditional
 
     switch (selection.kind) {
-        case SelectionModelKind.FIELD:
+        case SELECTION_MODEL_KIND.FIELD:
             if (selection.name === '__typename' && selection.responseName === '__typename') {
                 return result
             }
@@ -79,13 +85,13 @@ const renderSelections = (
                 isConditional
             ))
             return result
-        case SelectionModelKind.INLINE_FRAGMENT: {
+        case SELECTION_MODEL_KIND.INLINE_FRAGMENT: {
             const nested = renderSelections(selection.selections, isConditional)
             result.rows.push(...nested.rows)
             result.spreads.push(...nested.spreads)
             return result
         }
-        case SelectionModelKind.FRAGMENT_SPREAD:
+        case SELECTION_MODEL_KIND.FRAGMENT_SPREAD:
             result.spreads.push(isConditional ? `Partial<${selection.name}>` : selection.name)
             return result
     }
@@ -133,7 +139,7 @@ const renderObjectSelections = (
 }
 
 const renderFragmentUnionRoot = (
-    root: Extract<FragmentRoot, { kind: FragmentRootKind.UNION }>
+    root: Extract<FragmentRoot, { kind: typeof FRAGMENT_ROOT_KIND.UNION }>
 ): string => root.variants
     .map(variant => renderObjectSelections(variant.fields, [ variant.typeName ]))
     .join(' | ')
@@ -147,17 +153,17 @@ const renderFragmentObjectRoot = (
 
 const renderFieldValue = (field: FieldValue): string => {
     switch (field.kind) {
-        case ValueModelKind.SCALAR:
+        case VALUE_MODEL_KIND.SCALAR:
             return field.typeTs
-        case ValueModelKind.TYPENAME:
+        case VALUE_MODEL_KIND.TYPENAME:
             return renderStringLiteralUnion(field.typeNames)
-        case ValueModelKind.ENUM:
+        case VALUE_MODEL_KIND.ENUM:
             return field.name
-        case ValueModelKind.OBJECT:
+        case VALUE_MODEL_KIND.OBJECT:
             return renderObjectSelections(field.fields, field.typeNames ?? [], {
                 omitFallbackTypenameWhenSpreadMatches: true,
             })
-        case ValueModelKind.UNION:
+        case VALUE_MODEL_KIND.UNION:
             return field.variants
                 .map(variant => renderObjectSelections(
                     variant.fields,
@@ -172,7 +178,7 @@ const renderFieldValue = (field: FieldValue): string => {
 }
 
 const renderTypeBody = (fragment: FragmentModel): string => {
-    return fragment.root.kind === FragmentRootKind.UNION
+    return fragment.root.kind === FRAGMENT_ROOT_KIND.UNION
         ? renderFragmentUnionRoot(fragment.root)
         : renderFragmentObjectRoot(
             fragment.root.fields,
@@ -182,11 +188,11 @@ const renderTypeBody = (fragment: FragmentModel): string => {
 
 const renderInputValue = (value: InputValue): string => {
     switch (value.kind) {
-        case ValueModelKind.SCALAR:
+        case VALUE_MODEL_KIND.SCALAR:
             return value.typeTs
-        case ValueModelKind.ENUM:
+        case VALUE_MODEL_KIND.ENUM:
             return value.name
-        case ValueModelKind.OBJECT:
+        case VALUE_MODEL_KIND.OBJECT:
             return renderInputObject(value.fields)
         default:
             console.warn('Unknown input type')
@@ -266,3 +272,16 @@ export const renderDeclaration = (
         `}`,
     ].join('\n')
 }
+
+export const renderDeclarations = (
+    documentBundles: DocumentModelBundle[],
+    importMap: ImportMap,
+    documentModuleSpecifier: (location: string | undefined) => string
+): string => documentBundles
+    .map(({ location, models }) => renderDeclaration(
+        documentModuleSpecifier(location),
+        models,
+        collectImportsForDocumentModels(models, importMap)
+    ))
+    .filter(Boolean)
+    .join('\n\n')

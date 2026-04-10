@@ -1,40 +1,23 @@
-import type { DocumentModelBundle } from './plan/declarations'
-import type { ImportMap } from './plan/imports'
+import type { FragmentDefinitionNode } from 'graphql'
 import type { ModelContext } from './models/types'
 import type { PluginConfig } from './config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { Types } from '@graphql-codegen/plugin-helpers'
 
-import { FragmentDefinitionNode } from 'graphql/index'
-
-import { buildModelRegistry } from './models/builder'
-import { collectImportsForDocumentModels } from './plan/imports'
+import { buildModelRegistry } from './models/registry-builder'
 import { dirname } from 'path'
 import { join } from 'path'
 import { makeDocumentModelBundles } from './plan/declarations'
 import { makeImportMap } from './plan/imports'
 import { makeModuleSpecifier } from './path'
 import { mkdirSync } from 'fs'
-import { renderDeclaration } from './render/declarations'
+import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
 import { writeFileSync } from 'fs'
 
-import { Kind } from 'graphql/index'
+import { Kind } from 'graphql'
 
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
-
-const renderDeclarations = (
-    documentBundles: DocumentModelBundle[],
-    importMap: ImportMap,
-    documentModuleSpecifier: (location: string | undefined) => string
-): string => documentBundles
-    .map(({ location, models }) => renderDeclaration(
-        documentModuleSpecifier(location),
-        models,
-        collectImportsForDocumentModels(models, importMap)
-    ))
-    .filter(Boolean)
-    .join('\n\n')
 
 const findFragmentDefinitions = (
     documents: Parameters<PluginFunction<PluginConfig>>[1]

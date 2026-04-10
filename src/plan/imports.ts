@@ -23,9 +23,9 @@ import {
 } from 'graphql'
 
 import {
-    FragmentRootKind,
-    SelectionModelKind,
-    ValueModelKind,
+    FRAGMENT_ROOT_KIND,
+    SELECTION_MODEL_KIND,
+    VALUE_MODEL_KIND,
 } from '../models/kinds'
 
 export type ImportMap = {
@@ -125,17 +125,17 @@ const visitFieldValueImports = (
     value: FieldValue
 ) => {
     switch (value.kind) {
-        case ValueModelKind.ENUM: {
+        case VALUE_MODEL_KIND.ENUM: {
             const importPath = collector.importMap.enums.get(value.name)
             if (importPath && !collector.imports.has(value.name)) {
                 collector.imports.set(value.name, importPath)
             }
             return
         }
-        case ValueModelKind.OBJECT:
+        case VALUE_MODEL_KIND.OBJECT:
             visitSelectionModels(collector, value.fields)
             return
-        case ValueModelKind.UNION:
+        case VALUE_MODEL_KIND.UNION:
             value.variants.forEach(({ fields }) => visitSelectionModels(collector, fields))
     }
 }
@@ -145,17 +145,17 @@ const visitSelectionModel = (
     selection: SelectionModel
 ) => {
     switch (selection.kind) {
-        case SelectionModelKind.FRAGMENT_SPREAD: {
+        case SELECTION_MODEL_KIND.FRAGMENT_SPREAD: {
             const importPath = collector.importMap.fragments.get(selection.name)
             if (importPath && !collector.imports.has(selection.name)) {
                 collector.imports.set(selection.name, importPath)
             }
             return
         }
-        case SelectionModelKind.INLINE_FRAGMENT:
+        case SELECTION_MODEL_KIND.INLINE_FRAGMENT:
             visitSelectionModels(collector, selection.selections)
             return
-        case SelectionModelKind.FIELD:
+        case SELECTION_MODEL_KIND.FIELD:
             visitFieldValueImports(collector, selection.value)
     }
 }
@@ -165,14 +165,14 @@ const visitInputValueImports = (
     value: InputValue
 ) => {
     switch (value.kind) {
-        case ValueModelKind.ENUM: {
+        case VALUE_MODEL_KIND.ENUM: {
             const importPath = collector.importMap.enums.get(value.name)
             if (importPath && !collector.imports.has(value.name)) {
                 collector.imports.set(value.name, importPath)
             }
             return
         }
-        case ValueModelKind.OBJECT:
+        case VALUE_MODEL_KIND.OBJECT:
             value.fields.forEach(field => visitInputValueImports(collector, field.value))
             return
     }
@@ -182,7 +182,7 @@ const visitFragmentImports = (
     collector: DocumentImportCollector,
     fragment: FragmentModel
 ) => {
-    if (fragment.root.kind === FragmentRootKind.UNION) {
+    if (fragment.root.kind === FRAGMENT_ROOT_KIND.UNION) {
         fragment.root.variants.forEach(({ fields }) => visitSelectionModels(collector, fields))
         return
     }

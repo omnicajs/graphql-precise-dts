@@ -1,20 +1,35 @@
 import { generate } from '@graphql-codegen/cli'
+import { plugin } from './src'
 
-generate({
-    overwrite: true,
-    schema: 'tests/fixtures/schema.graphql',
-    documents: [ 'tests/fixtures/documents/**/*.graphql' ],
-    generates: {
-        'src/generated/types.d.ts': {
-            plugins: [ './dist/codegen-plugin/index.js' ],
-            config: {
-                prefix: '~tests/',
-                scope: 'fixtures/documents/',
-                emit: 'types',
-                scalars: {
-                    DateTime: 'string',
+const LOCAL_PLUGIN_NAME = 'graphql-precise-dts'
+const supportedPluginNames = new Set([
+    `@graphql-codegen/${LOCAL_PLUGIN_NAME}`,
+])
+
+const main = async (): Promise<void> => {
+    await generate({
+        overwrite: true,
+        pluginLoader(name) {
+            if (supportedPluginNames.has(name)) return { plugin }
+
+            throw new Error(`Unsupported plugin: ${name}`)
+        },
+        schema: 'tests/fixtures/schema.graphql',
+        documents: [ 'tests/fixtures/documents/**/*.graphql' ],
+        generates: {
+            'src/generated/types.d.ts': {
+                plugins: [ LOCAL_PLUGIN_NAME ],
+                config: {
+                    prefix: '~tests/',
+                    scope: 'fixtures/documents/',
+                    emit: 'types',
+                    scalars: {
+                        DateTime: 'string',
+                    },
                 },
             },
         },
-    },
-})
+    })
+}
+
+void main()

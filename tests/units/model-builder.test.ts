@@ -4,15 +4,15 @@ import {
     test,
 } from 'vitest'
 
-import { buildModelRegistry } from '../../src/models/builder'
+import { buildModelRegistry } from '../../src/models/registry-builder'
 import { buildSchema } from 'graphql'
 import { makeTestModelContext } from '../fixtures/builders/model-context'
 import { parse } from 'graphql'
 
 import {
-    FragmentRootKind,
-    SelectionModelKind,
-    ValueModelKind,
+    FRAGMENT_ROOT_KIND,
+    SELECTION_MODEL_KIND,
+    VALUE_MODEL_KIND,
 } from '../../src/models/kinds'
 
 describe('model builder', () => {
@@ -125,13 +125,13 @@ describe('model builder', () => {
         expect(registry.documents.fragments.get('UserBase')).toEqual(expect.objectContaining({
             onType: 'User',
             root: {
-                kind: FragmentRootKind.OBJECT,
+                kind: FRAGMENT_ROOT_KIND.OBJECT,
                 fields: [expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'id',
                     responseName: 'id',
                     value: {
-                        kind: ValueModelKind.SCALAR,
+                        kind: VALUE_MODEL_KIND.SCALAR,
                         typeTs: 'string',
                     },
                     directives: [],
@@ -142,33 +142,33 @@ describe('model builder', () => {
         expect(registry.documents.fragments.get('UserCard')).toEqual(expect.objectContaining({
             onType: 'User',
             root: {
-                kind: FragmentRootKind.OBJECT,
+                kind: FRAGMENT_ROOT_KIND.OBJECT,
                 fields: expect.arrayContaining([expect.objectContaining({
-                    kind: SelectionModelKind.FRAGMENT_SPREAD,
+                    kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                     name: 'UserBase',
                     onType: 'User',
                     directives: [],
                 }), expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'status',
                     responseName: 'status',
                     value: {
-                        kind: ValueModelKind.ENUM,
+                        kind: VALUE_MODEL_KIND.ENUM,
                         name: 'UserStatus',
                     },
                     directives: [],
                 }), expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'profile',
                     responseName: 'profile',
                     value: expect.objectContaining({
-                        kind: ValueModelKind.OBJECT,
+                        kind: VALUE_MODEL_KIND.OBJECT,
                         fields: [expect.objectContaining({
-                            kind: SelectionModelKind.FIELD,
+                            kind: SELECTION_MODEL_KIND.FIELD,
                             name: 'bio',
                             responseName: 'bio',
                             value: {
-                                kind: ValueModelKind.SCALAR,
+                                kind: VALUE_MODEL_KIND.SCALAR,
                                 typeTs: 'string',
                             },
                             directives: [],
@@ -238,19 +238,19 @@ describe('model builder', () => {
         expect(groupOwner).not.toBeUndefined()
 
         expect(groupOwner?.onType).toBe('Group')
-        expect(groupOwner?.root.kind).toBe(FragmentRootKind.OBJECT)
-        expect(groupOwner?.root.kind === FragmentRootKind.OBJECT && groupOwner.root.fields).toHaveLength(1)
+        expect(groupOwner?.root.kind).toBe(FRAGMENT_ROOT_KIND.OBJECT)
+        expect(groupOwner?.root.kind === FRAGMENT_ROOT_KIND.OBJECT && groupOwner.root.fields).toHaveLength(1)
 
-        const ownerField = groupOwner?.root.kind === FragmentRootKind.OBJECT
+        const ownerField = groupOwner?.root.kind === FRAGMENT_ROOT_KIND.OBJECT
             ? groupOwner.root.fields[0]
             : undefined
 
         expect(ownerField).not.toBeUndefined()
-        expect(ownerField?.kind).toBe(SelectionModelKind.FIELD)
+        expect(ownerField?.kind).toBe(SELECTION_MODEL_KIND.FIELD)
 
         const ownerValue = ownerField && 'value' in ownerField ? ownerField.value : undefined
 
-        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(ValueModelKind.UNION)
+        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(VALUE_MODEL_KIND.UNION)
 
         const ownerVariants = ownerValue && 'variants' in ownerValue ? ownerValue.variants : undefined
 
@@ -259,23 +259,23 @@ describe('model builder', () => {
             typeName: 'UserPayload',
             fields: expect.arrayContaining([
                 expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: '__typename',
                     value: {
-                        kind: ValueModelKind.TYPENAME,
+                        kind: VALUE_MODEL_KIND.TYPENAME,
                         typeNames: [ 'UserPayload' ],
                     },
                 }),
                 expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'id',
                     value: {
-                        kind: ValueModelKind.SCALAR,
+                        kind: VALUE_MODEL_KIND.SCALAR,
                         typeTs: 'string',
                     },
                 }),
                 expect.objectContaining({
-                    kind: SelectionModelKind.INLINE_FRAGMENT,
+                    kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                     typeCondition: 'UserPayload',
                 }),
             ]),
@@ -283,23 +283,23 @@ describe('model builder', () => {
             typeName: 'AdminPayload',
             fields: expect.arrayContaining([
                 expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: '__typename',
                     value: {
-                        kind: ValueModelKind.TYPENAME,
+                        kind: VALUE_MODEL_KIND.TYPENAME,
                         typeNames: [ 'AdminPayload' ],
                     },
                 }),
                 expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'id',
                     value: {
-                        kind: ValueModelKind.SCALAR,
+                        kind: VALUE_MODEL_KIND.SCALAR,
                         typeTs: 'string',
                     },
                 }),
                 expect.objectContaining({
-                    kind: SelectionModelKind.INLINE_FRAGMENT,
+                    kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                     typeCondition: 'AdminPayload',
                 }),
             ]),
@@ -359,29 +359,29 @@ describe('model builder', () => {
         )
 
         const groupOwner = registry.documents.fragments.get('GroupOwner')
-        const ownerField = groupOwner?.root.kind === FragmentRootKind.OBJECT
+        const ownerField = groupOwner?.root.kind === FRAGMENT_ROOT_KIND.OBJECT
             ? groupOwner.root.fields[0]
             : undefined
 
         expect(ownerField).not.toBeUndefined()
-        expect(ownerField?.kind).toBe(SelectionModelKind.FIELD)
+        expect(ownerField?.kind).toBe(SELECTION_MODEL_KIND.FIELD)
 
         const ownerValue = ownerField && 'value' in ownerField ? ownerField.value : undefined
 
-        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(ValueModelKind.UNION)
+        expect(ownerValue?.kind, 'Expected owner field to be a union model').toBe(VALUE_MODEL_KIND.UNION)
         expect(ownerValue && 'variants' in ownerValue ? ownerValue.variants : undefined).toEqual([{
             typeName: 'UserPayload',
             fields: expect.arrayContaining([
                 expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'id',
                     value: {
-                        kind: ValueModelKind.SCALAR,
+                        kind: VALUE_MODEL_KIND.SCALAR,
                         typeTs: 'string',
                     },
                 }),
                 expect.objectContaining({
-                    kind: SelectionModelKind.INLINE_FRAGMENT,
+                    kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                     typeCondition: 'UserPayload',
                 }),
             ]),
@@ -389,15 +389,15 @@ describe('model builder', () => {
             typeName: 'AdminPayload',
             fields: expect.arrayContaining([
                 expect.objectContaining({
-                    kind: SelectionModelKind.FIELD,
+                    kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'id',
                     value: {
-                        kind: ValueModelKind.SCALAR,
+                        kind: VALUE_MODEL_KIND.SCALAR,
                         typeTs: 'string',
                     },
                 }),
                 expect.objectContaining({
-                    kind: SelectionModelKind.INLINE_FRAGMENT,
+                    kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                     typeCondition: 'AdminPayload',
                 }),
             ]),
@@ -447,15 +447,15 @@ describe('model builder', () => {
 
         expect(registry.documents.fragments.get('UserCard')).toEqual(expect.objectContaining({
             root: {
-                kind: FragmentRootKind.OBJECT,
+                kind: FRAGMENT_ROOT_KIND.OBJECT,
                 fields: [
                     expect.objectContaining({
-                        kind: SelectionModelKind.FIELD,
+                        kind: SELECTION_MODEL_KIND.FIELD,
                         name: 'name',
                         directives: [ 'include' ],
                     }),
                     expect.objectContaining({
-                        kind: SelectionModelKind.FRAGMENT_SPREAD,
+                        kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'UserBase',
                         directives: [ 'skip' ],
                     }),
@@ -464,8 +464,8 @@ describe('model builder', () => {
         }))
         const conditionalUserCard = registry.documents.fragments.get('UserCard')
 
-        expect(conditionalUserCard?.root.kind).toBe(FragmentRootKind.OBJECT)
-        expect(conditionalUserCard?.root.kind === FragmentRootKind.OBJECT
+        expect(conditionalUserCard?.root.kind).toBe(FRAGMENT_ROOT_KIND.OBJECT)
+        expect(conditionalUserCard?.root.kind === FRAGMENT_ROOT_KIND.OBJECT
             ? conditionalUserCard.root.fields
             : undefined).toHaveLength(2)
     })
@@ -511,18 +511,18 @@ describe('model builder', () => {
 
         const policyUserCard = registry.documents.fragments.get('UserCard')
 
-        expect(policyUserCard?.root.kind).toBe(FragmentRootKind.OBJECT)
-        expect(policyUserCard?.root.kind === FragmentRootKind.OBJECT
+        expect(policyUserCard?.root.kind).toBe(FRAGMENT_ROOT_KIND.OBJECT)
+        expect(policyUserCard?.root.kind === FRAGMENT_ROOT_KIND.OBJECT
             ? policyUserCard.root.fields
             : undefined).toEqual([
             expect.objectContaining({
-                kind: SelectionModelKind.FIELD,
+                kind: SELECTION_MODEL_KIND.FIELD,
                 name: 'id',
                 conditional: true,
                 directives: [ 'mask' ],
             }),
             expect.objectContaining({
-                kind: SelectionModelKind.FIELD,
+                kind: SELECTION_MODEL_KIND.FIELD,
                 name: 'name',
                 conditional: false,
                 directives: [],

@@ -23,12 +23,12 @@ import {
     unionValue,
 } from '../fixtures/builders/declaration-render'
 
-import { FragmentRootKind } from '../../src/models/kinds'
+import { FRAGMENT_ROOT_KIND } from '../../src/models/kinds'
 import { OperationTypeNode } from 'graphql'
 import {
-    SelectionModelKind,
-    TypeRefKind,
-    ValueModelKind,
+    SELECTION_MODEL_KIND,
+    TYPE_REF_KIND,
+    VALUE_MODEL_KIND,
 } from '../../src/models/kinds'
 
 describe('declaration render', () => {
@@ -98,12 +98,12 @@ describe('declaration render', () => {
                             ],
                             [
                                 inputField('id', {
-                                    kind: ValueModelKind.SCALAR,
+                                    kind: VALUE_MODEL_KIND.SCALAR,
                                     typeTs: 'string',
                                 }, false),
                                 inputField('filter', inputObjectValue([
                                     inputField('status', {
-                                        kind: ValueModelKind.ENUM,
+                                        kind: VALUE_MODEL_KIND.ENUM,
                                         name: 'UserStatus',
                                     }),
                                 ])),
@@ -143,24 +143,24 @@ describe('declaration render', () => {
                             [
                                 inputField('input', inputObjectValue([
                                     inputField('name', {
-                                        kind: ValueModelKind.SCALAR,
+                                        kind: VALUE_MODEL_KIND.SCALAR,
                                         typeTs: 'string',
                                     }, false, false, false),
                                     inputField('nickname', {
-                                        kind: ValueModelKind.SCALAR,
+                                        kind: VALUE_MODEL_KIND.SCALAR,
                                         typeTs: 'string',
                                     }, true, false, true),
                                     inputField('locale', {
-                                        kind: ValueModelKind.SCALAR,
+                                        kind: VALUE_MODEL_KIND.SCALAR,
                                         typeTs: 'string',
                                     }, true, false, false),
                                     inputField('token', {
-                                        kind: ValueModelKind.SCALAR,
+                                        kind: VALUE_MODEL_KIND.SCALAR,
                                         typeTs: 'string',
                                     }, false, false, true),
                                 ]), false, false, false),
                                 inputField('traceId', {
-                                    kind: ValueModelKind.SCALAR,
+                                    kind: VALUE_MODEL_KIND.SCALAR,
                                     typeTs: 'string',
                                 }, true, false, true),
                             ],
@@ -262,24 +262,24 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['SparseLabels', fragment([
                     {
-                        kind: SelectionModelKind.FIELD,
+                        kind: SELECTION_MODEL_KIND.FIELD,
                         name: 'labels',
                         responseName: 'labels',
                         typeRef: {
-                            kind: TypeRefKind.NON_NULL,
+                            kind: TYPE_REF_KIND.NON_NULL,
                             ofType: {
-                                kind: TypeRefKind.LIST,
+                                kind: TYPE_REF_KIND.LIST,
                                 ofType: namedType(true),
                             },
                         },
                         value: scalar('string'),
                     },
                     {
-                        kind: SelectionModelKind.FIELD,
+                        kind: SELECTION_MODEL_KIND.FIELD,
                         name: 'strictLabels',
                         responseName: 'strictLabels',
                         typeRef: {
-                            kind: TypeRefKind.LIST,
+                            kind: TYPE_REF_KIND.LIST,
                             ofType: namedType(false),
                         },
                         value: scalar('string'),
@@ -301,9 +301,9 @@ describe('declaration render', () => {
                     ...field('createdAt', scalar('string')),
                     overrideTypeTs: 'Date',
                     typeRef: {
-                        kind: TypeRefKind.NON_NULL,
+                        kind: TYPE_REF_KIND.NON_NULL,
                         ofType: {
-                            kind: TypeRefKind.NAMED,
+                            kind: TYPE_REF_KIND.NAMED,
                             name: 'String',
                         },
                     },
@@ -365,7 +365,7 @@ describe('declaration render', () => {
                     onType: 'Profile',
                     onTypeNames: [ 'Profile' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             field('id', scalar('string'), false),
                         ],
@@ -374,7 +374,7 @@ describe('declaration render', () => {
                 ['UserProfile', fragment([
                     field('profile', objectValue([
                         {
-                            kind: SelectionModelKind.FRAGMENT_SPREAD,
+                            kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                             name: 'ProfileDetails',
                             onType: 'Profile',
                             onTypeNames: [ 'Profile' ],
@@ -528,7 +528,7 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.UNION,
+                        kind: FRAGMENT_ROOT_KIND.UNION,
                         variants: [
                             {
                                 typeName: 'UserPayload',
@@ -583,7 +583,7 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserTypenameFromInline', fragment([
                     {
-                        kind: SelectionModelKind.INLINE_FRAGMENT,
+                        kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'User',
                         selections: [
                             field('__typename', typenameValue('User'), false),
@@ -609,7 +609,7 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.UNION,
+                        kind: FRAGMENT_ROOT_KIND.UNION,
                         variants: [
                             {
                                 typeName: 'UserPayload',
@@ -649,7 +649,7 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             field('id', scalar('string'), false),
                         ],
@@ -659,10 +659,10 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             {
-                                kind: SelectionModelKind.FRAGMENT_SPREAD,
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'UserDetails',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
@@ -686,7 +686,7 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             field('id', scalar('string'), false),
                         ],
@@ -696,10 +696,10 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             {
-                                kind: SelectionModelKind.FRAGMENT_SPREAD,
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'UserDetails',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
@@ -726,7 +726,7 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             field('id', scalar('string'), false),
                         ],
@@ -736,7 +736,7 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             field('isOnline', scalar('boolean'), false),
                         ],
@@ -746,16 +746,16 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             {
-                                kind: SelectionModelKind.FRAGMENT_SPREAD,
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'UserDetails',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                             },
                             {
-                                kind: SelectionModelKind.FRAGMENT_SPREAD,
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'UserPresence',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
@@ -781,7 +781,7 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             field('id', scalar('string'), false),
                         ],
@@ -791,7 +791,7 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'ModeratorPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             field('isOnline', scalar('boolean'), false),
                         ],
@@ -801,16 +801,16 @@ describe('declaration render', () => {
                     onType: 'User',
                     onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                     root: {
-                        kind: FragmentRootKind.OBJECT,
+                        kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
                             {
-                                kind: SelectionModelKind.FRAGMENT_SPREAD,
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'UserDetails',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                             },
                             {
-                                kind: SelectionModelKind.FRAGMENT_SPREAD,
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'UserPresence',
                                 onType: 'User',
                                 onTypeNames: [ 'ModeratorPayload', 'AdminPayload' ],
@@ -838,7 +838,7 @@ describe('declaration render', () => {
                 ['AdminUser', fragment([
                     field('id', scalar('string'), false),
                     {
-                        kind: SelectionModelKind.INLINE_FRAGMENT,
+                        kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
                         selections: [
                             field('permissions', scalar('string'), false, true),
@@ -862,7 +862,7 @@ describe('declaration render', () => {
                 ['UserWithSpread', fragment([
                     field('id', scalar('string'), false),
                     {
-                        kind: SelectionModelKind.FRAGMENT_SPREAD,
+                        kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'SharedFields',
                         onType: 'User',
                     },
@@ -923,7 +923,7 @@ describe('declaration render', () => {
                 ['UserWithConditionalSpread', fragment([
                     field('id', scalar('string'), false),
                     {
-                        kind: SelectionModelKind.FRAGMENT_SPREAD,
+                        kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'SharedFields',
                         onType: 'User',
                         conditional: true,
@@ -945,7 +945,7 @@ describe('declaration render', () => {
                 ['ConditionalAdminUser', fragment([
                     field('id', scalar('string'), false),
                     {
-                        kind: SelectionModelKind.INLINE_FRAGMENT,
+                        kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
                         conditional: true,
                         directives: [ 'skip' ],
@@ -972,13 +972,13 @@ describe('declaration render', () => {
                     field('profile', objectValue([
                         field('id', scalar('string'), false),
                         {
-                            kind: SelectionModelKind.FRAGMENT_SPREAD,
+                            kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                             name: 'ProfileDetails',
                             onType: 'Profile',
                         },
                         field('contacts', objectValue([
                             {
-                                kind: SelectionModelKind.FRAGMENT_SPREAD,
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'ContactFields',
                                 onType: 'Contact',
                             },
@@ -1009,14 +1009,14 @@ describe('declaration render', () => {
                         field('bio', scalar('string')),
                     ]), false),
                     {
-                        kind: SelectionModelKind.INLINE_FRAGMENT,
+                        kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
                         selections: [
                             field('role', scalar('string'), false),
                         ],
                     },
                     {
-                        kind: SelectionModelKind.FRAGMENT_SPREAD,
+                        kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'SharedFields',
                         onType: 'User',
                     },
@@ -1068,7 +1068,7 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['BrokenFragment', fragment([
                     field('mystery', {
-                        kind: ValueModelKind.UNKNOWN,
+                        kind: VALUE_MODEL_KIND.UNKNOWN,
                         reason: 'unsupported',
                     }),
                 ], 'BrokenFragment')],

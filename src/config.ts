@@ -1,6 +1,7 @@
+import type { ConstValues } from './lib/types'
 import type { ScalarShape } from './scalars/types'
 
-import { SelectionModelKind } from './models/kinds'
+import { SELECTION_MODEL_KIND } from './models/kinds'
 
 export interface PluginConfig {
     prefix?: string;
@@ -13,7 +14,7 @@ export interface PluginConfig {
 export type TsTypeString = string
 export type ConfigScalars = { [K in string]: TsTypeString | Partial<ScalarShape<TsTypeString, TsTypeString>> }
 
-export const DIRECTIVE_POLICY_EFFECTS = {
+export const DIRECTIVE_POLICY_EFFECT = {
     IGNORE: 'ignore',
     EXCLUDE: 'exclude',
     CONDITIONAL: 'conditional',
@@ -21,7 +22,7 @@ export const DIRECTIVE_POLICY_EFFECTS = {
     OVERRIDE_TYPE: 'override-type',
     WARN: 'warn',
 } as const
-export type DirectivePolicyEffect = typeof DIRECTIVE_POLICY_EFFECTS[keyof typeof DIRECTIVE_POLICY_EFFECTS]
+export type DirectivePolicyEffect = typeof DIRECTIVE_POLICY_EFFECT[keyof typeof DIRECTIVE_POLICY_EFFECT]
 
 type Policy<
     T extends DirectivePolicyEffect,
@@ -29,12 +30,12 @@ type Policy<
 > = { effect: T } & Extra
 
 export type DirectivePolicy =
-    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.IGNORE>
-    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.EXCLUDE>
-    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.CONDITIONAL>
-    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.NONNULL>
-    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.OVERRIDE_TYPE, { type: string }>
-    | Policy<typeof DIRECTIVE_POLICY_EFFECTS.WARN, { message?: string }>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECT.IGNORE>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECT.EXCLUDE>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECT.CONDITIONAL>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECT.NONNULL>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECT.OVERRIDE_TYPE, { type: string }>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECT.WARN, { message?: string }>
 
-export type DirectiveNodePolicies = Partial<Record<SelectionModelKind, DirectivePolicy>>
+export type DirectiveNodePolicies = Partial<Record<ConstValues<typeof SELECTION_MODEL_KIND>, DirectivePolicy>>
 export type ConfigDirectivePolicies = Record<string, DirectivePolicy | DirectiveNodePolicies>

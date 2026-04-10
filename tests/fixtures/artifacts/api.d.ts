@@ -91,8 +91,8 @@ declare module '~tests/fixtures/documents/mutations/createUser.graphql' {
 
     export type CreateUserMutationVariables = Exact<{
         input: {
-            firstName: string | null;
-            lastName: string | null;
+            firstName?: string | null;
+            lastName?: string | null;
             name: string;
             username: string;
         };
@@ -210,7 +210,7 @@ declare module '~tests/fixtures/documents/queries/users.graphql' {
     }
 
     export type UsersQueryVariables = Exact<{
-        filter: {
+        filter?: {
             isOnline: boolean;
         } | null;
     }>

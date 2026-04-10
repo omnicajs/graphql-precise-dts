@@ -1,11 +1,11 @@
 import type { SelectionModel } from '../models/types'
 
 import {
-    SelectionModelKind,
-    ValueModelKind,
+    SELECTION_MODEL_KIND,
+    VALUE_MODEL_KIND,
 } from '../models/kinds'
 
-export type ResolvedTypenameSelection = {
+type ResolvedTypenameSelection = {
     present: boolean;
     required: boolean;
     typeNames: string[];
@@ -27,8 +27,8 @@ const collectTypenameSelections = (
 ): ResolvedTypenameSelection[] => selections.flatMap(selection => {
     const isConditional = withinConditional || !!selection.conditional
 
-    if (selection.kind === SelectionModelKind.FIELD) {
-        if (selection.value.kind !== ValueModelKind.TYPENAME) return []
+    if (selection.kind === SELECTION_MODEL_KIND.FIELD) {
+        if (selection.value.kind !== VALUE_MODEL_KIND.TYPENAME) return []
         if (selection.name !== '__typename' || selection.responseName !== '__typename') return []
 
         return [{
@@ -38,7 +38,7 @@ const collectTypenameSelections = (
         }]
     }
 
-    return selection.kind === SelectionModelKind.INLINE_FRAGMENT
+    return selection.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT
         ? collectTypenameSelections(selection.selections, isConditional)
         : []
 })
@@ -76,8 +76,8 @@ export const hasRootSpreadWithSameTypeNames = (
     typeNames: string[]
 ): boolean => {
     const rootSpreads = selections.filter(
-        (selection): selection is Extract<SelectionModel, { kind: SelectionModelKind.FRAGMENT_SPREAD }> =>
-            selection.kind === SelectionModelKind.FRAGMENT_SPREAD
+        (selection): selection is Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.FRAGMENT_SPREAD }> =>
+            selection.kind === SELECTION_MODEL_KIND.FRAGMENT_SPREAD
     )
 
     return rootSpreads.length > 0 && rootSpreads.every(selection => {

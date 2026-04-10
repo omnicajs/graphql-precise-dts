@@ -2,18 +2,18 @@ import {
     ConfigDirectivePolicies,
     ConfigScalars,
 } from '../config'
-import type { FragmentDefinitionNode } from 'graphql/index'
+import type { FragmentDefinitionNode } from 'graphql'
 import type { OperationTypeNode } from 'graphql'
 import type { PluginConfig } from '../config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { ScalarShape } from '../scalars/types'
 import type { TsTypeString } from '../config'
-import type { TypeRefKind } from './kinds'
 
 import {
-    FragmentRootKind,
-    SelectionModelKind,
-    ValueModelKind,
+    FRAGMENT_ROOT_KIND,
+    SELECTION_MODEL_KIND,
+    TYPE_REF_KIND,
+    VALUE_MODEL_KIND,
 } from './kinds'
 
 export type ModelContext = {
@@ -24,30 +24,30 @@ export type ModelContext = {
 }
 
 export type TypeRef =
-    | { kind: TypeRefKind.NAMED; name: string }
-    | { kind: TypeRefKind.LIST; ofType: TypeRef }
-    | { kind: TypeRefKind.NON_NULL; ofType: TypeRef }
+    | { kind: typeof TYPE_REF_KIND.NAMED; name: string }
+    | { kind: typeof TYPE_REF_KIND.LIST; ofType: TypeRef }
+    | { kind: typeof TYPE_REF_KIND.NON_NULL; ofType: TypeRef }
 
 export type FieldValue =
-    | { kind: ValueModelKind.SCALAR; typeTs: string }
-    | { kind: ValueModelKind.TYPENAME; typeNames: string[] }
-    | { kind: ValueModelKind.ENUM; name: string }
+    | { kind: typeof VALUE_MODEL_KIND.SCALAR; typeTs: string }
+    | { kind: typeof VALUE_MODEL_KIND.TYPENAME; typeNames: string[] }
+    | { kind: typeof VALUE_MODEL_KIND.ENUM; name: string }
     | {
-        kind: ValueModelKind.OBJECT;
+        kind: typeof VALUE_MODEL_KIND.OBJECT;
         fields: SelectionModel[];
         typeNames?: string[];
 }
     | {
-        kind: ValueModelKind.UNION;
+        kind: typeof VALUE_MODEL_KIND.UNION;
         variants: Array<{ typeName: string; fields: SelectionModel[] }>;
     }
-    | { kind: ValueModelKind.UNKNOWN; reason: string }
+    | { kind: typeof VALUE_MODEL_KIND.UNKNOWN; reason: string }
 
 export type InputValue =
-    | { kind: ValueModelKind.SCALAR; typeTs: string }
-    | { kind: ValueModelKind.ENUM; name: string }
-    | { kind: ValueModelKind.OBJECT; fields: InputField[] }
-    | { kind: ValueModelKind.UNKNOWN; reason: string }
+    | { kind: typeof VALUE_MODEL_KIND.SCALAR; typeTs: string }
+    | { kind: typeof VALUE_MODEL_KIND.ENUM; name: string }
+    | { kind: typeof VALUE_MODEL_KIND.OBJECT; fields: InputField[] }
+    | { kind: typeof VALUE_MODEL_KIND.UNKNOWN; reason: string }
 
 export type NamedTypedNode<TValue> = {
     name: string;
@@ -56,14 +56,14 @@ export type NamedTypedNode<TValue> = {
 }
 
 export type FieldSelectionModel = NamedTypedNode<FieldValue> & {
-    kind: SelectionModelKind.FIELD;
+    kind: typeof SELECTION_MODEL_KIND.FIELD;
     responseName: string;
     conditional?: boolean;
     overrideTypeTs?: string;
     directives?: string[];
 }
 export type FragmentSpreadSelectionModel = {
-    kind: SelectionModelKind.FRAGMENT_SPREAD;
+    kind: typeof SELECTION_MODEL_KIND.FRAGMENT_SPREAD;
     name: string;
     onType: string;
     onTypeNames?: string[];
@@ -71,7 +71,7 @@ export type FragmentSpreadSelectionModel = {
     directives?: string[];
 }
 export type FragmentInlineSelectionModel = {
-    kind: SelectionModelKind.INLINE_FRAGMENT;
+    kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT;
     typeCondition?: string;
     selections: SelectionModel[];
     conditional?: boolean;
@@ -88,10 +88,10 @@ export type InputField = NamedTypedNode<InputValue> & {
 }
 
 export type FragmentRoot = {
-    kind: FragmentRootKind.OBJECT;
+    kind: typeof FRAGMENT_ROOT_KIND.OBJECT;
     fields: SelectionModel[];
 } | {
-    kind: FragmentRootKind.UNION;
+    kind: typeof FRAGMENT_ROOT_KIND.UNION;
     variants: Array<{
         typeName: string;
         fields: SelectionModel[];
