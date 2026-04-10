@@ -68,7 +68,7 @@ yarn test:coverage
 - Runtime model and type-level contract divergence:
   runtime output shapes that drift from `.test-d.ts` expectations or become impossible to express consistently in declarations.
 - Build-to-runtime boundary regressions:
-  changes that pass unit tests but break `generate:custom` or produce invalid declaration output.
+  changes that pass unit tests but break `generate` or produce invalid declaration output.
 
 ## Stop Condition
 If progress stalls after reasonable attempts:

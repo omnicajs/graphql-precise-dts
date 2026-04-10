@@ -15,7 +15,7 @@
 - After a series of code edits, run `yarn lint:fix` before handing off or preparing commits.
 - Run `yarn tests` before handoff or commit preparation when changed files can affect
   runtime behavior.
-- Run `yarn generate:custom` before handing off when changed files can affect
+- Run `yarn generate` before handing off when changed files can affect
   the plugin's output.
 - Do not edit generated artifacts under dist/ or reports under coverage/ unless
   the task explicitly requires it.
@@ -70,13 +70,9 @@ yarn tests
 ```bash
 yarn test:coverage
 ```
-- Build:
-```bash
-yarn build:plugin
-```
 - Launching the plugin with code generation:
 ```bash
-yarn generate:custom
+yarn generate
 ```
 
 ### Suggested Validation Order For Code Changes
@@ -84,7 +80,7 @@ yarn generate:custom
 yarn lint
 yarn tests
 yarn test:coverage
-yarn generate:custom
+yarn generate
 ```
 
 ## Important Project Rules

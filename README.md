@@ -1,7 +1,161 @@
 # graphql-precise-dts
-This plugin generates TypeScript declaration files for GraphQL documents and accounts for directives that can change the shape of the result.
+
+`@omnicajs/graphql-precise-dts` is a GraphQL Code Generator plugin that generates TypeScript declaration files for GraphQL documents.
+
+The generated declarations:
+
+- keep fragment and operation types scoped to the corresponding `.graphql` module;
+- generate `TypedDocumentNode` declarations for operations;
+- emit a sibling `schema.d.ts` file with enums and scalar mappings;
+- account for directives that can change the runtime response shape.
+
+## Installation
+
+Install the plugin together with its runtime type dependencies:
+
+```bash
+yarn add -D @graphql-codegen/cli @omnicajs/graphql-precise-dts
+yarn add graphql @graphql-typed-document-node/core
+```
+
+`@graphql-typed-document-node/core` is required because generated declarations import `TypedDocumentNode` from that package.
+
+## Usage
+
+Example GraphQL Code Generator config:
+
+```ts
+import type { CodegenConfig } from '@graphql-codegen/cli'
+
+const config: CodegenConfig = {
+  schema: 'src/schema.graphql',
+  documents: [ 'src/**/*.graphql' ],
+  generates: {
+    'src/generated/types.d.ts': {
+      plugins: [ '@graphql-codegen/graphql-precise-dts' ],
+      config: {
+        prefix: '~/',
+        scope: 'src/',
+        relativeToCwd: false,
+        scalars: {
+          DateTime: 'string',
+        },
+      },
+    },
+  },
+}
+
+export default config
+```
+
+## Output
+
+For a target like:
+
+```txt
+src/generated/types.d.ts
+```
+
+the plugin produces:
+
+- `src/generated/types.d.ts` with `declare module '...'` blocks for GraphQL documents;
+- `src/generated/schema.d.ts` with:
+  - `export type Scalars = ...`
+  - `export type MyEnum = ...`
+
+Operation declarations are emitted as typed document exports:
+
+```ts
+export type GetUserQuery = ...
+export type GetUserQueryVariables = Exact<...>
+export const getUserQuery: TypedDocumentNode<GetUserQuery, GetUserQueryVariables>
+export default getUserQuery
+```
+
+## Configuration
+
+Supported plugin config:
+
+```ts
+type PluginConfig = {
+  prefix?: string
+  scope?: string
+  relativeToCwd?: boolean
+  scalars?: Record<string, string | { input?: string; output?: string }>
+  directivePolicies?: Record<string, DirectivePolicy | DirectiveNodePolicies>
+}
+```
+
+### `prefix`
+
+Prefix prepended to generated GraphQL module ids.
+
+Example:
+
+```ts
+{ prefix: '~tests/' }
+```
+
+can produce:
+
+```ts
+declare module '~tests/fragments/UserDetails.graphql' { ... }
+```
+
+If `prefix` is empty, relative module specifiers are used instead.
+
+### `scope`
+
+Optional path prefix used to preserve only the scoped part of the document path in module ids.
+
+Example:
+
+```ts
+{
+  prefix: '~tests/',
+  scope: 'fixtures/documents/',
+}
+```
+
+for a document at `tests/fixtures/documents/fragments/UserDetails.graphql` produces:
+
+```ts
+declare module '~tests/fixtures/documents/fragments/UserDetails.graphql' { ... }
+```
+
+### `relativeToCwd`
+
+When enabled, absolute document paths are normalized relative to `process.cwd()` before generating module ids.
+
+### `scalars`
+
+Overrides scalar TypeScript types.
+
+Examples:
+
+```ts
+{
+  scalars: {
+    DateTime: 'string',
+  },
+}
+```
+
+or:
+
+```ts
+{
+  scalars: {
+    DateTime: {
+      input: 'string',
+      output: 'Date',
+    },
+  },
+}
+```
 
 ## Working with directives
+
 The plugin distinguishes between two classes of directives:
 
 - built-in `@include` and `@skip`;
@@ -14,9 +168,11 @@ The main principle is:
 - if a directive does not affect the response shape, the declaration remains unchanged.
 
 ### Built-in `@include` and `@skip`
+
 For built-in directives, the plugin uses static interpretation whenever possible.
 
 #### Statically known result
+
 ```graphql
 fragment UserCard on User {
   id
@@ -26,6 +182,7 @@ fragment UserCard on User {
 ```
 
 Expected declaration:
+
 ```ts
 export type UserCard = {
   __typename?: 'User';
@@ -35,10 +192,12 @@ export type UserCard = {
 ```
 
 Logic:
+
 - `@skip(if: true)` always excludes `email` from the result;
 - `@include(if: true)` does not change the shape and is treated as a regular field.
 
 #### Runtime condition
+
 ```graphql
 query UserCardQuery($withEmail: Boolean!) {
   user {
@@ -53,6 +212,7 @@ fragment UserCard on User {
 ```
 
 Expected declaration:
+
 ```ts
 export type UserCard = {
   __typename?: 'User';
@@ -62,11 +222,13 @@ export type UserCard = {
 ```
 
 Logic:
+
 - the directive value is not known at generation time;
 - the field may be absent in the runtime response;
 - therefore `?:` is used instead of only `| null`.
 
 #### Conditional spread
+
 ```graphql
 fragment UserCard on User {
   id
@@ -75,6 +237,7 @@ fragment UserCard on User {
 ```
 
 Expected declaration:
+
 ```ts
 export type UserCard = {
   __typename?: 'User';
@@ -83,10 +246,12 @@ export type UserCard = {
 ```
 
 Logic:
+
 - the entire fragment spread contribution may be absent;
 - therefore the spread is rendered as `Partial<...>`.
 
 ### Custom directives
+
 The plugin does not try to infer custom directive semantics from the directive name. You need to define an explicit policy for them:
 
 ```ts
@@ -112,6 +277,7 @@ The plugin does not try to infer custom directive semantics from the directive n
 ```
 
 Supported policies:
+
 - `ignore`: does not affect the result type;
 - `exclude`: the selection is removed from the declaration;
 - `conditional`: the selection is treated as runtime-conditional and becomes optional;
@@ -127,6 +293,7 @@ Policies can be defined:
 ### Cases
 
 #### `conditional`
+
 ```graphql
 fragment UserCard on User {
   id @mask
@@ -134,6 +301,7 @@ fragment UserCard on User {
 ```
 
 Config:
+
 ```ts
 {
   directivePolicies: {
@@ -145,6 +313,7 @@ Config:
 ```
 
 Expected declaration:
+
 ```ts
 export type UserCard = {
   __typename?: 'User';
@@ -153,6 +322,7 @@ export type UserCard = {
 ```
 
 #### `exclude`
+
 ```graphql
 fragment UserCard on User {
   id
@@ -161,6 +331,7 @@ fragment UserCard on User {
 ```
 
 Config:
+
 ```ts
 {
   directivePolicies: {
@@ -172,6 +343,7 @@ Config:
 ```
 
 Expected declaration:
+
 ```ts
 export type UserCard = {
   __typename?: 'User';
@@ -180,6 +352,7 @@ export type UserCard = {
 ```
 
 #### `ignore`
+
 ```graphql
 fragment UserCard on User {
   id @trace
@@ -187,6 +360,7 @@ fragment UserCard on User {
 ```
 
 Config:
+
 ```ts
 {
   directivePolicies: {
@@ -198,6 +372,7 @@ Config:
 ```
 
 Expected declaration:
+
 ```ts
 export type UserCard = {
   __typename?: 'User';
@@ -206,6 +381,7 @@ export type UserCard = {
 ```
 
 #### `override-type`
+
 ```graphql
 fragment UserCard on User {
   id @opaque
@@ -213,6 +389,7 @@ fragment UserCard on User {
 ```
 
 Config:
+
 ```ts
 {
   directivePolicies: {
@@ -224,6 +401,7 @@ Config:
 ```
 
 Expected declaration:
+
 ```ts
 export type UserCard = {
   __typename?: 'User';
@@ -240,6 +418,7 @@ fragment UserCard on User {
 ```
 
 Config:
+
 ```ts
 {
   directivePolicies: {
@@ -251,157 +430,10 @@ Config:
 ```
 
 Expected declaration:
+
 ```ts
 export type UserCard = {
   __typename?: 'User';
   nickname: string;
 }
 ```
-
-### Practical rule
-If a directive affects whether data is present in the response, use:
-- built-in `@include` / `@skip` if this is standard GraphQL semantics;
-- `directivePolicies.*.effect = 'conditional'` if this is custom runtime conditionality;
-- `directivePolicies.*.effect = 'exclude'` if the annotated selection should never be included in the resulting shape;
-- `override-type` and `nonnull` only when the directive semantically changes the field type contract.
-
-
-## Module path resolution
-The plugin generates `declare module '...'` blocks and import paths for GraphQL documents. These module ids are built from:
-
-- `prefix`: the alias root added to every generated module path;
-- `scope`: an optional path fragment used to cut the document path from a stable point;
-- `relativeToCwd`: an optional flag that makes fallback paths relative to `process.cwd()`.
-
-The resolution order is:
-
-1. If `scope` matches the document location, the plugin uses the suffix starting from the scope root.
-2. If `scope` does not match:
-   - with `relativeToCwd: true`, the plugin uses the path relative to `process.cwd()`;
-   - with `relativeToCwd: false`, the plugin uses the normalized document path as-is for relative locations;
-   - with `relativeToCwd: false` and an absolute document location, the plugin still converts it to a path relative to `process.cwd()` so the alias prefix is not combined with an absolute filesystem path.
-
-In practice, `prefix` behaves as an alias root, and the remaining part of the module id is a stable document path.
-When `prefix` is empty, the plugin emits a real relative module specifier and adds `./` when needed.
-
-### `scope` matches
-Config:
-```ts
-{
-  prefix: '~tests/',
-  scope: 'fixtures/documents/fragments/',
-}
-```
-
-Document location:
-```ts
-'tests/fixtures/documents/fragments/UserDetails.graphql'
-```
-
-Module id:
-```ts
-'~tests/fixtures/documents/fragments/UserDetails.graphql'
-```
-
-With an empty prefix:
-```ts
-'./fixtures/documents/fragments/UserDetails.graphql'
-```
-
-### `scope` does not match
-Config:
-```ts
-{
-  prefix: '~tests/',
-  scope: 'fragments/never-matches/',
-}
-```
-
-Document location:
-```ts
-'queries/index.graphql'
-```
-
-Module id:
-```ts
-'~tests/queries/index.graphql'
-```
-
-### `relativeToCwd: true`
-Config:
-```ts
-{
-  prefix: '~tests/',
-  relativeToCwd: true,
-}
-```
-
-Document location:
-```ts
-'/repo/tests/fixtures/documents/queries/users.graphql'
-```
-
-If `process.cwd()` is `/repo/tests/fixtures/documents`, the module id becomes:
-```ts
-'~tests/queries/users.graphql'
-```
-
-With an empty prefix:
-```ts
-'./queries/users.graphql'
-```
-
-### Absolute document path with `relativeToCwd: false`
-Config:
-```ts
-{
-  prefix: '~tests/',
-  relativeToCwd: false,
-}
-```
-
-Document location:
-```ts
-'/repo/tests/fixtures/documents/mutations/index.graphql'
-```
-
-If `process.cwd()` is `/repo/tests/fixtures/documents`, the module id becomes:
-```ts
-'~tests/mutations/index.graphql'
-```
-
-This avoids invalid ids like:
-```ts
-'~tests//repo/tests/fixtures/documents/mutations/index.graphql'
-```
-
-### Empty `prefix`
-Config:
-```ts
-{
-  prefix: '',
-  relativeToCwd: true,
-}
-```
-
-Document location:
-```ts
-'/repo/queries/index.graphql'
-```
-
-If `process.cwd()` is `/repo`, the module id becomes:
-```ts
-'./queries/index.graphql'
-```
-
-This is useful when the generated declarations should use plain relative module specifiers instead of an alias namespace.
-
-### Why the full path is used instead of `basename`
-When `scope` does not match, the plugin does not fall back to `basename(documentLocation)`. Using only the file name would make module ids unstable and colliding for common layouts such as:
-
-```ts
-'queries/index.graphql'
-'mutations/index.graphql'
-```
-
-Both would collapse to the same module id if only `index.graphql` were used. The plugin therefore keeps the path portion needed to preserve document identity.
