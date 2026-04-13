@@ -9,7 +9,8 @@ The main principle is:
 
 - if a selection is guaranteed not to appear in the result, it is removed from the declaration;
 - if a selection may be present or absent at runtime, it becomes optional;
-- if a directive does not affect the response shape, the declaration remains unchanged.
+- if a directive does not affect the response shape, the declaration remains unchanged;
+- when directives affect abstract fields, they may also change how fallback `__typename` is rendered.
 
 ## Built-in `@include` and `@skip`
 
@@ -93,6 +94,16 @@ Logic:
 
 - the entire fragment spread contribution may be absent;
 - therefore the spread is rendered as `Partial<...>`.
+
+## `__typename` and abstract fields
+
+For abstract selections such as interfaces and unions, the plugin may synthesize fallback `__typename` values even when `__typename` is not selected explicitly.
+
+Current behavior:
+
+- if there is no explicit `__typename` selection and the result splits into distinct concrete branches, branch-level fallback `__typename` is rendered as required so the union stays discriminated;
+- if `__typename` is selected conditionally, or only in part of the branches, fallback `__typename` stays optional;
+- if branch-specific rendering collapses to the same shape, the plugin merges those branches into a single object type and renders `__typename` as a union of possible string literals.
 
 ## Custom directives
 
@@ -195,6 +206,49 @@ export type UserCard = {
 }
 ```
 
+### `exclude` on an inline fragment of an abstract field
+
+```graphql
+fragment GroupOwner on Group {
+  owner {
+    id
+    ... on UserPayload @clientOnly {
+      __typename
+    }
+  }
+}
+```
+
+Config:
+
+```ts
+{
+  directivePolicies: {
+    clientOnly: {
+      inlineFragment: { effect: 'exclude' },
+    },
+  },
+}
+```
+
+Expected declaration:
+
+```ts
+export type GroupOwner = {
+  __typename?: 'Group';
+  owner: {
+    __typename?: 'UserPayload' | 'AdminPayload';
+    id: string;
+  };
+}
+```
+
+Logic:
+
+- the inline fragment is removed from the model entirely;
+- explicit `__typename` from that inline fragment is removed with it;
+- the remaining abstract field still keeps an optional fallback `__typename` based on the possible runtime types of `owner`.
+
 ### `ignore`
 
 ```graphql
@@ -223,6 +277,43 @@ export type UserCard = {
   id: string;
 }
 ```
+
+### `conditional` on an inline fragment of an abstract field
+
+```graphql
+query GroupOwnerQuery($withTypeName: Boolean!) {
+  group {
+    ...GroupOwner
+  }
+}
+
+fragment GroupOwner on Group {
+  owner {
+    id
+    ... on UserPayload @include(if: $withTypeName) {
+      __typename
+    }
+  }
+}
+```
+
+Expected declaration:
+
+```ts
+export type GroupOwner = {
+  __typename?: 'Group';
+  owner: {
+    __typename?: 'UserPayload' | 'AdminPayload';
+    id: string;
+  };
+}
+```
+
+Logic:
+
+- the inline fragment may or may not contribute `__typename` at runtime;
+- because the selection is conditional, the generated `__typename` on the abstract field must remain optional;
+- since both concrete branches render to the same final shape, the plugin collapses them into one object type instead of keeping a redundant union.
 
 ### `override-type`
 
@@ -281,3 +372,37 @@ export type UserCard = {
   nickname: string;
 }
 ```
+
+### `warn`
+
+```graphql
+fragment UserCard on User {
+  id @review
+}
+```
+
+Config:
+
+```ts
+{
+  directivePolicies: {
+    review: {
+      field: { effect: 'warn', message: 'Manual review required' },
+    },
+  },
+}
+```
+
+Expected declaration:
+
+```ts
+export type UserCard = {
+  __typename?: 'User';
+  id: string;
+}
+```
+
+Logic:
+
+- the generated shape does not change;
+- the plugin emits a warning during model building.

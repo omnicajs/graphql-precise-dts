@@ -15,10 +15,8 @@
 - After a series of code edits, run `yarn lint:fix` before handing off or preparing commits.
 - Run `yarn tests` before handoff or commit preparation when changed files can affect
   runtime behavior.
-- Run `yarn generate` before handing off when changed files can affect
-  the plugin's output.
-- Do not edit generated artifacts under dist/ or reports under coverage/ unless
-  the task explicitly requires it.
+- Run `yarn test:types` and `yarn test:units` if the changes do not affect the generated output of the plugin.
+- Do not edit generated artifacts under `dist/` or reports under `coverage/` unless the task explicitly requires it.
 
 ## Reporting
 - Keep handoff reports natural and outcome-focused: describe what was done.
@@ -36,11 +34,9 @@ for the corresponding GraphQL operations.
 - Package name: `@omnicajs/graphql-precise-dts`.
 - Main source directories:
   - `src/` - runtime implementation;
-  - `src/generated` - the output of the code generation plugin;
   - `tests/` - vitest test suite;
   - `tests/types` - type-level testing;
-  - `tests/unit` - unit testing.
-- Build output directory: `dist/`.
+  - `tests/units` - unit testing.
 - Coverage output directory: `coverage/`.
 
 ## Local Environment Prerequisites
@@ -62,6 +58,18 @@ yarn check:peer-deps:fix
 yarn lint
 yarn lint:fix
 ```
+- Launching the plugin with test code generation:
+```bash
+yarn generate:test-fixtures
+```
+- Type-level tests:
+```bash
+yarn test:types
+```
+- Unit tests:
+```bash
+yarn test:units
+```
 - Type-level and unit tests:
 ```bash
 yarn tests
@@ -70,17 +78,12 @@ yarn tests
 ```bash
 yarn test:coverage
 ```
-- Launching the plugin with code generation:
-```bash
-yarn generate
-```
 
 ### Suggested Validation Order For Code Changes
 ```bash
 yarn lint
 yarn tests
 yarn test:coverage
-yarn generate
 ```
 
 ## Important Project Rules
