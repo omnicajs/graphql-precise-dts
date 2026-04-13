@@ -36,7 +36,7 @@ export type FieldValue =
         kind: typeof VALUE_MODEL_KIND.OBJECT;
         fields: SelectionModel[];
         typeNames?: string[];
-}
+    }
     | {
         kind: typeof VALUE_MODEL_KIND.UNION;
         variants: Array<{ typeName: string; fields: SelectionModel[] }>;

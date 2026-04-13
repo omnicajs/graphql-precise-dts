@@ -1,3 +1,4 @@
+import type { ConfigDirectivePolicies } from '../config'
 import type {
     FieldNode,
     FragmentDefinitionNode,
@@ -26,13 +27,17 @@ import {
     isNonNullType,
     isObjectType,
     isUnionType,
+} from 'graphql'
+import { resolveSelectionDirectives } from '../directives'
+import {
     visit,
     visitWithTypeInfo,
 } from 'graphql'
 
 import { Kind } from 'graphql'
+import { SELECTION_MODEL_KIND } from './kinds'
+import { SELECTION_STATE } from '../directives'
 import {
-    SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
 } from './kinds'
@@ -50,10 +55,17 @@ export const makeNonNullTypeRef = (typeRef: TypeRef): TypeRef => {
 
 export const shouldBuildTypeSelectionUnion = (
     abstractType: GraphQLNamedType | undefined,
-    selections: SelectionNode[]
+    selections: SelectionNode[],
+    directivePolicies: ConfigDirectivePolicies = {}
 ): abstractType is GraphQLAbstractType => {
     const hasTypeSpecificInlineFragments = selections.some(selection =>
-        selection.kind === Kind.INLINE_FRAGMENT && !!selection.typeCondition
+        selection.kind === Kind.INLINE_FRAGMENT
+        && !!selection.typeCondition
+        && resolveSelectionDirectives(
+            selection.directives ? [ ...selection.directives ] : [],
+            SELECTION_MODEL_KIND.INLINE_FRAGMENT,
+            directivePolicies
+        ).state !== SELECTION_STATE.EXCLUDED
     )
 
     return !!abstractType

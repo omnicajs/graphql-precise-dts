@@ -100,7 +100,11 @@ const makeInterfaceFieldValue = (
 ): FieldValue => {
     const interfaceType = getNamedType(type.currentType) as GraphQLInterfaceType
 
-    if (selections && type.selections && shouldBuildTypeSelectionUnion(interfaceType, [ ...selections ])) {
+    if (selections && type.selections && shouldBuildTypeSelectionUnion(
+        interfaceType,
+        [ ...selections ],
+        context.directivePolicies
+    )) {
         return makeInterfaceUnionFieldValue(type.selections, interfaceType, selections, context)
     }
 

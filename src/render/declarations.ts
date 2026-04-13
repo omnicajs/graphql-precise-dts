@@ -34,6 +34,12 @@ type RenderedSelections = {
     spreads: string[];
 }
 
+type RenderedUnionVariant = RenderedSelections & {
+    typeName: string;
+    hasExplicitTypename: boolean;
+    hasRequiredExplicitTypename: boolean;
+}
+
 const renderFieldRow = (
     name: string,
     value: string,
@@ -114,6 +120,55 @@ const renderObjectType = (rows: string[], spreads: string[] = []): string => [
     ...spreads,
 ].join(' & ')
 
+const haveSameRenderedSelections = (
+    left: RenderedSelections,
+    right: RenderedSelections
+): boolean => left.rows.length === right.rows.length
+    && left.rows.every((row, index) => row === right.rows[index])
+    && left.spreads.length === right.spreads.length
+    && left.spreads.every((spread, index) => spread === right.spreads[index])
+
+const renderUnionVariants = (
+    variants: Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }>['variants']
+): string => {
+    const renderedVariants = variants.map((variant): RenderedUnionVariant => {
+        const renderedSelections = renderSelections(variant.fields)
+        const resolvedTypename = resolveTypenameSelection(variant.fields)
+
+        return {
+            ...renderedSelections,
+            typeName: variant.typeName,
+            hasExplicitTypename: resolvedTypename.present,
+            hasRequiredExplicitTypename: resolvedTypename.present && resolvedTypename.required,
+        }
+    })
+
+    if (renderedVariants.length < 1) return 'never'
+    const [ firstVariant ] = renderedVariants
+
+    const hasSameRenderedShape = renderedVariants.every(variant => haveSameRenderedSelections(firstVariant, variant))
+    const hasExplicitTypename = renderedVariants.some(variant => variant.hasExplicitTypename)
+
+    if (hasSameRenderedShape) {
+        const typeNames = renderedVariants.map(variant => variant.typeName)
+        const hasRequiredTypename = !hasExplicitTypename
+            || renderedVariants.every(variant => variant.hasRequiredExplicitTypename)
+
+        return renderObjectType([
+            renderTypenameRow(typeNames, hasRequiredTypename),
+            ...firstVariant.rows,
+        ], firstVariant.spreads)
+    }
+
+    return variants
+        .map(variant => renderObjectSelections(
+            variant.fields,
+            [ variant.typeName ],
+            { requiredFallbackTypename: !hasExplicitTypename }
+        ))
+        .join(' | ')
+}
+
 const renderObjectSelections = (
     fields: SelectionModel[],
     typeNames: string[],
@@ -164,13 +219,7 @@ const renderFieldValue = (field: FieldValue): string => {
                 omitFallbackTypenameWhenSpreadMatches: true,
             })
         case VALUE_MODEL_KIND.UNION:
-            return field.variants
-                .map(variant => renderObjectSelections(
-                    variant.fields,
-                    [ variant.typeName ],
-                    { requiredFallbackTypename: true }
-                ))
-                .join(' | ')
+            return renderUnionVariants(field.variants)
         default:
             console.warn('Unknown type')
             return 'unknown'
