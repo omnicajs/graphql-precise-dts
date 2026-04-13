@@ -6,7 +6,7 @@ import {
 
 import { buildModelRegistry } from '../../src/models/registry-builder'
 import { buildSchema } from 'graphql'
-import { makeTestModelContext } from '../fixtures/builders/model-context'
+import { makeTestModelContext } from './helpers/model-context'
 import { parse } from 'graphql'
 
 import {

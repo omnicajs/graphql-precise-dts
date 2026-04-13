@@ -51,7 +51,7 @@ import type {
     UserCreatedSubscriptionVariables,
 } from '~tests/fixtures/documents/subscriptions/userCreated.graphql'
 
-import type { Permission } from '../fixtures/artifacts/schema'
+import type { Permission } from '../fixtures/generated/schema'
 
 import {
     describe,
@@ -78,6 +78,7 @@ declare const client: ApolloClient
 type Element<T> = T extends readonly (infer U)[] ? U : never
 type Assert<T extends true> = T
 type IsAssignable<From, To> = [From] extends [To] ? true : false
+
 declare const __typeAssertions: unique symbol
 
 describe('fragments', () => {

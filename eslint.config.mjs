@@ -79,5 +79,5 @@ export default [
     },
     { ignores: [ '**/dist' ] },
     { ignores: [ '**/node_modules' ] },
-    { ignores: [ 'src/generated/**' ] },
+    { ignores: [ 'tests/fixtures/generated/**' ] },
 ]

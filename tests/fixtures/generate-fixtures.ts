@@ -1,5 +1,6 @@
 import { generate } from '@graphql-codegen/cli'
-import { plugin } from './src'
+
+import { plugin } from '../../src'
 
 const LOCAL_PLUGIN_NAME = 'graphql-precise-dts'
 const supportedPluginNames = new Set([
@@ -17,7 +18,7 @@ const main = async (): Promise<void> => {
         schema: 'tests/fixtures/schema.graphql',
         documents: [ 'tests/fixtures/documents/**/*.graphql' ],
         generates: {
-            'src/generated/types.d.ts': {
+            'tests/fixtures/generated/types.d.ts': {
                 plugins: [ LOCAL_PLUGIN_NAME ],
                 config: {
                     prefix: '~tests/',

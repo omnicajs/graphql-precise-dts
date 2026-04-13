@@ -7,8 +7,10 @@
     "scripts": {
         "check:peer-deps": "fix-peer-deps",
         "check:peer-deps:fix": "fix-peer-deps --fix",
-        "generate": "ts-node ./generator.ts",
-        "tests": "vitest --typecheck run",
+        "generate:test-fixtures": "ts-node tests/fixtures/generate-fixtures.ts",
+        "test:types": "vitest --typecheck run tests/types",
+        "test:units": "vitest run tests/units",
+        "tests": "yarn generate:test-fixtures && vitest --typecheck run",
         "test:coverage": "vitest run --coverage",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix"
@@ -32,7 +34,7 @@
         "ts-node": "^10.9.2",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.57.1",
-        "vite": "^7.3.1",
+        "vite": "^7.3.2",
         "vitest": "^4.0.18"
     },
     "packageManager": "yarn@4.12.0"
