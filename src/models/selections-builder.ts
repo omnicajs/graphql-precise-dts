@@ -72,6 +72,10 @@ const makeFieldSelectionModel = (
 ): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.FIELD }> | undefined => {
     if (selectionContext.fieldType.kind !== SELECTION_MODEL_KIND.FIELD) return
 
+    if (selection.alias?.value === '__typename' && selection.name.value !== '__typename') {
+        throw new Error('Aliasing a field to "__typename" is not supported because this name is reserved')
+    }
+
     const typeRef = makeTypeRefForField(selectionContext.fieldType.currentType)
 
     return {

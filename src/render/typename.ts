@@ -43,6 +43,26 @@ const collectTypenameSelections = (
         : []
 })
 
+const collectAliasedTypenameSelections = (
+    selections: SelectionModel[],
+    withinConditional = false
+): boolean[] => selections.flatMap(selection => {
+    const isConditional = withinConditional || !!selection.conditional
+
+    if (selection.kind === SELECTION_MODEL_KIND.FIELD) {
+        return selection.value.kind === VALUE_MODEL_KIND.TYPENAME
+            && selection.name === '__typename'
+            && selection.responseName !== '__typename'
+            && !isConditional
+            ? [ true ]
+            : []
+    }
+
+    return selection.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT
+        ? collectAliasedTypenameSelections(selection.selections, isConditional)
+        : []
+})
+
 export const resolveTypenameSelection = (
     selections: SelectionModel[],
     fallbackTypeNames: string[] = []
@@ -88,3 +108,7 @@ export const hasRootSpreadWithSameTypeNames = (
             && spreadTypeNames.every((typeName, index) => typeName === typeNames[index])
     })
 }
+
+export const hasAliasedRootTypenameSelection = (
+    selections: SelectionModel[]
+): boolean => collectAliasedTypenameSelections(selections).length > 0

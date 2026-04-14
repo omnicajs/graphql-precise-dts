@@ -5,9 +5,12 @@ import {
 } from 'vitest'
 
 import { field } from '../fixtures/builders/declaration-render'
-import { hasRootSpreadWithSameTypeNames } from '../../src/render/typename'
 import { renderStringLiteralUnion } from '../../src/render/basic'
-import { resolveTypenameSelection } from '../../src/render/typename'
+import {
+    hasAliasedRootTypenameSelection,
+    hasRootSpreadWithSameTypeNames,
+    resolveTypenameSelection,
+} from '../../src/render/typename'
 import { typenameValue } from '../fixtures/builders/declaration-render'
 
 describe('typename render helpers', () => {
@@ -40,6 +43,20 @@ describe('typename render helpers', () => {
             onTypeNames: [ 'UserPayload', 'AdminPayload' ],
             conditional: true,
         }], [ 'UserPayload', 'AdminPayload' ])).toBe(false)
+    })
+
+    test('detects non-conditional aliased typename selections in the current selection set', () => {
+        expect(hasAliasedRootTypenameSelection([{
+            ...field('__typename', typenameValue('UserPayload'), false),
+            responseName: 'kind',
+        }])).toBe(true)
+
+        expect(hasAliasedRootTypenameSelection([{
+            ...field('__typename', typenameValue('UserPayload'), false),
+            responseName: 'kind',
+            conditional: true,
+            directives: [ 'include' ],
+        }])).toBe(false)
     })
 
     test('renders string literal unions', () => {

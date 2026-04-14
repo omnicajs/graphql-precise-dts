@@ -514,6 +514,20 @@ describe('declaration render', () => {
             )
         })
 
+        test('renders union fields without specialized variants as never', () => {
+            const definitions = declarationDefinitions(new Map([
+                ['SearchResultTypenameOnly', fragment([
+                    field('search', unionValue([]), false),
+                ], 'Query')],
+            ]))
+
+            expect(renderDeclaration('./documents', definitions, new Map())).toContain([
+                '\texport type SearchResultTypenameOnly = {',
+                `\t\t__typename?: 'Query';`,
+                '\t\tsearch: never;',
+            ].join('\n'))
+        })
+
         test('renders nullable object-like values as union with null', () => {
             const definitions = declarationDefinitions(new Map([
                 ['NullableOwner', fragment([
@@ -589,6 +603,63 @@ describe('declaration render', () => {
                 `\t\t__typename: 'User';`,
                 '\t\tid: string;',
             ].join('\n'))
+        })
+
+        test('uses aliased __typename instead of fallback typename for concrete object roots', () => {
+            const definitions = declarationDefinitions(new Map([
+                ['UserKind', fragment([{
+                    kind: SELECTION_MODEL_KIND.FIELD,
+                    name: '__typename',
+                    responseName: 'kind',
+                    typeRef: {
+                        kind: TYPE_REF_KIND.NON_NULL,
+                        ofType: {
+                            kind: TYPE_REF_KIND.NAMED,
+                            name: 'String',
+                        },
+                    },
+                    value: typenameValue('User'),
+                    directives: [],
+                }], 'User')],
+            ]))
+
+            const result = renderDeclaration('./documents', definitions, new Map())
+
+            expect(result).toContain([
+                '\texport type UserKind = {',
+                `\t\tkind: 'User';`,
+            ].join('\n'))
+            expect(result).not.toContain(`\t\t__typename?: 'User';`)
+        })
+
+        test('suppresses fallback typename for nested concrete object values with aliased __typename', () => {
+            const definitions = declarationDefinitions(new Map([
+                ['UserKind', fragment([
+                    field('profile', objectValue([{
+                        kind: SELECTION_MODEL_KIND.FIELD,
+                        name: '__typename',
+                        responseName: 'kind',
+                        typeRef: {
+                            kind: TYPE_REF_KIND.NON_NULL,
+                            ofType: {
+                                kind: TYPE_REF_KIND.NAMED,
+                                name: 'String',
+                            },
+                        },
+                        value: typenameValue('Profile'),
+                        directives: [],
+                    }], [ 'Profile' ]), false),
+                ], 'User')],
+            ]))
+
+            expect(renderDeclaration('./documents', definitions, new Map())).toContain([
+                '\texport type UserKind = {',
+                `\t\t__typename?: 'User';`,
+                '\t\tprofile: {',
+                `\t\t\tkind: 'Profile';`,
+                '\t\t};',
+            ].join('\n'))
+            expect(renderDeclaration('./documents', definitions, new Map())).not.toContain(`\t\t\t__typename?: 'Profile';`)
         })
 
         test('does not duplicate typename when it is returned from an inline fragment on the same level', () => {

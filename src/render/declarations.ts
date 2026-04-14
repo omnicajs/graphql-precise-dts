@@ -17,6 +17,7 @@ import type { TypeRef } from '../models/types'
 import { capitalize } from '../lib/strings'
 import { collectImportsForDocumentModels } from '../plan/imports'
 import { indent } from '../lib/strings'
+import { hasAliasedRootTypenameSelection } from './typename'
 import { hasRootSpreadWithSameTypeNames } from './typename'
 import { renderStringLiteralUnion } from './basic'
 import { resolveTypenameSelection } from './typename'
@@ -174,14 +175,20 @@ const renderObjectSelections = (
     typeNames: string[],
     options?: {
         requiredFallbackTypename?: boolean;
-        omitFallbackTypenameWhenSpreadMatches?: boolean;
+        dedupeTypenameWithSpread?: boolean;
+        dedupeTypenameWithAlias?: boolean;
     }
 ): string => {
     const fallbackTypeNames = typeNames.filter(Boolean)
     const { rows, spreads } = renderSelections(fields)
     const resolvedTypename = resolveTypenameSelection(fields, fallbackTypeNames)
-    const shouldOmitFallbackTypename = options?.omitFallbackTypenameWhenSpreadMatches
+    const shouldOmitFallbackTypename = (
+        options?.dedupeTypenameWithSpread
         && hasRootSpreadWithSameTypeNames(fields, fallbackTypeNames)
+    ) || (
+        options?.dedupeTypenameWithAlias
+        && hasAliasedRootTypenameSelection(fields)
+    )
 
     return renderObjectType([
         ...(resolvedTypename.present
@@ -203,7 +210,8 @@ const renderFragmentObjectRoot = (
     fields: SelectionModel[],
     rootTypeNames: string[]
 ): string => renderObjectSelections(fields, rootTypeNames, {
-    omitFallbackTypenameWhenSpreadMatches: true,
+    dedupeTypenameWithSpread: true,
+    dedupeTypenameWithAlias: rootTypeNames.length === 1,
 })
 
 const renderFieldValue = (field: FieldValue): string => {
@@ -216,7 +224,8 @@ const renderFieldValue = (field: FieldValue): string => {
             return field.name
         case VALUE_MODEL_KIND.OBJECT:
             return renderObjectSelections(field.fields, field.typeNames ?? [], {
-                omitFallbackTypenameWhenSpreadMatches: true,
+                dedupeTypenameWithSpread: true,
+                dedupeTypenameWithAlias: (field.typeNames?.length ?? 0) === 1,
             })
         case VALUE_MODEL_KIND.UNION:
             return renderUnionVariants(field.variants)
@@ -266,7 +275,9 @@ const renderInputObject = (fields: InputField[]): string => {
 }
 
 const renderOperationResult = (operation: OperationModel): string => {
-    return renderObjectSelections(operation.result, [ operation.onType ])
+    return renderObjectSelections(operation.result, [ operation.onType ], {
+        dedupeTypenameWithAlias: true,
+    })
 }
 
 const renderOperationDeclaration = (

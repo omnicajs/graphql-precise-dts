@@ -35,6 +35,35 @@ const schema = buildSchema(`
 `)
 
 describe('plugin directive handling', () => {
+    test('fails when output file info is missing', () => {
+        expect(() => plugin(
+            schema,
+            [],
+            { prefix: '~tests/' },
+            {} as never
+        )).toThrow('Output file is missing')
+    })
+
+    test('fails when a non-typename field is aliased to __typename', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                __typename: id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow('Aliasing a field to "__typename" is not supported because this name is reserved')
+        })
+    })
+
     test('supports structured field override-type policies', async () => {
         await withTempOutput(async outputInfo => {
             const result = await plugin(
@@ -458,6 +487,41 @@ describe('plugin __typename support', () => {
                 `\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
                 `\t\tid: string;`,
             ].join('\n'))
+        })
+    })
+
+    test('suppresses fallback typename for aliased __typename on concrete roots', async () => {
+        const concreteSchema = buildSchema(`
+            type Query {
+                user: User!
+            }
+
+            type User {
+                id: ID!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                concreteSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserKind on User {
+                            kind: __typename
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type UserKind = {`,
+                `\t\tkind: 'User';`,
+                `\t}`,
+            ].join('\n'))
+            expect(result.content).not.toContain(`\t\t__typename?: 'User';`)
         })
     })
 
@@ -936,6 +1000,56 @@ describe('plugin __typename support', () => {
                     `export type Permission = 'GroupCreate' | 'GroupEdit'`,
                 ].join('\n')
             )
+        })
+    })
+})
+
+describe('plugin operation output', () => {
+    test('renders typed document declarations for subscriptions', async () => {
+        const subscriptionSchema = buildSchema(`
+            type Query {
+                healthcheck: String!
+            }
+
+            type Subscription {
+                groupUpdated: Group!
+            }
+
+            type Group {
+                id: ID!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                subscriptionSchema,
+                [{
+                    location: 'group-updated.graphql',
+                    document: parse(`
+                        subscription GroupUpdated {
+                            groupUpdated {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type GroupUpdatedSubscription = {`,
+                `\t\t__typename?: 'Subscription';`,
+                `\t\tgroupUpdated: {`,
+                `\t\t\t__typename?: 'Group';`,
+                `\t\t\tid: string;`,
+                `\t\t};`,
+                `\t}`,
+            ].join('\n'))
+            expect(result.content).toContain(
+                `\texport const groupUpdatedSubscription: TypedDocumentNode<GroupUpdatedSubscription, GroupUpdatedSubscriptionVariables>`
+            )
+            expect(result.content).toContain(`\texport default groupUpdatedSubscription`)
         })
     })
 })
