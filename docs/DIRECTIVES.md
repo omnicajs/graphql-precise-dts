@@ -110,6 +110,17 @@ Reserved name rule:
 
 - aliasing any non-`__typename` field to the response name `__typename` is rejected by the plugin because `__typename` is reserved for typename-specific handling.
 
+## Imported fragment diagnostics
+
+The plugin currently does not recover missing fragment definitions automatically.
+
+When a configured document references a missing fragment definition, the plugin emits a warning that names:
+
+- the missing fragment definition;
+- the document that referenced it.
+
+These warnings are diagnostics only. They do not add recovered fragments to the generated output.
+
 ## Custom directives
 
 The plugin does not try to infer custom directive semantics from the directive name. You need to define an explicit policy for them:

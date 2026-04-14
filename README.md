@@ -98,6 +98,10 @@ export default getUserQuery
 
 If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation declarations into the same `declare module '...'` block.
 
+If a configured document references a fragment that is missing from the plugin `documents` input, the plugin emits a warning that names the missing fragment definition and the document that referenced it.
+
+These warnings are diagnostics only. They do not change the generated output or recover external fragment definitions automatically.
+
 ## Development scripts
 
 ```bash
