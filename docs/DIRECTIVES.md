@@ -101,9 +101,14 @@ For abstract selections such as interfaces and unions, the plugin may synthesize
 
 Current behavior:
 
+- for concrete object shapes, an aliased `__typename` selection such as `kind: __typename` suppresses the synthesized fallback `__typename`; the alias is rendered as a regular field with a string-literal union value;
 - if there is no explicit `__typename` selection and the result splits into distinct concrete branches, branch-level fallback `__typename` is rendered as required so the union stays discriminated;
 - if `__typename` is selected conditionally, or only in part of the branches, fallback `__typename` stays optional;
 - if branch-specific rendering collapses to the same shape, the plugin merges those branches into a single object type and renders `__typename` as a union of possible string literals.
+
+Reserved name rule:
+
+- aliasing any non-`__typename` field to the response name `__typename` is rejected by the plugin because `__typename` is reserved for typename-specific handling.
 
 ## Custom directives
 

@@ -118,9 +118,14 @@ The plugin keeps explicit `__typename` selections and also synthesizes fallback 
 
 - for object-like results, fallback `__typename` is usually optional;
 - for `Query`, `Mutation`, and `Subscription` operation results, fallback `__typename` is optional unless it was selected explicitly;
+- for concrete object shapes, selecting `__typename` through an alias such as `kind: __typename` suppresses the synthesized fallback `__typename`; the aliased field is rendered as a regular string-literal field;
 - for abstract fields that split into distinct concrete shapes, the plugin may synthesize required discriminating `__typename` values when no explicit `__typename` selection exists;
 - if `__typename` is selected only conditionally or only for part of the branches, the generated `__typename` remains optional;
 - if multiple concrete branches collapse to the same rendered shape, the plugin merges them into a single object type and renders `__typename` as a union of possible string literals.
+
+Reserved name rule:
+
+- aliasing a non-`__typename` field to the response name `__typename` is not supported and causes plugin generation to fail.
 
 ## Configuration
 
