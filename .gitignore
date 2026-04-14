@@ -1,6 +1,6 @@
 # Dependency directories
-node_modules
-dist
+node_modules/
+dist/
 
 # yarn
 !.yarn
@@ -15,4 +15,4 @@ logs
 yarn-error.log*
 
 # Coverage
-coverage
+coverage/
