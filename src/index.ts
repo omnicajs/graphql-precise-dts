@@ -1,5 +1,9 @@
+import type { DocumentModelBundle } from './plan/declarations'
 import type { FragmentDefinitionNode } from 'graphql'
-import type { ModelContext } from './models/types'
+import type {
+    ModelContext,
+    OperationModel,
+} from './models/types'
 import type { PluginConfig } from './config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { Types } from '@graphql-codegen/plugin-helpers'
@@ -18,6 +22,7 @@ import { writeFileSync } from 'fs'
 import { Kind } from 'graphql'
 
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
+const EXACT_TYPE_DECLARATION = 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n'
 
 const findFragmentDefinitions = (
     documents: Parameters<PluginFunction<PluginConfig>>[1]
@@ -35,8 +40,12 @@ const findFragmentDefinitions = (
     return fragments
 }
 
-const makePrepend = (): string[] => [
-    'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n',
+const haveVariables = (operations: OperationModel[]): boolean => operations.some(op => op.variables.length > 0)
+
+const getExactType = (operations: OperationModel[]): string[] => haveVariables(operations) ? [ EXACT_TYPE_DECLARATION ] : []
+
+const makePrepend = (bundles: DocumentModelBundle[]): string[] => [
+    ...getExactType(bundles.flatMap(({ models }) => [ ...models.operations.values() ])),
 ]
 
 export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
@@ -79,10 +88,12 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     mkdirSync(dirname(schemaOutputFile), { recursive: true })
     writeFileSync(schemaOutputFile, renderSchemaDeclaration(registry.schema))
 
+    const documentBundles = makeDocumentModelBundles(documents, registry.documents.fragments, context)
+
     return {
-        prepend: makePrepend(),
+        prepend: makePrepend(documentBundles),
         content: renderDeclarations(
-            makeDocumentModelBundles(documents, registry.documents.fragments, context),
+            documentBundles,
             importMap,
             documentModuleSpecifier
         ),

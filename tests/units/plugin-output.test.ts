@@ -928,6 +928,9 @@ describe('plugin __typename support', () => {
                 outputInfo
             )
 
+            expect(result.prepend).toEqual([
+                'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n',
+            ])
             expect(result.content).toContain([
                 `\texport type UserQueryQuery = {`,
                 `\t\t__typename?: 'Query';`,
@@ -1000,6 +1003,70 @@ describe('plugin __typename support', () => {
                     `export type Permission = 'GroupCreate' | 'GroupEdit'`,
                 ].join('\n')
             )
+        })
+    })
+
+    test('does not prepend Exact for fragment-only output', async () => {
+        const fragmentSchema = buildSchema(`
+            type Query {
+                user: User!
+            }
+
+            type User {
+                id: ID!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                fragmentSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
+                            id
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.prepend).toEqual([])
+        })
+    })
+
+    test('does not prepend Exact for operations without variables', async () => {
+        const operationSchema = buildSchema(`
+            type Query {
+                users: [User!]!
+            }
+
+            type User {
+                id: ID!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                operationSchema,
+                [{
+                    location: 'users.graphql',
+                    document: parse(`
+                        query UsersList {
+                            users {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.prepend).toEqual([])
+            expect(result.content).toContain(`\texport type UsersListQueryVariables = { [key: string]: never }`)
+            expect(result.content).not.toContain('Exact<{ [key: string]: never }>')
         })
     })
 })

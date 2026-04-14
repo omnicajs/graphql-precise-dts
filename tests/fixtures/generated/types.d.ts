@@ -253,7 +253,7 @@ declare module '~tests/fixtures/documents/subscriptions/userCreated.graphql' {
 		} & UserWithGroups;
 	}
 	
-	export type UserCreatedSubscriptionVariables = Exact<{ [key: string]: never }>
+	export type UserCreatedSubscriptionVariables = { [key: string]: never }
 	
 	export const userCreatedSubscription: TypedDocumentNode<UserCreatedSubscription, UserCreatedSubscriptionVariables>
 	

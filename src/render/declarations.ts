@@ -285,10 +285,13 @@ const renderOperationDeclaration = (
     operation: OperationModel
 ): string => {
     const exportName = uncapitalize(operationName)
+    const variablesType = operation.variables.length > 0
+        ? `Exact<${renderInputObject(operation.variables)}>`
+        : renderInputObject(operation.variables)
 
     return [
         `export type ${operationName} = ${renderOperationResult(operation)}`,
-        `export type ${operationName}Variables = Exact<${renderInputObject(operation.variables)}>`,
+        `export type ${operationName}Variables = ${variablesType}`,
         `export const ${exportName}: TypedDocumentNode<${operationName}, ${operationName}Variables>`,
         `export default ${exportName}`,
     ].join('\n\n')

@@ -194,6 +194,27 @@ describe('declaration render', () => {
             ].join('\n'))
         })
 
+        test('renders operation variables without Exact when the operation has no variables', () => {
+            const result = renderDeclaration(
+                './documents',
+                declarationDefinitions(
+                    new Map(),
+                    new Map([
+                        ['UsersListQuery', operation(
+                            OperationTypeNode.QUERY,
+                            [],
+                            [],
+                            'Query'
+                        )],
+                    ])
+                ),
+                new Map()
+            )
+
+            expect(result).toContain(`\texport type UsersListQueryQueryVariables = { [key: string]: never }`)
+            expect(result).not.toContain('Exact<{ [key: string]: never }>')
+        })
+
         test('renders multiple fragments in declaration artifacts', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserCard', fragment([
