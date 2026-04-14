@@ -64,6 +64,34 @@ describe('plugin directive handling', () => {
         })
     })
 
+    test('warns when a fragment spread has no matching definition in configured documents', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async ({ outputFile }) => {
+            plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                ...MissingOwnerFields
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                { outputFile }
+            )
+
+            expect(warn).toHaveBeenCalledWith(
+                'Fragment definition "MissingOwnerFields" referenced from "group.graphql" was not found among the documents configured for the plugin.'
+            )
+        })
+
+        warn.mockRestore()
+    })
+
     test('supports structured field override-type policies', async () => {
         await withTempOutput(async outputInfo => {
             const result = await plugin(

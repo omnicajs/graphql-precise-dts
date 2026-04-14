@@ -1,5 +1,4 @@
 import type { DocumentModelBundle } from './plan/declarations'
-import type { FragmentDefinitionNode } from 'graphql'
 import type {
     ModelContext,
     OperationModel,
@@ -9,8 +8,11 @@ import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { Types } from '@graphql-codegen/plugin-helpers'
 
 import { buildModelRegistry } from './models/registry-builder'
-import { dirname } from 'path'
-import { join } from 'path'
+import { dirname, join } from 'path'
+import {
+    emitMissingFragmentDefinitionWarnings,
+    findFragmentDefinitions,
+} from './lib/documents'
 import { makeDocumentModelBundles } from './plan/declarations'
 import { makeImportMap } from './plan/imports'
 import { makeModuleSpecifier } from './path'
@@ -19,26 +21,8 @@ import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
 import { writeFileSync } from 'fs'
 
-import { Kind } from 'graphql'
-
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
 const EXACT_TYPE_DECLARATION = 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n'
-
-const findFragmentDefinitions = (
-    documents: Parameters<PluginFunction<PluginConfig>>[1]
-): Map<string, FragmentDefinitionNode> => {
-    const fragments = new Map<string, FragmentDefinitionNode>()
-
-    documents.forEach(({ document }) =>
-        document?.definitions.forEach(definition => {
-            if (definition.kind === Kind.FRAGMENT_DEFINITION && !fragments.has(definition.name.value)) {
-                fragments.set(definition.name.value, definition)
-            }
-        })
-    )
-
-    return fragments
-}
 
 const haveVariables = (operations: OperationModel[]): boolean => operations.some(op => op.variables.length > 0)
 
@@ -68,6 +52,9 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     const importMap = makeImportMap(schema, documents, schemaModulePath, documentModuleSpecifier)
 
     const fragmentDefinitions = findFragmentDefinitions(documents)
+
+    emitMissingFragmentDefinitionWarnings(documents, fragmentDefinitions)
+
     const context = {
         schema,
         fragmentDefinitions: fragmentDefinitions instanceof Map
