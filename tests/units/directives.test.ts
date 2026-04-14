@@ -66,6 +66,54 @@ describe('directives', () => {
         })
     })
 
+    test('keeps statically included and non-skipped selections without marking them conditional', () => {
+        const includeDirectives = getSelectionDirectives(`
+            fragment UserCard on User {
+                email @include(if: true)
+            }
+        `)
+        const skipDirectives = getSelectionDirectives(`
+            fragment UserCard on User {
+                email @skip(if: false)
+            }
+        `)
+
+        expect(resolveSelectionDirectives(
+            includeDirectives,
+            SELECTION_MODEL_KIND.FIELD
+        )).toEqual({
+            directives: [],
+            state: SELECTION_STATE.INCLUDED,
+            warnings: [],
+        })
+
+        expect(resolveSelectionDirectives(
+            skipDirectives,
+            SELECTION_MODEL_KIND.FIELD
+        )).toEqual({
+            directives: [],
+            state: SELECTION_STATE.INCLUDED,
+            warnings: [],
+        })
+    })
+
+    test('excludes statically non-included selections', () => {
+        const directives = getSelectionDirectives(`
+            fragment UserCard on User {
+                email @include(if: false)
+            }
+        `)
+
+        expect(resolveSelectionDirectives(
+            directives,
+            SELECTION_MODEL_KIND.FIELD
+        )).toEqual({
+            directives: [],
+            state: SELECTION_STATE.EXCLUDED,
+            warnings: [],
+        })
+    })
+
     test('applies scoped directive policies with override, warn and nonnull', () => {
         const directives = getSelectionDirectives(`
             fragment UserCard on User {
@@ -119,5 +167,25 @@ describe('directives', () => {
                 },
             }
         )).toBe(false)
+    })
+
+    test('uses the default warning message when warn policy message is omitted', () => {
+        const directives = getSelectionDirectives(`
+            fragment UserCard on User {
+                id @review
+            }
+        `)
+
+        expect(resolveSelectionDirectives(directives, SELECTION_MODEL_KIND.FIELD, {
+            review: {
+                field: {
+                    effect: 'warn',
+                },
+            },
+        })).toEqual({
+            directives: [],
+            state: SELECTION_STATE.INCLUDED,
+            warnings: [ 'Directive "@review" requires manual review' ],
+        })
     })
 })

@@ -19,6 +19,7 @@ import {
     makeInputValue,
 } from '../../src/models/value-models-builder'
 import { makeTestModelContext } from './helpers/model-context'
+import { parse } from 'graphql'
 
 import {
     SELECTION_MODEL_KIND,
@@ -238,6 +239,91 @@ describe('value models builder', () => {
                     },
                 },
             ],
+        })
+    })
+
+    test('keeps only inline fragments when building union variants', () => {
+        const schema = buildSchema(`
+            type UserPayload {
+                id: ID!
+                name: String!
+            }
+
+            type GroupPayload {
+                id: ID!
+                slug: String!
+            }
+
+            union SearchResult = UserPayload | GroupPayload
+
+            type Query {
+                search: SearchResult!
+            }
+        `)
+        const document = parse(`
+            fragment SearchResultDetails on Query {
+                search {
+                    __typename
+                    ... on UserPayload {
+                        name
+                    }
+                    ... on GroupPayload {
+                        slug
+                    }
+                }
+            }
+        `)
+        const definition = getFragmentDefinition(`
+            fragment SearchResultDetails on Query {
+                search {
+                    __typename
+                    ... on UserPayload {
+                        name
+                    }
+                    ... on GroupPayload {
+                        slug
+                    }
+                }
+            }
+        `)
+
+        const searchSelection = getSelectionNode(definition, 0) as FieldNode
+        const typeSelection = getTypeForDefinition(definition, schema).get(searchSelection)
+
+        expect(typeSelection).toBeDefined()
+        expect(typeSelection?.kind).toBe(SELECTION_MODEL_KIND.FIELD)
+
+        const value = makeFieldValue(
+            typeSelection as TypeFieldNode,
+            searchSelection,
+            makeTestModelContext({
+                schema,
+                documents: [{
+                    location: 'search.graphql',
+                    document,
+                }],
+            })
+        )
+
+        expect(value).toEqual({
+            kind: VALUE_MODEL_KIND.UNION,
+            variants: [{
+                typeName: 'UserPayload',
+                fields: [
+                    expect.objectContaining({
+                        kind: SELECTION_MODEL_KIND.FIELD,
+                        name: 'name',
+                    }),
+                ],
+            }, {
+                typeName: 'GroupPayload',
+                fields: [
+                    expect.objectContaining({
+                        kind: SELECTION_MODEL_KIND.FIELD,
+                        name: 'slug',
+                    }),
+                ],
+            }],
         })
     })
 })

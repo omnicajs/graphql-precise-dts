@@ -1,5 +1,6 @@
 import type {
     FieldNode,
+    GraphQLInputObjectType,
     GraphQLObjectType,
 } from 'graphql'
 import type { SelectionModel } from '../../src/models/types'
@@ -28,6 +29,7 @@ import {
 import {
     getTypeForDefinition,
     makeTypeRefForField,
+    makeTypeRefForInput,
 } from '../../src/models/resolve'
 import { specializeTypeNameSelectionForConcreteType } from '../../src/models/resolve'
 
@@ -105,6 +107,46 @@ describe('type resolution for models', () => {
         expect(getFragmentTypeNames(unionFragment, schema)).toEqual({
             onType: 'SearchResult',
             onTypeNames: [ 'UserPayload', 'Group' ],
+        })
+    })
+
+    test('builds typename selections for union fragments with possible concrete type names', () => {
+        const schema = buildSchema(`
+            type UserPayload {
+                id: ID!
+            }
+
+            type Group {
+                id: ID!
+            }
+
+            union SearchResult = UserPayload | Group
+
+            type Query {
+                search: SearchResult!
+            }
+        `)
+        const fragment = getFragmentDefinition(`
+            fragment SearchResultDetails on SearchResult {
+                __typename
+            }
+        `)
+        const tree = getTypeForDefinition(fragment, schema)
+        const typenameSelection = getSelectionNode(fragment, 0) as FieldNode
+        const typed = getTypedSelection(tree, typenameSelection)
+
+        expect(typed).toMatchObject({
+            kind: SELECTION_MODEL_KIND.FIELD,
+            typeNames: [ 'UserPayload', 'Group' ],
+        })
+        expect(typed && 'currentType' in typed
+            ? makeTypeRefForField(typed.currentType)
+            : undefined).toEqual({
+            kind: TYPE_REF_KIND.NON_NULL,
+            ofType: {
+                kind: TYPE_REF_KIND.NAMED,
+                name: 'String',
+            },
         })
     })
 
@@ -221,6 +263,48 @@ describe('type resolution for models', () => {
                     ofType: {
                         kind: TYPE_REF_KIND.NAMED,
                         name: 'String',
+                    },
+                },
+            },
+        })
+    })
+
+    test('creates nested input type refs for non-null and list wrappers', () => {
+        const schema = buildSchema(`
+            input UserFilter {
+                tags: [[String!]!]!
+            }
+
+            type Query {
+                users(filter: UserFilter): [String!]!
+            }
+        `)
+
+        const inputType = schema.getType('UserFilter')
+
+        expect(inputType, 'UserFilter input type not found').not.toBeUndefined()
+        expect(inputType, 'UserFilter input type not found').not.toBeNull()
+
+        const tagsField = (inputType as GraphQLInputObjectType).getFields().tags
+
+        expect(tagsField, 'tags input field not found').not.toBeUndefined()
+        expect(tagsField, 'tags input field not found').not.toBeNull()
+
+        expect(makeTypeRefForInput(tagsField.type)).toEqual({
+            kind: TYPE_REF_KIND.NON_NULL,
+            ofType: {
+                kind: TYPE_REF_KIND.LIST,
+                ofType: {
+                    kind: TYPE_REF_KIND.NON_NULL,
+                    ofType: {
+                        kind: TYPE_REF_KIND.LIST,
+                        ofType: {
+                            kind: TYPE_REF_KIND.NON_NULL,
+                            ofType: {
+                                kind: TYPE_REF_KIND.NAMED,
+                                name: 'String',
+                            },
+                        },
                     },
                 },
             },
