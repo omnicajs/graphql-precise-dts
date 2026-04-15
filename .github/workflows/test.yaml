@@ -1,11 +1,19 @@
 name: Tests
 
-on: [ push, pull_request ]
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
@@ -14,30 +22,19 @@ jobs:
 
     steps:
       - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - name: Setup Node.js and dependencies
+        uses: ./.github/actions/setup-node-deps
         with:
           node-version: ${{ matrix.node-version }}
+          cache-key-suffix: tests-typescript-${{ matrix.typescript-version }}
 
       - name: Install specific TS
         run: npm i -g typescript@${{ matrix.typescript-version }}
 
       - name: Check TypeScript version
         run: tsc --version
-
-      - name: Cache dependencies
-        id: cache-deps
-        uses: actions/cache@v4
-        with:
-          path: .yarn
-          key: ${{ runner.OS }}-node-${{ matrix.node-version }}-typescript-${{ matrix.typescript-version }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-${{ matrix.node-version }}-typescript-${{ matrix.typescript-version }}-yarn-
-
-      - name: Install dependencies
-        run: yarn install
 
       - name: Checking for peer dependency conflicts
         run: yarn check:peer-deps:fix

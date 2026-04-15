@@ -1,0 +1,15 @@
+.github
+.idea
+/coverage
+/node_modules
+/tests
+
+.gitignore
+.npmrc
+.versionrc.json
+eslint.config.mjs
+tsconfig.json
+vite.config.ts
+vite.config.basic.ts
+vitest.config.ts
+yarn.lock
