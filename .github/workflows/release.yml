@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Release type"
+        required: true
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: "Prerelease channel"
+        required: true
+        default: "none"
+        type: choice
+        options:
+          - none
+          - alpha
+          - beta
+          - rc
+      npm_tag:
+        description: "npm dist-tag for publication"
+        required: true
+        default: "latest"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate release branch and npm tag
+        env:
+          NPM_TAG: ${{ inputs.npm_tag }}
+        run: |
+          if [ "$NPM_TAG" = "latest" ] && [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Release to npm tag 'latest' must be started from the main branch."
+            exit 1
+          fi
+
+      - name: Setup Node.js and dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          node-version: 24.x
+          cache-key-suffix: release
+          registry-url: https://registry.npmjs.org
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run release script
+        env:
+          RELEASE_TYPE: ${{ inputs.release }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          case "$RELEASE_TYPE" in
+            auto)
+              RELEASE_SCRIPT="release"
+              ;;
+            patch)
+              RELEASE_SCRIPT="release:patch"
+              ;;
+            minor)
+              RELEASE_SCRIPT="release:minor"
+              ;;
+            major)
+              RELEASE_SCRIPT="release:major"
+              ;;
+            *)
+              echo "Unknown release type: $RELEASE_TYPE"
+              exit 1
+              ;;
+          esac
+
+          CMD=(yarn run "$RELEASE_SCRIPT")
+          if [ "$PRERELEASE" != "none" ]; then
+            CMD+=(--prerelease "$PRERELEASE")
+          fi
+
+          "${CMD[@]}"
+
+      - name: Push release commit and tags
+        run: git push origin "HEAD:${GITHUB_REF_NAME}" --follow-tags
+
+      - name: Build package
+        run: yarn build
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ inputs.npm_tag }}
+        run: npm publish --access public --tag "$NPM_TAG"

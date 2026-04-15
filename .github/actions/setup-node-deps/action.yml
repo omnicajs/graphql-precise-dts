@@ -1,0 +1,50 @@
+name: Setup Node and dependencies
+description: Setup Node.js runtime, restore Yarn cache, and install dependencies.
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: 24.x
+  cache-key-suffix:
+    description: Extra segment for cache key separation between workflows/jobs
+    required: false
+    default: ci
+  registry-url:
+    description: Optional npm registry URL for setup-node
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      if: ${{ inputs.registry-url == '' }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Setup Node.js with registry
+      if: ${{ inputs.registry-url != '' }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: ${{ inputs.registry-url }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v5
+      with:
+        path: .yarn
+        key: ${{ runner.OS }}-node-${{ inputs.node-version }}-${{ inputs.cache-key-suffix }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.OS }}-node-${{ inputs.node-version }}-${{ inputs.cache-key-suffix }}-yarn-
+
+    - name: Enable Corepack and activate Yarn from packageManager
+      shell: bash
+      run: |
+        corepack enable
+        corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+
+    - name: Install dependencies
+      shell: bash
+      run: yarn install
