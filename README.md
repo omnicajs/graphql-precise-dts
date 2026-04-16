@@ -72,6 +72,22 @@ For this repository itself, fixture declarations used by type tests are generate
 yarn generate:test-fixtures
 ```
 
+## Plugin rules
+
+This is the canonical summary of the plugin behavior rules:
+
+- fragment and operation declarations stay scoped to the `.graphql` module they came from;
+- multiple definitions from the same `.graphql` file are emitted into the same `declare module '...'` block;
+- generated operation exports are typed as `TypedDocumentNode<Result, Variables>`;
+- the plugin emits a sibling `schema.d.ts` file with scalar mappings and enum declarations;
+- missing fragment definitions produce warnings, but warnings do not mutate the generated output by themselves;
+- imported fragments are recovered only when `recoverExternalFragments: true` is enabled and only when they are reachable
+from configured document spreads;
+- explicit `__typename` selections are preserved, while fallback `__typename` values are synthesized only when
+they are needed to describe the response shape precisely;
+- aliasing any non-`__typename` field to the response name `__typename` is rejected because that name is reserved
+for typename handling.
+
 ## Output
 
 For a target like:
@@ -96,17 +112,7 @@ export const getUserQuery: TypedDocumentNode<GetUserQuery, GetUserQueryVariables
 export default getUserQuery
 ```
 
-If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation declarations
-into the same `declare module '...'` block.
-
-If a configured document references a fragment that is missing from the plugin `documents` input, the plugin emits
-a warning that names the missing fragment definition and the document that referenced it.
-
-These warnings are diagnostics only. They do not change the generated output or recover external fragment definitions automatically.
-
-When `recoverExternalFragments: true` is enabled, the plugin follows reachable `#import` directives from configured documents,
-loads imported fragment documents, and emits declarations for those recovered fragment files too. If a fragment spread still
-cannot be resolved after that recovery pass, the plugin emits a warning.
+See [Plugin rules](#plugin-rules) for the full list of generation rules and invariants.
 
 ## Development scripts
 
@@ -120,27 +126,27 @@ yarn test:coverage
 yarn generate:test-fixtures
 ```
 
-`yarn tests` is the main verification entry point in this repository. It regenerates test fixture declarations and then runs
-the full Vitest suite with type checks.
+`yarn tests` is the main verification entry point in this repository. It regenerates test fixture declarations
+and then runs the full Vitest suite with type checks.
 
 ## `__typename` behavior
 
-The plugin keeps explicit `__typename` selections and also synthesizes fallback `__typename` values when they are needed
-to describe the response shape precisely.
+This section expands on the `__typename` rules listed in [Plugin rules](#plugin-rules).
 
 - for object-like results, fallback `__typename` is usually optional;
-- for `Query`, `Mutation`, and `Subscription` operation results, fallback `__typename` is optional unless it was selected explicitly;
+- for `Query`, `Mutation`, and `Subscription` operation results, fallback `__typename` is optional unless
+it was selected explicitly;
 - for concrete object shapes, selecting `__typename` through an alias such as `kind: __typename` suppresses the synthesized
 fallback `__typename`; the aliased field is rendered as a regular string-literal field;
-- for abstract fields that split into distinct concrete shapes, the plugin may synthesize required discriminating `__typename` values
-when no explicit `__typename` selection exists;
+- for abstract fields that split into distinct concrete shapes, the plugin may synthesize required
+discriminating `__typename` values when no explicit `__typename` selection exists;
 - if `__typename` is selected only conditionally or only for part of the branches, the generated `__typename` remains optional;
 - if multiple concrete branches collapse to the same rendered shape, the plugin merges them into a single object type
 and renders `__typename` as a union of possible string literals.
 
 Reserved name rule:
 
-- aliasing a non-`__typename` field to the response name `__typename` is not supported and causes plugin generation to fail.
+- aliasing a non-`__typename` field to the response name `__typename` causes plugin generation to fail.
 
 ## Configuration
 
