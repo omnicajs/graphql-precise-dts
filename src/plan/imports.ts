@@ -1,3 +1,4 @@
+import type { DocumentFile } from '../config'
 import type {
     DocumentModels,
     FieldValue,
@@ -9,8 +10,7 @@ import type {
     GraphQLOutputType,
 } from 'graphql'
 import type { InputValue } from '../models/types'
-import type { PluginConfig } from '../config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import type { Schema } from '../config'
 import type { SelectionModel } from '../models/types'
 
 import { TypeInfo } from 'graphql'
@@ -92,8 +92,8 @@ const createImportMapVisitor = (
 })
 
 export const makeImportMap = (
-    schema: Parameters<PluginFunction<PluginConfig>>[0],
-    documents: Parameters<PluginFunction<PluginConfig>>[1],
+    schema: Schema,
+    documents: DocumentFile[],
     schemaModulePath: string,
     moduleLocation: (location: string | undefined) => string
 ): ImportMap => {

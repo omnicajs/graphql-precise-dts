@@ -12,9 +12,11 @@ The resolution order is:
 2. If `scope` does not match:
    - with `relativeToCwd: true`, the plugin uses the path relative to `process.cwd()`;
    - with `relativeToCwd: false`, the plugin uses the normalized document path as-is for relative locations;
-   - with `relativeToCwd: false` and an absolute document location, the plugin still converts it to a path relative to `process.cwd()` so the alias prefix is not combined with an absolute filesystem path.
+   - with `relativeToCwd: false` and an absolute document location, the plugin still converts it to a path relative
+   to `process.cwd()` so the alias prefix is not combined with an absolute filesystem path.
 
-In practice, `prefix` behaves as an alias root, and the remaining part of the module id is a stable document path. When `prefix` is empty, the plugin emits a real relative module specifier and adds `./` when needed.
+In practice, `prefix` behaves as an alias root, and the remaining part of the module id is a stable document path.
+When `prefix` is empty, the plugin emits a real relative module specifier and adds `./` when needed.
 
 ## `scope` matches
 
@@ -153,11 +155,13 @@ This is useful when the generated declarations should use plain relative module 
 
 ## Why the full path is used instead of `basename`
 
-When `scope` does not match, the plugin does not fall back to `basename(documentLocation)`. Using only the file name would make module ids unstable and colliding for common layouts such as:
+When `scope` does not match, the plugin does not fall back to `basename(documentLocation)`. Using only the file name
+would make module ids unstable and colliding for common layouts such as:
 
 ```ts
 'queries/index.graphql'
 'mutations/index.graphql'
 ```
 
-Both would collapse to the same module id if only `index.graphql` were used. The plugin therefore keeps the path portion needed to preserve document identity.
+Both would collapse to the same module id if only `index.graphql` were used. The plugin therefore keeps the path portion
+needed to preserve document identity.

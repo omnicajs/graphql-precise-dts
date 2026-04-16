@@ -96,11 +96,17 @@ export const getUserQuery: TypedDocumentNode<GetUserQuery, GetUserQueryVariables
 export default getUserQuery
 ```
 
-If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation declarations into the same `declare module '...'` block.
+If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation declarations
+into the same `declare module '...'` block.
 
-If a configured document references a fragment that is missing from the plugin `documents` input, the plugin emits a warning that names the missing fragment definition and the document that referenced it.
+If a configured document references a fragment that is missing from the plugin `documents` input, the plugin emits
+a warning that names the missing fragment definition and the document that referenced it.
 
 These warnings are diagnostics only. They do not change the generated output or recover external fragment definitions automatically.
+
+When `recoverExternalFragments: true` is enabled, the plugin follows reachable `#import` directives from configured documents,
+loads imported fragment documents, and emits declarations for those recovered fragment files too. If a fragment spread still
+cannot be resolved after that recovery pass, the plugin emits a warning.
 
 ## Development scripts
 
@@ -114,18 +120,23 @@ yarn test:coverage
 yarn generate:test-fixtures
 ```
 
-`yarn tests` is the main verification entry point in this repository. It regenerates test fixture declarations and then runs the full Vitest suite with type checks.
+`yarn tests` is the main verification entry point in this repository. It regenerates test fixture declarations and then runs
+the full Vitest suite with type checks.
 
 ## `__typename` behavior
 
-The plugin keeps explicit `__typename` selections and also synthesizes fallback `__typename` values when they are needed to describe the response shape precisely.
+The plugin keeps explicit `__typename` selections and also synthesizes fallback `__typename` values when they are needed
+to describe the response shape precisely.
 
 - for object-like results, fallback `__typename` is usually optional;
 - for `Query`, `Mutation`, and `Subscription` operation results, fallback `__typename` is optional unless it was selected explicitly;
-- for concrete object shapes, selecting `__typename` through an alias such as `kind: __typename` suppresses the synthesized fallback `__typename`; the aliased field is rendered as a regular string-literal field;
-- for abstract fields that split into distinct concrete shapes, the plugin may synthesize required discriminating `__typename` values when no explicit `__typename` selection exists;
+- for concrete object shapes, selecting `__typename` through an alias such as `kind: __typename` suppresses the synthesized
+fallback `__typename`; the aliased field is rendered as a regular string-literal field;
+- for abstract fields that split into distinct concrete shapes, the plugin may synthesize required discriminating `__typename` values
+when no explicit `__typename` selection exists;
 - if `__typename` is selected only conditionally or only for part of the branches, the generated `__typename` remains optional;
-- if multiple concrete branches collapse to the same rendered shape, the plugin merges them into a single object type and renders `__typename` as a union of possible string literals.
+- if multiple concrete branches collapse to the same rendered shape, the plugin merges them into a single object type
+and renders `__typename` as a union of possible string literals.
 
 Reserved name rule:
 
@@ -140,6 +151,7 @@ type PluginConfig = {
   prefix?: string
   scope?: string
   relativeToCwd?: boolean
+  recoverExternalFragments?: boolean
   scalars?: Record<string, string | { input?: string; output?: string }>
   directivePolicies?: Record<string, DirectivePolicy | DirectiveNodePolicies>
 }
@@ -156,6 +168,12 @@ Optional path prefix used to preserve only the scoped part of the document path 
 ### `relativeToCwd`
 
 When enabled, absolute document paths are normalized relative to `process.cwd()` before generating module ids.
+
+### `recoverExternalFragments`
+
+When enabled, the plugin follows reachable `#import` directives from configured documents and attempts to recover
+imported fragment documents that were not included in the original `documents` config. Recovered fragment documents
+are emitted as regular declaration modules.
 
 ### `scalars`
 
@@ -204,4 +222,5 @@ Supported effects:
 
 ## Additional documentation
 - [Module path resolution](docs/MODULE_PATH_RESOLUTION.md) - path resolution rules and examples for generated `declare module` ids.
-- [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies, and current `__typename` behavior for conditional and excluded selections.
+- [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies, and current `__typename` behavior
+for conditional and excluded selections.

@@ -1,4 +1,5 @@
 import type { ConstValues } from './lib/types'
+import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { ScalarShape } from './scalars/types'
 
 import { SELECTION_MODEL_KIND } from './models/kinds'
@@ -7,9 +8,13 @@ export interface PluginConfig {
     prefix?: string;
     scope?: string;
     relativeToCwd?: boolean;
+    recoverExternalFragments?: boolean;
     scalars?: ConfigScalars;
     directivePolicies?: ConfigDirectivePolicies;
 }
+
+export type Schema = Parameters<PluginFunction<PluginConfig>>[0]
+export type DocumentFile = Parameters<PluginFunction<PluginConfig>>[1][number]
 
 export type TsTypeString = string
 export type ConfigScalars = { [K in string]: TsTypeString | Partial<ScalarShape<TsTypeString, TsTypeString>> }

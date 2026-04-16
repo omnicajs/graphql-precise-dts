@@ -4,10 +4,8 @@ import {
 } from '../config'
 import type { FragmentDefinitionNode } from 'graphql'
 import type { OperationTypeNode } from 'graphql'
-import type { PluginConfig } from '../config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { ScalarShape } from '../scalars/types'
-import type { TsTypeString } from '../config'
+import type { Schema, TsTypeString } from '../config'
 
 import {
     FRAGMENT_ROOT_KIND,
@@ -17,7 +15,7 @@ import {
 } from './kinds'
 
 export type ModelContext = {
-    schema: Parameters<PluginFunction<PluginConfig>>[0];
+    schema: Schema;
     fragmentDefinitions: Map<string, FragmentDefinitionNode>;
     customScalars: ConfigScalars;
     directivePolicies: ConfigDirectivePolicies;

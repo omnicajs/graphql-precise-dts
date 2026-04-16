@@ -8,15 +8,15 @@ import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { Types } from '@graphql-codegen/plugin-helpers'
 
 import { buildModelRegistry } from './models/registry-builder'
-import { dirname, join } from 'path'
-import {
-    emitMissingFragmentDefinitionWarnings,
-    findFragmentDefinitions,
-} from './lib/documents'
+import { collectFragmentDefinitions } from './lib/documents'
+import { dirname } from 'path'
+import { emitMissingFragmentDefinitionWarnings } from './lib/documents'
+import { join } from 'path'
 import { makeDocumentModelBundles } from './plan/declarations'
 import { makeImportMap } from './plan/imports'
 import { makeModuleSpecifier } from './path'
 import { mkdirSync } from 'fs'
+import { recoverImportedFragmentDocuments } from './lib/documents'
 import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
 import { writeFileSync } from 'fs'
@@ -49,17 +49,26 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         config.scope
     )
 
-    const importMap = makeImportMap(schema, documents, schemaModulePath, documentModuleSpecifier)
+    const recoveredFragmentDocuments = config.recoverExternalFragments
+        ? recoverImportedFragmentDocuments(documents)
+        : []
+    const availableDocuments = [
+        ...documents,
+        ...recoveredFragmentDocuments,
+    ]
+    const importMap = makeImportMap(schema, availableDocuments, schemaModulePath, documentModuleSpecifier)
 
-    const fragmentDefinitions = findFragmentDefinitions(documents)
+    const fragmentDefinitions = collectFragmentDefinitions(availableDocuments)
 
-    emitMissingFragmentDefinitionWarnings(documents, fragmentDefinitions)
+    emitMissingFragmentDefinitionWarnings(
+        config.recoverExternalFragments ? availableDocuments : documents,
+        fragmentDefinitions,
+        config.recoverExternalFragments ?? false
+    )
 
     const context = {
         schema,
-        fragmentDefinitions: fragmentDefinitions instanceof Map
-            ? fragmentDefinitions
-            : findFragmentDefinitions(fragmentDefinitions),
+        fragmentDefinitions,
         customScalars: config.scalars ?? {},
         directivePolicies: config.directivePolicies ?? {},
     } satisfies ModelContext
@@ -75,7 +84,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     mkdirSync(dirname(schemaOutputFile), { recursive: true })
     writeFileSync(schemaOutputFile, renderSchemaDeclaration(registry.schema))
 
-    const documentBundles = makeDocumentModelBundles(documents, registry.documents.fragments, context)
+    const documentBundles = makeDocumentModelBundles(availableDocuments, registry.documents.fragments, context)
 
     return {
         prepend: makePrepend(documentBundles),

@@ -97,18 +97,23 @@ Logic:
 
 ## `__typename` and abstract fields
 
-For abstract selections such as interfaces and unions, the plugin may synthesize fallback `__typename` values even when `__typename` is not selected explicitly.
+For abstract selections such as interfaces and unions, the plugin may synthesize fallback `__typename` values even
+when `__typename` is not selected explicitly.
 
 Current behavior:
 
-- for concrete object shapes, an aliased `__typename` selection such as `kind: __typename` suppresses the synthesized fallback `__typename`; the alias is rendered as a regular field with a string-literal union value;
-- if there is no explicit `__typename` selection and the result splits into distinct concrete branches, branch-level fallback `__typename` is rendered as required so the union stays discriminated;
+- for concrete object shapes, an aliased `__typename` selection such as `kind: __typename` suppresses the synthesized
+fallback `__typename`; the alias is rendered as a regular field with a string-literal union value;
+- if there is no explicit `__typename` selection and the result splits into distinct concrete branches, branch-level
+fallback `__typename` is rendered as required so the union stays discriminated;
 - if `__typename` is selected conditionally, or only in part of the branches, fallback `__typename` stays optional;
-- if branch-specific rendering collapses to the same shape, the plugin merges those branches into a single object type and renders `__typename` as a union of possible string literals.
+- if branch-specific rendering collapses to the same shape, the plugin merges those branches into a single object type
+and renders `__typename` as a union of possible string literals.
 
 Reserved name rule:
 
-- aliasing any non-`__typename` field to the response name `__typename` is rejected by the plugin because `__typename` is reserved for typename-specific handling.
+- aliasing any non-`__typename` field to the response name `__typename` is rejected by the plugin because `__typename`
+is reserved for typename-specific handling.
 
 ## Imported fragment diagnostics
 
@@ -120,6 +125,10 @@ When a configured document references a missing fragment definition, the plugin 
 - the document that referenced it.
 
 These warnings are diagnostics only. They do not add recovered fragments to the generated output.
+
+If `recoverExternalFragments` is enabled, the plugin follows reachable `#import` directives from configured documents
+and loads imported fragment documents when possible. Recovered fragment documents are added to the generated declarations.
+If a fragment definition is still unresolved after that recovery pass, the plugin emits a warning for the remaining missing spread.
 
 ## Custom directives
 
@@ -329,7 +338,8 @@ Logic:
 
 - the inline fragment may or may not contribute `__typename` at runtime;
 - because the selection is conditional, the generated `__typename` on the abstract field must remain optional;
-- since both concrete branches render to the same final shape, the plugin collapses them into one object type instead of keeping a redundant union.
+- since both concrete branches render to the same final shape, the plugin collapses them into one object type
+instead of keeping a redundant union.
 
 ### `override-type`
 

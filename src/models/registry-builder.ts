@@ -12,10 +12,9 @@ import type {
 } from 'graphql'
 import type { ModelContext } from './types'
 import type { ModelRegistry } from './registry'
-import type { PluginConfig } from '../config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { ScalarModelShape } from './types'
 import type { Scalars } from '../scalars/types'
+import type { Schema } from '../config'
 
 import { getNamedType } from 'graphql'
 import {
@@ -51,7 +50,7 @@ const createModelRegistry = (): ModelRegistry => ({
 
 const registerCustomScalars = (
     scalars: Map<string, ScalarModelShape>,
-    schema: Parameters<PluginFunction<PluginConfig>>[0],
+    schema: Schema,
     customScalars: ConfigScalars
 ) => Object.keys(customScalars).forEach(scalarName => {
     const scalarType = schema.getType(scalarName)
@@ -72,7 +71,7 @@ const registerPrimitiveScalars = (
 
 const registerEnums = (
     enums: Map<string, EnumValueEntries>,
-    schema: Parameters<PluginFunction<PluginConfig>>[0],
+    schema: Schema,
     importEnumsName: string[]
 ) => importEnumsName.forEach(enumName => {
     const enumType = schema.getType(enumName)
@@ -130,9 +129,7 @@ const collectUsedPrimitiveScalarsFromInputType = (
     collectPrimitiveScalar(getNamedType(field.type), usedScalars)
 })
 
-const collectUsedPrimitiveScalars = (
-    schema: Parameters<PluginFunction<PluginConfig>>[0]
-): Set<keyof Scalars> => {
+const collectUsedPrimitiveScalars = (schema: Schema): Set<keyof Scalars> => {
     const usedScalars = new Set<keyof Scalars>()
 
     Object.values(schema.getTypeMap()).forEach(type => {
