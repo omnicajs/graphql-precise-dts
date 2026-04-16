@@ -14,8 +14,7 @@ import type {
 } from './types'
 import type { OperationDefinitionNode } from 'graphql'
 import type { OperationModel } from './types'
-import type { PluginConfig } from '../config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import type { Schema } from '../config'
 import type { SelectionNode } from 'graphql'
 import type { TypeSelectionNode } from './selection'
 import type { VariableDefinitionNode } from 'graphql'
@@ -117,7 +116,7 @@ const makeOperationVariable = (
 
 const getRootTypeForOperation = (
     operation: OperationTypeNode,
-    schema: Parameters<PluginFunction<PluginConfig>>[0]
+    schema: Schema
 ) => {
     switch (operation) {
         case OperationTypeNode.QUERY:

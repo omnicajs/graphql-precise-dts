@@ -7,10 +7,12 @@ import {
 
 import { buildSchema } from 'graphql'
 import { join } from 'path'
+import { mkdirSync } from 'fs'
 import { parse } from 'graphql'
 import { plugin } from '../../src'
 import { readFileSync } from 'fs'
 import { withTempOutput } from './utils/temp-output'
+import { writeFileSync } from 'fs'
 
 const schema = buildSchema(`
     type Query {
@@ -87,6 +89,201 @@ describe('plugin directive handling', () => {
             expect(warn).toHaveBeenCalledWith(
                 'Fragment definition "MissingOwnerFields" referenced from "group.graphql" was not found among the documents configured for the plugin.'
             )
+        })
+
+        warn.mockRestore()
+    })
+
+    test('recovers imported fragment documents when the option is enabled', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async ({ outputFile, tempDir }) => {
+            const documentsDir = join(tempDir, 'documents')
+            const queryPath = join(documentsDir, 'group.graphql')
+            const fragmentPath = join(documentsDir, 'GroupOwnerFields.graphql')
+
+            mkdirSync(documentsDir, { recursive: true })
+            writeFileSync(queryPath, [
+                '#import "./GroupOwnerFields.graphql"',
+                'query GroupOwnerQuery {',
+                '  group {',
+                '    ...GroupOwnerFields',
+                '  }',
+                '}',
+            ].join('\n'))
+            writeFileSync(fragmentPath, [
+                'fragment GroupOwnerFields on Group {',
+                '  __typename',
+                '}',
+            ].join('\n'))
+
+            const result = await plugin(
+                schema,
+                [{
+                    location: queryPath,
+                    document: parse(readFileSync(queryPath, 'utf8')),
+                }],
+                {
+                    prefix: '~tests/',
+                    recoverExternalFragments: true,
+                },
+                { outputFile }
+            )
+
+            expect(warn).not.toHaveBeenCalled()
+
+            expect(result.content).toContain('export type GroupOwnerFields = {')
+            expect(result.content).toContain('import type { GroupOwnerFields } from')
+            expect(result.content).toContain('group: GroupOwnerFields;')
+        })
+
+        warn.mockRestore()
+    })
+
+    test('warns when imported fragment recovery still cannot resolve a fragment spread', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async ({ outputFile, tempDir }) => {
+            const documentsDir = join(tempDir, 'documents')
+            const queryPath = join(documentsDir, 'group.graphql')
+            const fragmentPath = join(documentsDir, 'ExistingOwnerFields.graphql')
+
+            mkdirSync(documentsDir, { recursive: true })
+            writeFileSync(queryPath, [
+                '#import "./ExistingOwnerFields.graphql"',
+                'query GroupOwnerQuery {',
+                '  group {',
+                '    ...MissingOwnerFields',
+                '  }',
+                '}',
+            ].join('\n'))
+            writeFileSync(fragmentPath, [
+                'fragment ExistingOwnerFields on Group {',
+                '  __typename',
+                '}',
+            ].join('\n'))
+
+            plugin(
+                schema,
+                [{
+                    location: queryPath,
+                    document: parse(readFileSync(queryPath, 'utf8')),
+                }],
+                {
+                    prefix: '~tests/',
+                    recoverExternalFragments: true,
+                },
+                { outputFile }
+            )
+
+            expect(warn).toHaveBeenCalledWith(
+                `Fragment definition "MissingOwnerFields" referenced from "${queryPath}" was not found among the documents configured for the plugin or the imported fragment documents recovered by it.`
+            )
+        })
+
+        warn.mockRestore()
+    })
+
+    test('ignores imported fragment documents that are not reachable from used fragment spreads', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async ({ outputFile, tempDir }) => {
+            const documentsDir = join(tempDir, 'documents')
+            const queryPath = join(documentsDir, 'group.graphql')
+            const usedFragmentPath = join(documentsDir, 'GroupOwnerFields.graphql')
+            const unusedFragmentPath = join(documentsDir, 'UnusedOwnerFields.graphql')
+
+            mkdirSync(documentsDir, { recursive: true })
+            writeFileSync(queryPath, [
+                '#import "./GroupOwnerFields.graphql"',
+                '#import "./UnusedOwnerFields.graphql"',
+                'query GroupOwnerQuery {',
+                '  group {',
+                '    ...GroupOwnerFields',
+                '  }',
+                '}',
+            ].join('\n'))
+            writeFileSync(usedFragmentPath, [
+                'fragment GroupOwnerFields on Group {',
+                '  __typename',
+                '}',
+            ].join('\n'))
+            writeFileSync(unusedFragmentPath, [
+                'fragment UnusedOwnerFields on Group {',
+                '  owner {',
+                '    __typename',
+                '  }',
+                '}',
+            ].join('\n'))
+
+            const result = await plugin(
+                schema,
+                [{
+                    location: queryPath,
+                    document: parse(readFileSync(queryPath, 'utf8')),
+                }],
+                {
+                    prefix: '~tests/',
+                    recoverExternalFragments: true,
+                },
+                { outputFile }
+            )
+
+            expect(warn).not.toHaveBeenCalled()
+
+            expect(result.content).toContain('export type GroupOwnerFields = {')
+            expect(result.content).not.toContain('export type UnusedOwnerFields = {')
+        })
+
+        warn.mockRestore()
+    })
+
+    test('emits only reachable fragments from a recovered document', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async ({ outputFile, tempDir }) => {
+            const documentsDir = join(tempDir, 'documents')
+            const queryPath = join(documentsDir, 'group.graphql')
+            const fragmentPath = join(documentsDir, 'GroupFragments.graphql')
+
+            mkdirSync(documentsDir, { recursive: true })
+            writeFileSync(queryPath, [
+                '#import "./GroupFragments.graphql"',
+                'query GroupOwnerQuery {',
+                '  group {',
+                '    ...GroupOwnerFields',
+                '  }',
+                '}',
+            ].join('\n'))
+            writeFileSync(fragmentPath, [
+                'fragment GroupOwnerFields on Group {',
+                '  __typename',
+                '}',
+                '',
+                'fragment UnusedOwnerFields on Group {',
+                '  owner {',
+                '    __typename',
+                '  }',
+                '}',
+            ].join('\n'))
+
+            const result = await plugin(
+                schema,
+                [{
+                    location: queryPath,
+                    document: parse(readFileSync(queryPath, 'utf8')),
+                }],
+                {
+                    prefix: '~tests/',
+                    recoverExternalFragments: true,
+                },
+                { outputFile }
+            )
+
+            expect(warn).not.toHaveBeenCalled()
+
+            expect(result.content).toContain('export type GroupOwnerFields = {')
+            expect(result.content).not.toContain('export type UnusedOwnerFields = {')
         })
 
         warn.mockRestore()
