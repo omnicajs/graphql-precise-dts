@@ -242,6 +242,49 @@ describe('value models builder', () => {
         })
     })
 
+    test('uses custom scalar input types for nested input object values', () => {
+        const schema = buildSchema(`
+            scalar DateTime
+
+            input UserFilter {
+                createdAfter: DateTime!
+            }
+
+            type Query {
+                users: [String!]!
+            }
+        `)
+
+        const inputType = schema.getType('UserFilter')
+        expect(inputType).toBeDefined()
+
+        const value = makeInputValue(inputType as GraphQLInputType, {
+            DateTime: {
+                input: 'string',
+                output: 'Date',
+            },
+        })
+
+        expect(value).toEqual({
+            kind: VALUE_MODEL_KIND.OBJECT,
+            fields: [{
+                name: 'createdAfter',
+                typeRef: {
+                    kind: 'non-null',
+                    ofType: {
+                        kind: 'named',
+                        name: 'DateTime',
+                    },
+                },
+                optional: false,
+                value: {
+                    kind: VALUE_MODEL_KIND.SCALAR,
+                    typeTs: 'string',
+                },
+            }],
+        })
+    })
+
     test('keeps only inline fragments when building union variants', () => {
         const schema = buildSchema(`
             type UserPayload {

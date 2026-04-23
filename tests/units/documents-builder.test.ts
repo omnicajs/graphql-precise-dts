@@ -106,6 +106,50 @@ describe('documents builder', () => {
         })
     })
 
+    test('uses custom scalar input types for operation variables', () => {
+        const schema = buildSchema(`
+            scalar DateTime
+
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                users(createdAfter: DateTime!): [User!]!
+            }
+        `)
+        const definition = getOperationDefinition(`
+            query UserQuery($createdAfter: DateTime!) {
+                users(createdAfter: $createdAfter) {
+                    id
+                }
+            }
+        `)
+
+        const model = makeOperationModel(definition, makeTestModelContext({
+            schema,
+            customScalars: {
+                DateTime: {
+                    input: 'string',
+                    output: 'Date',
+                },
+            },
+        }))
+
+        expect(model).toMatchObject({
+            variables: [
+                expect.objectContaining({
+                    name: 'createdAfter',
+                    optional: false,
+                    value: {
+                        kind: VALUE_MODEL_KIND.SCALAR,
+                        typeTs: 'string',
+                    },
+                }),
+            ],
+        })
+    })
+
     test('returns undefined for operations without a matching schema root type', () => {
         const schema = buildSchema(`
             type Query {
