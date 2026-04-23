@@ -195,7 +195,10 @@ export const makeInputValue = (
     const namedType = getNamedType(type)
 
     if (isScalarType(namedType)) {
-        return { kind: VALUE_MODEL_KIND.SCALAR, typeTs: getScalarTsType(namedType.name, customScalars) }
+        return {
+            kind: VALUE_MODEL_KIND.SCALAR,
+            typeTs: getScalarTsType(namedType.name, customScalars, 'input'),
+        }
     }
 
     if (isEnumType(namedType)) {
