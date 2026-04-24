@@ -27,3 +27,19 @@ export const getOperationDefinition = (source: string) => {
 
     return definition
 }
+
+export const getDocumentFragmentDefinition = (source: string, name: string) => {
+    const document = parse(source)
+    const definition = document.definitions.find(item =>
+        item.kind === 'FragmentDefinition' && item.name.value === name
+    )
+
+    if (!definition || definition.kind !== 'FragmentDefinition') {
+        throw new Error('Fragment definition not found')
+    }
+
+    return {
+        document,
+        definition,
+    }
+}

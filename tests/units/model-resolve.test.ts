@@ -391,6 +391,8 @@ describe('type resolution for models', () => {
             kind: SELECTION_MODEL_KIND.FIELD,
             name: '__typename',
             responseName: '__typename',
+            argumentsSignature: '',
+            conditional: false,
             typeRef: {
                 kind: TYPE_REF_KIND.NON_NULL,
                 ofType: {
@@ -407,6 +409,8 @@ describe('type resolution for models', () => {
             kind: SELECTION_MODEL_KIND.FIELD,
             name: 'id',
             responseName: 'id',
+            argumentsSignature: '',
+            conditional: false,
             typeRef: {
                 kind: TYPE_REF_KIND.NON_NULL,
                 ofType: {
@@ -425,6 +429,8 @@ describe('type resolution for models', () => {
             kind: SELECTION_MODEL_KIND.FIELD,
             name: '__typename',
             responseName: '__typename',
+            argumentsSignature: '',
+            conditional: false,
             typeRef: {
                 kind: TYPE_REF_KIND.NON_NULL,
                 ofType: {

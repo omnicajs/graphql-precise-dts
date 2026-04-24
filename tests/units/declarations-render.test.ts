@@ -298,6 +298,8 @@ describe('declaration render', () => {
                         kind: SELECTION_MODEL_KIND.FIELD,
                         name: 'labels',
                         responseName: 'labels',
+                        argumentsSignature: '',
+                        conditional: false,
                         typeRef: {
                             kind: TYPE_REF_KIND.NON_NULL,
                             ofType: {
@@ -311,6 +313,8 @@ describe('declaration render', () => {
                         kind: SELECTION_MODEL_KIND.FIELD,
                         name: 'strictLabels',
                         responseName: 'strictLabels',
+                        argumentsSignature: '',
+                        conditional: false,
                         typeRef: {
                             kind: TYPE_REF_KIND.LIST,
                             ofType: namedType(false),
@@ -411,6 +415,7 @@ describe('declaration render', () => {
                             name: 'ProfileDetails',
                             onType: 'Profile',
                             onTypeNames: [ 'Profile' ],
+                            conditional: false,
                         },
                     ], [ 'Profile' ]), false),
                 ], 'User')],
@@ -632,6 +637,8 @@ describe('declaration render', () => {
                     kind: SELECTION_MODEL_KIND.FIELD,
                     name: '__typename',
                     responseName: 'kind',
+                    argumentsSignature: '',
+                    conditional: false,
                     typeRef: {
                         kind: TYPE_REF_KIND.NON_NULL,
                         ofType: {
@@ -660,6 +667,8 @@ describe('declaration render', () => {
                         kind: SELECTION_MODEL_KIND.FIELD,
                         name: '__typename',
                         responseName: 'kind',
+                        argumentsSignature: '',
+                        conditional: false,
                         typeRef: {
                             kind: TYPE_REF_KIND.NON_NULL,
                             ofType: {
@@ -689,6 +698,7 @@ describe('declaration render', () => {
                     {
                         kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'User',
+                        conditional: false,
                         selections: [
                             field('__typename', typenameValue('User'), false),
                         ],
@@ -770,6 +780,7 @@ describe('declaration render', () => {
                                 name: 'UserDetails',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
+                                conditional: false,
                             },
                             field('groups', scalar('GroupDetails'), false, true),
                         ],
@@ -857,12 +868,14 @@ describe('declaration render', () => {
                                 name: 'UserDetails',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
+                                conditional: false,
                             },
                             {
                                 kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'UserPresence',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
+                                conditional: false,
                             },
                             field('groups', scalar('GroupDetails'), false, true),
                         ],
@@ -912,12 +925,14 @@ describe('declaration render', () => {
                                 name: 'UserDetails',
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
+                                conditional: false,
                             },
                             {
                                 kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'UserPresence',
                                 onType: 'User',
                                 onTypeNames: [ 'ModeratorPayload', 'AdminPayload' ],
+                                conditional: false,
                             },
                             field('groups', scalar('GroupDetails'), false, true),
                         ],
@@ -944,6 +959,7 @@ describe('declaration render', () => {
                     {
                         kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
+                        conditional: false,
                         selections: [
                             field('permissions', scalar('string'), false, true),
                             field('isOwner', scalar('boolean'), false),
@@ -969,6 +985,7 @@ describe('declaration render', () => {
                         kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'SharedFields',
                         onType: 'User',
+                        conditional: false,
                     },
                 ], 'User')],
             ]))
@@ -1079,12 +1096,14 @@ describe('declaration render', () => {
                             kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                             name: 'ProfileDetails',
                             onType: 'Profile',
+                            conditional: false,
                         },
                         field('contacts', objectValue([
                             {
                                 kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                                 name: 'ContactFields',
                                 onType: 'Contact',
+                                conditional: false,
                             },
                         ]), false, true),
                     ]), false),
@@ -1115,6 +1134,7 @@ describe('declaration render', () => {
                     {
                         kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
+                        conditional: false,
                         selections: [
                             field('role', scalar('string'), false),
                         ],
@@ -1123,6 +1143,7 @@ describe('declaration render', () => {
                         kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'SharedFields',
                         onType: 'User',
+                        conditional: false,
                     },
                     field('search', unionValue([
                         {

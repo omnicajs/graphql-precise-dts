@@ -34,6 +34,7 @@ describe('typename render helpers', () => {
             name: 'UserDetails',
             onType: 'User',
             onTypeNames: [ 'UserPayload', 'AdminPayload' ],
+            conditional: false,
         }], [ 'UserPayload', 'AdminPayload' ])).toBe(true)
 
         expect(hasRootSpreadWithSameTypeNames([{

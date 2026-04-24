@@ -14,8 +14,7 @@ import type {
 } from './types'
 import type { OperationDefinitionNode } from 'graphql'
 import type { OperationModel } from './types'
-import type { PluginConfig } from '../config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import type { Schema } from '../config'
 import type { SelectionNode } from 'graphql'
 import type { TypeSelectionNode } from './selection'
 import type { VariableDefinitionNode } from 'graphql'
@@ -49,7 +48,8 @@ const makeFragmentUnionRoot = (
     fragmentType: GraphQLAbstractType,
     selections: SelectionNode[],
     selectionTypes: WeakMap<SelectionNode, TypeSelectionNode>,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner: string
 ): Extract<FragmentRoot, { kind: typeof FRAGMENT_ROOT_KIND.UNION }> => ({
     kind: FRAGMENT_ROOT_KIND.UNION,
     variants: context.schema.getPossibleTypes(fragmentType).map(type => ({
@@ -58,7 +58,8 @@ const makeFragmentUnionRoot = (
             makeSelectionModels(
                 filterSelectionsForConcreteType(context.schema, type, selections),
                 selectionTypes,
-                context
+                context,
+                diagnosticOwner
             ),
             type.name
         ),
@@ -68,13 +69,15 @@ const makeFragmentUnionRoot = (
 const makeFragmentObjectRoot = (
     selections: SelectionNode[],
     selectionTypes: WeakMap<SelectionNode, TypeSelectionNode>,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner: string
 ): Extract<FragmentRoot, { kind: typeof FRAGMENT_ROOT_KIND.OBJECT }> => ({
     kind: FRAGMENT_ROOT_KIND.OBJECT,
     fields: makeSelectionModels(
         selections,
         selectionTypes,
-        context
+        context,
+        diagnosticOwner
     ),
 })
 
@@ -85,6 +88,7 @@ export const makeFragmentModel = (
     const fragmentType = context.schema.getType(graphqlDef.typeCondition.name.value)
     const selections = [ ...graphqlDef.selectionSet.selections ]
     const selectionTypes = getTypeForDefinition(graphqlDef, context.schema)
+    const diagnosticOwner = `fragment "${graphqlDef.name.value}"`
 
     return {
         ...getFragmentTypeNames(graphqlDef, context.schema),
@@ -93,12 +97,14 @@ export const makeFragmentModel = (
                 fragmentType,
                 selections,
                 selectionTypes,
-                context
+                context,
+                diagnosticOwner
             )
             : makeFragmentObjectRoot(
                 selections,
                 selectionTypes,
-                context
+                context,
+                diagnosticOwner
             ),
     }
 }
@@ -117,7 +123,7 @@ const makeOperationVariable = (
 
 const getRootTypeForOperation = (
     operation: OperationTypeNode,
-    schema: Parameters<PluginFunction<PluginConfig>>[0]
+    schema: Schema
 ) => {
     switch (operation) {
         case OperationTypeNode.QUERY:
@@ -135,6 +141,7 @@ export const makeOperationModel = (
 ): OperationModel | undefined => {
     const rootType = getRootTypeForOperation(graphqlDef.operation, context.schema)
     if (!rootType) return
+    const diagnosticOwner = `${graphqlDef.operation} "${graphqlDef.name?.value ?? 'unknow'}"`
 
     const selectionTypes = getTypeForDefinition(graphqlDef, context.schema)
     const variables = new WeakMap<VariableDefinitionNode, GraphQLInputType>()
@@ -170,7 +177,8 @@ export const makeOperationModel = (
         result: makeSelectionModels(
             [ ...graphqlDef.selectionSet.selections ],
             selectionTypes,
-            context
+            context,
+            diagnosticOwner
         ),
     }
 }

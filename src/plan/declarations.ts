@@ -1,11 +1,10 @@
+import type { DocumentFile } from '../config'
 import type {
     DocumentModels,
     FragmentModel,
 } from '../models/types'
 import type { ModelContext } from '../models/types'
 import type { OperationDefinitionNode } from 'graphql'
-import type { PluginConfig } from '../config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 
 import { TypeInfo } from 'graphql'
 
@@ -65,7 +64,7 @@ const createDocumentModelVisitor = (collector: DocumentModelCollector) => ({
 })
 
 const createDocumentModelBundle = (
-    documentFile: Parameters<PluginFunction<PluginConfig>>[1][number],
+    documentFile: DocumentFile,
     fragments:  Map<string, FragmentModel>,
     context: ModelContext
 ): DocumentModelBundle | undefined => {
@@ -88,7 +87,7 @@ const createDocumentModelBundle = (
 }
 
 export const makeDocumentModelBundles = (
-    documents: Parameters<PluginFunction<PluginConfig>>[1],
+    documents: DocumentFile[],
     fragments:  Map<string, FragmentModel>,
     context: ModelContext
 ): DocumentModelBundle[] => {

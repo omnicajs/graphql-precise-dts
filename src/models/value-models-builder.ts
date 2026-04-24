@@ -66,7 +66,8 @@ const makeInterfaceUnionFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode>,
     interfaceType: GraphQLInterfaceType,
     selections: readonly SelectionNode[],
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner: string
 ): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }> => ({
     kind: VALUE_MODEL_KIND.UNION,
     variants: context.schema.getPossibleTypes(interfaceType).map(possibleType => ({
@@ -75,7 +76,8 @@ const makeInterfaceUnionFieldValue = (
             makeSelectionModels(
                 filterSelectionsForConcreteType(context.schema, possibleType, [ ...selections ]),
                 typeSelections,
-                context
+                context,
+                diagnosticOwner
             ),
             possibleType.name
         ),
@@ -86,17 +88,19 @@ const makeInterfaceObjectFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
     interfaceType: GraphQLInterfaceType,
     selections: readonly SelectionNode[] | undefined,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner: string
 ): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
     kind: VALUE_MODEL_KIND.OBJECT,
     typeNames: context.schema.getPossibleTypes(interfaceType).map(possibleType => possibleType.name),
-    fields: makeSelectionsForFields(selections, typeSelections, context),
+    fields: makeSelectionsForFields(selections, typeSelections, context, diagnosticOwner),
 })
 
 const makeInterfaceFieldValue = (
     type: TypeFieldNode,
     selections: readonly SelectionNode[] | undefined,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner: string
 ): FieldValue => {
     const interfaceType = getNamedType(type.currentType) as GraphQLInterfaceType
 
@@ -105,27 +109,29 @@ const makeInterfaceFieldValue = (
         [ ...selections ],
         context.directivePolicies
     )) {
-        return makeInterfaceUnionFieldValue(type.selections, interfaceType, selections, context)
+        return makeInterfaceUnionFieldValue(type.selections, interfaceType, selections, context, diagnosticOwner)
     }
 
-    return makeInterfaceObjectFieldValue(type.selections, interfaceType, selections, context)
+    return makeInterfaceObjectFieldValue(type.selections, interfaceType, selections, context, diagnosticOwner)
 }
 
 const makeObjectFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
     selections: readonly SelectionNode[] | undefined,
     objectType: GraphQLObjectType,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner: string
 ): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
     kind: VALUE_MODEL_KIND.OBJECT,
     typeNames: [ objectType.name ],
-    fields: makeSelectionsForFields(selections, typeSelections, context),
+    fields: makeSelectionsForFields(selections, typeSelections, context, diagnosticOwner),
 })
 
 const makeUnionFieldVariant = (
     selection: SelectionNode,
     typedSelection: TypeSelectionNode | undefined,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner: string
 ): { typeName: string; fields: SelectionModel[] } | undefined => {
     if (selection.kind !== Kind.INLINE_FRAGMENT) return
     if (!typedSelection || typedSelection.kind !== SELECTION_MODEL_KIND.INLINE_FRAGMENT) return
@@ -139,7 +145,8 @@ const makeUnionFieldVariant = (
         fields: makeSelectionModels(
             [ ...selection.selectionSet.selections ],
             typedSelection.selections,
-            context
+            context,
+            diagnosticOwner
         ),
     }
 }
@@ -147,12 +154,13 @@ const makeUnionFieldVariant = (
 const makeUnionFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
     selections: readonly SelectionNode[] | undefined,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner: string
 ): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }> => ({
     kind: VALUE_MODEL_KIND.UNION,
     variants: selections
         ? selections
-            .map(selection => makeUnionFieldVariant(selection, typeSelections?.get(selection), context))
+            .map(selection => makeUnionFieldVariant(selection, typeSelections?.get(selection), context, diagnosticOwner))
             .filter(selection => selection !== undefined)
         : [],
 })
@@ -172,7 +180,8 @@ const makeTypeNameFieldValue = (
 export const makeFieldValue = (
     type: TypeFieldNode,
     field: FieldNode,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner = 'selection set'
 ): FieldValue => {
     const namedType = getNamedType(type.currentType)
     const typeNameValue = makeTypeNameFieldValue(type, field)
@@ -181,9 +190,11 @@ export const makeFieldValue = (
     if (typeNameValue) return typeNameValue
     if (isScalarType(namedType)) return makeScalarFieldValue(namedType.name, context.customScalars)
     if (isEnumType(namedType)) return makeEnumFieldValue(namedType.name)
-    if (isInterfaceType(namedType)) return makeInterfaceFieldValue(type, selections, context)
-    if (isObjectType(namedType)) return makeObjectFieldValue(type.selections, selections, namedType, context)
-    if (isUnionType(namedType)) return makeUnionFieldValue(type.selections, selections, context)
+    if (isInterfaceType(namedType)) return makeInterfaceFieldValue(type, selections, context, diagnosticOwner)
+    if (isObjectType(namedType)) {
+        return makeObjectFieldValue(type.selections, selections, namedType, context, diagnosticOwner)
+    }
+    if (isUnionType(namedType)) return makeUnionFieldValue(type.selections, selections, context, diagnosticOwner)
 
     return { kind: VALUE_MODEL_KIND.UNKNOWN, reason: 'Unknown type' }
 }
