@@ -64,6 +64,125 @@ describe('plugin directive handling', () => {
         })
     })
 
+    test('merges duplicate fields on the same nesting level', async () => {
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type GroupOwner = {`,
+                `\t\t__typename?: 'Group';`,
+                `\t\towner: {`,
+                `\t\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
+                `\t\t\tid: string;`,
+                `\t\t};`,
+                `\t}`,
+            ].join('\n'))
+        })
+    })
+
+    test('deduplicates repeated fragment spreads on the same nesting level', async () => {
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment OwnerFields on User {
+                            id
+                        }
+
+                        fragment GroupOwner on Group {
+                            owner {
+                                ...OwnerFields
+                                ...OwnerFields
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type GroupOwner = {`,
+                `\t\t__typename?: 'Group';`,
+                `\t\towner: OwnerFields;`,
+                `\t}`,
+            ].join('\n'))
+        })
+    })
+
+    test('merges a sibling field returned from an inline fragment', async () => {
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                                ... on User {
+                                    id
+                                }
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type GroupOwner = {`,
+                `\t\t__typename?: 'Group';`,
+                `\t\towner: {`,
+                `\t\t\t__typename: 'UserPayload' | 'AdminPayload';`,
+                `\t\t\tid: string;`,
+                `\t\t};`,
+                `\t}`,
+            ].join('\n'))
+        })
+    })
+
+    test('fails when fields with the same response name target different source fields', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                name: id
+                                ... on User {
+                                    name: __typename
+                                }
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow(/Conflicting selections for response name "name" at "group\.graphql:\d+:\d+" and "group\.graphql:\d+:\d+": different target fields "id" and "__typename" cannot be merged\./)
+        })
+    })
+
     test('warns when a fragment spread has no matching definition in configured documents', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
@@ -84,9 +203,78 @@ describe('plugin directive handling', () => {
                 { outputFile }
             )
 
-            expect(warn).toHaveBeenCalledWith(
-                'Fragment definition "MissingOwnerFields" referenced from "group.graphql" was not found among the documents configured for the plugin.'
+            expect(warn).toHaveBeenCalledWith(expect.stringMatching(
+                /Fragment definition "MissingOwnerFields" referenced from "group\.graphql:\d+:\d+" was not found among the documents configured for the plugin\./
+            ))
+        })
+
+        warn.mockRestore()
+    })
+
+    test('warns when repeated fields and fragment spreads are merged from the same selection set', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async ({ outputFile }) => {
+            plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment OwnerFields on User {
+                            id
+                        }
+
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                                id
+                                ...OwnerFields
+                                ...OwnerFields
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                { outputFile }
             )
+
+            expect(warn).toHaveBeenCalledWith(expect.stringMatching(
+                /Repeated field selection "id" detected in fragment "GroupOwner" at "group\.graphql:\d+:\d+". The plugin merged it, but the selection is redundant. First occurrence: "group\.graphql:\d+:\d+"./
+            ))
+            expect(warn).toHaveBeenCalledWith(expect.stringMatching(
+                /Repeated fragment spread "OwnerFields" detected in fragment "GroupOwner" at "group\.graphql:\d+:\d+". The plugin merged it, but the spread is redundant. First occurrence: "group\.graphql:\d+:\d+"./
+            ))
+        })
+
+        warn.mockRestore()
+    })
+
+    test('does not warn about repeated fields when the second occurrence comes from an inline fragment', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async ({ outputFile }) => {
+            plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                                ... on User {
+                                    id
+                                }
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                { outputFile }
+            )
+
+            expect(warn.mock.calls.some(([ message ]) =>
+                typeof message === 'string' && message.includes('Repeated field selection "id"')
+            )).toBe(false)
         })
 
         warn.mockRestore()

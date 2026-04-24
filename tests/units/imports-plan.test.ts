@@ -83,6 +83,7 @@ describe('imports plan', () => {
                         kind: 'fragmentSpread',
                         name: 'SharedFields',
                         onType: 'User',
+                        conditional: false,
                     },
                     field('status', enumValue('UserStatus')),
                     field('profile', objectValue([

@@ -1,12 +1,14 @@
-import {
+import type {
     ConfigDirectivePolicies,
     ConfigScalars,
 } from '../config'
-import type { FragmentDefinitionNode } from 'graphql'
-import type { OperationTypeNode } from 'graphql'
-import type { PluginConfig } from '../config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import type {
+    FragmentDefinitionNode,
+    OperationTypeNode,
+} from 'graphql'
 import type { ScalarShape } from '../scalars/types'
+import type { Schema } from '../config'
+import type { Source } from 'graphql'
 import type { TsTypeString } from '../config'
 
 import {
@@ -17,8 +19,9 @@ import {
 } from './kinds'
 
 export type ModelContext = {
-    schema: Parameters<PluginFunction<PluginConfig>>[0];
+    schema: Schema;
     fragmentDefinitions: Map<string, FragmentDefinitionNode>;
+    documentLocations: WeakMap<Source, string>;
     customScalars: ConfigScalars;
     directivePolicies: ConfigDirectivePolicies;
 }
@@ -58,23 +61,27 @@ export type NamedTypedNode<TValue> = {
 export type FieldSelectionModel = NamedTypedNode<FieldValue> & {
     kind: typeof SELECTION_MODEL_KIND.FIELD;
     responseName: string;
-    conditional?: boolean;
+    argumentsSignature: string;
+    diagnosticLocation?: string;
+    conditional: boolean;
     overrideTypeTs?: string;
     directives?: string[];
 }
 export type FragmentSpreadSelectionModel = {
     kind: typeof SELECTION_MODEL_KIND.FRAGMENT_SPREAD;
     name: string;
+    diagnosticLocation?: string;
     onType: string;
     onTypeNames?: string[];
-    conditional?: boolean;
+    conditional: boolean;
     directives?: string[];
 }
 export type FragmentInlineSelectionModel = {
     kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT;
+    diagnosticLocation?: string;
     typeCondition?: string;
     selections: SelectionModel[];
-    conditional?: boolean;
+    conditional: boolean;
     directives?: string[];
 }
 

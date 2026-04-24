@@ -1,22 +1,25 @@
-import type { ConfigDirectivePolicies, ConfigScalars } from '../../../src/config'
+import {
+    ConfigDirectivePolicies,
+    ConfigScalars,
+    DocumentFile,
+} from '../../../src/config'
 import type { FragmentDefinitionNode } from 'graphql'
 import type { ModelContext } from '../../../src/models/types'
-import type { PluginConfig } from '../../../src/config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import type { Schema } from '../../../src/config'
+
+import { makeDocumentLocationMap } from '../../../src/lib/documents'
 
 import { Kind } from 'graphql'
 
-type TestDocumentFile = Parameters<PluginFunction<PluginConfig>>[1][number]
-
 type MakeTestModelContextArgs = {
-    schema: Parameters<PluginFunction<PluginConfig>>[0];
-    documents?: TestDocumentFile[];
+    schema: Schema
+    documents?: DocumentFile[];
     customScalars?: ConfigScalars;
     directivePolicies?: ConfigDirectivePolicies;
 }
 
 const collectFragmentDefinitions = (
-    documents: TestDocumentFile[] = []
+    documents: DocumentFile[] = []
 ): Map<string, FragmentDefinitionNode> => {
     const fragmentDefinitions = new Map<string, FragmentDefinitionNode>()
 
@@ -39,6 +42,7 @@ export const makeTestModelContext = ({
 }: MakeTestModelContextArgs): ModelContext => ({
     schema,
     fragmentDefinitions: collectFragmentDefinitions(documents),
+    documentLocations: makeDocumentLocationMap(documents),
     customScalars,
     directivePolicies,
 })

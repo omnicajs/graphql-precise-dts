@@ -17,8 +17,11 @@ import type { TypeRef } from '../models/types'
 import { capitalize } from '../lib/strings'
 import { collectImportsForDocumentModels } from '../plan/imports'
 import { indent } from '../lib/strings'
-import { hasAliasedRootTypenameSelection } from './typename'
-import { hasRootSpreadWithSameTypeNames } from './typename'
+import {
+    hasAliasedRootTypenameSelection,
+    hasRootSpreadWithSameTypeNames,
+} from './typename'
+import { normalizeSelections } from './selection-normalization'
 import { renderStringLiteralUnion } from './basic'
 import { resolveTypenameSelection } from './typename'
 import { uncapitalize } from '../lib/strings'
@@ -74,9 +77,11 @@ const renderNonNullTypeRef = (typeRef: TypeRef, value: string): string => {
 const renderSelections = (
     selections: SelectionModel[],
     withinConditional = false
-): RenderedSelections => selections.reduce<RenderedSelections>((result, selection) => {
-    const isConditional = withinConditional || !!selection.conditional
-
+): RenderedSelections => normalizeSelections(
+    withinConditional
+        ? selections.map(selection => ({ ...selection, conditional: true }))
+        : selections
+).reduce<RenderedSelections>((result, selection) => {
     switch (selection.kind) {
         case SELECTION_MODEL_KIND.FIELD:
             if (selection.name === '__typename' && selection.responseName === '__typename') {
@@ -89,17 +94,13 @@ const renderSelections = (
                     selection.typeRef,
                     selection.overrideTypeTs ?? renderFieldValue(selection.value)
                 ),
-                isConditional
+                selection.conditional
             ))
             return result
-        case SELECTION_MODEL_KIND.INLINE_FRAGMENT: {
-            const nested = renderSelections(selection.selections, isConditional)
-            result.rows.push(...nested.rows)
-            result.spreads.push(...nested.spreads)
-            return result
-        }
         case SELECTION_MODEL_KIND.FRAGMENT_SPREAD:
-            result.spreads.push(isConditional ? `Partial<${selection.name}>` : selection.name)
+            result.spreads.push(selection.conditional ? `Partial<${selection.name}>` : selection.name)
+            return result
+        default:
             return result
     }
 }, {

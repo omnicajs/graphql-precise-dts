@@ -8,15 +8,18 @@ import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { Types } from '@graphql-codegen/plugin-helpers'
 
 import { buildModelRegistry } from './models/registry-builder'
-import { dirname, join } from 'path'
+import { dirname } from 'path'
 import {
     emitMissingFragmentDefinitionWarnings,
     findFragmentDefinitions,
 } from './lib/documents'
+import { join } from 'path'
+import { makeDocumentLocationMap } from './lib/documents'
 import { makeDocumentModelBundles } from './plan/declarations'
 import { makeImportMap } from './plan/imports'
 import { makeModuleSpecifier } from './path'
 import { mkdirSync } from 'fs'
+import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
 import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
 import { writeFileSync } from 'fs'
@@ -53,6 +56,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
 
     const fragmentDefinitions = findFragmentDefinitions(documents)
 
+    emitRepeatedSelectionWarnings(documents)
     emitMissingFragmentDefinitionWarnings(documents, fragmentDefinitions)
 
     const context = {
@@ -60,6 +64,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         fragmentDefinitions: fragmentDefinitions instanceof Map
             ? fragmentDefinitions
             : findFragmentDefinitions(fragmentDefinitions),
+        documentLocations: makeDocumentLocationMap(documents),
         customScalars: config.scalars ?? {},
         directivePolicies: config.directivePolicies ?? {},
     } satisfies ModelContext

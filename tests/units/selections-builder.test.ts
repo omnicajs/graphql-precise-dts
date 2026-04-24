@@ -5,7 +5,10 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
-import { getFragmentDefinition } from './helpers/graphql-document'
+import {
+    getDocumentFragmentDefinition,
+    getFragmentDefinition,
+} from './helpers/graphql-document'
 import { getTypeForDefinition } from '../../src/models/resolve'
 import {
     makeSelectionModel,
@@ -181,8 +184,141 @@ describe('selections builder', () => {
         expect(() => makeSelectionModels(
             [ ...definition.selectionSet.selections ],
             getTypeForDefinition(definition, schema),
-            makeTestModelContext({ schema })
+            makeTestModelContext({ schema }),
+            'fragment "UserCard"'
         )).toThrow('Aliasing a field to "__typename" is not supported because this name is reserved')
+    })
+
+    test('allows duplicate fields on the same nesting level for downstream merge', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+                nickname: String
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+        const { document, definition } = getDocumentFragmentDefinition(`
+            fragment UserCard on User {
+                id
+                id
+            }
+        `, 'UserCard')
+
+        expect(() => makeSelectionModels(
+            [ ...definition.selectionSet.selections ],
+            getTypeForDefinition(definition, schema),
+            makeTestModelContext({
+                schema,
+                documents: [{
+                    location: 'features/account/user.graphql',
+                    document,
+                }],
+            }),
+            'fragment "UserCard"'
+        )).not.toThrow()
+    })
+
+    test('allows conflicting aliased fields on the same nesting level for downstream validation', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+                nickname: String
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+        const { document, definition } = getDocumentFragmentDefinition(`
+            fragment UserCard on User {
+                name: nickname
+                name: id
+            }
+        `, 'UserCard')
+
+        expect(() => makeSelectionModels(
+            [ ...definition.selectionSet.selections ],
+            getTypeForDefinition(definition, schema),
+            makeTestModelContext({
+                schema,
+                documents: [{
+                    location: 'features/profile/user.graphql',
+                    document,
+                }],
+            }),
+            'fragment "UserCard"'
+        )).not.toThrow()
+    })
+
+    test('allows repeated fragment spreads on the same nesting level for downstream merge', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+        const { document, definition } = getDocumentFragmentDefinition(`
+            fragment UserBase on User {
+                id
+            }
+
+            fragment UserCard on User {
+                ...UserBase
+                ...UserBase
+            }
+        `, 'UserCard')
+
+        expect(() => makeSelectionModels(
+            [ ...definition.selectionSet.selections ],
+            getTypeForDefinition(definition, schema),
+            makeTestModelContext({
+                schema,
+                documents: [{
+                    location: 'user.graphql',
+                    document,
+                }],
+            }),
+            'fragment "UserCard"'
+        )).not.toThrow()
+    })
+
+    test('allows duplicate response names introduced by inline fragments for downstream merge', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+        const { document, definition } = getDocumentFragmentDefinition(`
+            fragment UserCard on User {
+                id
+                ... on User {
+                    id
+                }
+            }
+        `, 'UserCard')
+
+        expect(() => makeSelectionModels(
+            [ ...definition.selectionSet.selections ],
+            getTypeForDefinition(definition, schema),
+            makeTestModelContext({
+                schema,
+                documents: [{
+                    location: 'features/shared/user.graphql',
+                    document,
+                }],
+            }),
+            'fragment "UserCard"'
+        )).not.toThrow()
     })
 
     test('returns empty field selections when source selections or types are missing', () => {

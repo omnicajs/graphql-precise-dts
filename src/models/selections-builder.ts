@@ -6,6 +6,7 @@ import type { SelectionModel } from './types'
 import type { SelectionNode } from 'graphql'
 import type { TypeSelectionNode } from './selection'
 
+import { formatNodeLocation } from '../lib/documents'
 import { getFragmentTypeNames } from './resolve'
 import { isConditionalSelectionState } from '../directives'
 import { makeFieldValue } from './value-models-builder'
@@ -13,6 +14,7 @@ import {
     makeNonNullTypeRef,
     makeTypeRefForField,
 } from './resolve'
+import { print } from 'graphql'
 import {
     resolveSelectionDirectives,
     shouldForceNonNull,
@@ -68,7 +70,8 @@ const resolveSelectionContext = (
 const makeFieldSelectionModel = (
     selection: Extract<SelectionNode, { kind: Kind.FIELD }>,
     context: ModelContext,
-    selectionContext: ResolvedSelectionContext
+    selectionContext: ResolvedSelectionContext,
+    diagnosticOwner: string
 ): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.FIELD }> | undefined => {
     if (selectionContext.fieldType.kind !== SELECTION_MODEL_KIND.FIELD) return
 
@@ -82,6 +85,10 @@ const makeFieldSelectionModel = (
         kind: SELECTION_MODEL_KIND.FIELD,
         name: selection.name.value,
         responseName: selection.alias?.value ?? selection.name.value,
+        argumentsSignature: selection.arguments
+            ? selection.arguments.map(argument => print(argument)).sort().join(',')
+            : '',
+        diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
         typeRef: shouldForceNonNull(
             selection.directives ? [ ...selection.directives ] : [],
             SELECTION_MODEL_KIND.FIELD,
@@ -92,7 +99,8 @@ const makeFieldSelectionModel = (
         value: makeFieldValue(
             selectionContext.fieldType,
             selection,
-            context
+            context,
+            diagnosticOwner
         ),
         conditional: selectionContext.isConditional,
         overrideTypeTs: selectionContext.resolvedDirectives.overrideTypeTs,
@@ -113,6 +121,7 @@ const makeFragmentSpreadSelectionModel = (
     return {
         kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
         name: selection.name.value,
+        diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
         ...getFragmentTypeNames(spreadFragment, context.schema),
         conditional: selectionContext.isConditional,
         directives: selectionContext.resolvedDirectives.directives,
@@ -122,16 +131,19 @@ const makeFragmentSpreadSelectionModel = (
 const makeInlineFragmentSelectionModel = (
     selection: Extract<SelectionNode, { kind: Kind.INLINE_FRAGMENT }>,
     context: ModelContext,
-    selectionContext: ResolvedSelectionContext
+    selectionContext: ResolvedSelectionContext,
+    diagnosticOwner: string
 ): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT }> | undefined => {
     if (selectionContext.fieldType.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT && selectionContext.fieldType.selections) {
         return {
             kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
+            diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
             ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
             selections: makeSelectionModels(
                 [ ...selection.selectionSet.selections ],
                 selectionContext.fieldType.selections,
-                context
+                context,
+                diagnosticOwner
             ),
             conditional: selectionContext.isConditional,
             directives: selectionContext.resolvedDirectives.directives,
@@ -142,7 +154,8 @@ const makeInlineFragmentSelectionModel = (
 export const makeSelectionModel = (
     selection: SelectionNode,
     typeSelection: TypeSelectionNode | undefined,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner = 'selection set'
 ): SelectionModel | undefined => {
     const selectionContext = resolveSelectionContext(
         selection,
@@ -153,39 +166,42 @@ export const makeSelectionModel = (
     if (!selectionContext) return
 
     if (selection.kind === Kind.FIELD) {
-        return makeFieldSelectionModel(selection, context, selectionContext)
+        return makeFieldSelectionModel(selection, context, selectionContext, diagnosticOwner)
     }
 
     if (selection.kind === Kind.FRAGMENT_SPREAD) {
         return makeFragmentSpreadSelectionModel(selection, context, selectionContext)
     }
 
-    return makeInlineFragmentSelectionModel(selection, context, selectionContext)
+    return makeInlineFragmentSelectionModel(selection, context, selectionContext, diagnosticOwner)
 }
 
 export const makeSelectionModels = (
     selections: SelectionNode[] = [],
     typesForSelectionsNode: WeakMap<SelectionNode, TypeSelectionNode>,
-    context: ModelContext
-): SelectionModel[] => selections.reduce<SelectionModel[]>((selectionModels, selection) => {
+    context: ModelContext,
+    diagnosticOwner = 'selection set'
+): SelectionModel[] => selections.reduce<SelectionModel[]>((result, selection) => {
     const typeSelection = typesForSelectionsNode.get(selection)
-    const selectionModel = makeSelectionModel(selection, typeSelection, context)
+    const selectionModel = makeSelectionModel(selection, typeSelection, context, diagnosticOwner)
 
-    if (selectionModel) selectionModels.push(selectionModel)
+    if (selectionModel) result.push(selectionModel)
 
-    return selectionModels
+    return result
 }, [])
 
 export const makeSelectionsForFields = (
     selections: readonly SelectionNode[] | undefined,
     selectionTypes: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
-    context: ModelContext
+    context: ModelContext,
+    diagnosticOwner = 'selection set'
 ): SelectionModel[] => {
     if (!selections || !selectionTypes) return []
 
     return makeSelectionModels(
         [ ...selections ],
         selectionTypes,
-        context
+        context,
+        diagnosticOwner
     )
 }

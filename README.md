@@ -96,11 +96,37 @@ export const getUserQuery: TypedDocumentNode<GetUserQuery, GetUserQueryVariables
 export default getUserQuery
 ```
 
-If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation declarations into the same `declare module '...'` block.
+If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation
+declarations into the same `declare module '...'` block.
 
-If a configured document references a fragment that is missing from the plugin `documents` input, the plugin emits a warning that names the missing fragment definition and the document that referenced it.
+If a configured document references a fragment that is missing from the plugin `documents` input, the plugin emits
+a warning that names the missing fragment definition and the document that referenced it.
 
-These warnings are diagnostics only. They do not change the generated output or recover external fragment definitions automatically.
+If a selection set repeats the same field or fragment spread directly, the plugin emits a warning with
+source locations for the redundant selections, even when those selections can be merged safely.
+
+These warnings are emitted only for direct repeats within the same selection set level. Repeats that become visible
+only after flattening inline fragments are still merged in the generated output, but they are not reported as redundant
+direct repeats.
+
+These warnings are diagnostics only. They do not change the generated output or recover external
+fragment definitions automatically.
+
+If the same selection set contains repeated selections with the same response name, the plugin tries
+to merge them using GraphQL-compatible field merging rules. Compatible repeats such as `id` + `id`,
+repeated fragment spreads, or `id` plus `... on User { id }` are deduplicated.
+
+Field selections are merged only when all of the following stay compatible:
+
+- they resolve to the same target field name;
+- they use the same field arguments;
+- they keep the same nullability and list structure;
+- they keep the same override type policy result;
+- their nested result value shapes stay compatible.
+
+Repeated fragment spreads are deduplicated only when they target the same fragment type information.
+Incompatible repeats such as `name: nickname` + `name: id`, or the same response name with different field arguments,
+still fail generation with a conflict diagnostic.
 
 ## Development scripts
 
@@ -114,22 +140,29 @@ yarn test:coverage
 yarn generate:test-fixtures
 ```
 
-`yarn tests` is the main verification entry point in this repository. It regenerates test fixture declarations and then runs the full Vitest suite with type checks.
+`yarn tests` is the main verification entry point in this repository. It regenerates test fixture declarations and
+then runs the full Vitest suite with type checks.
 
 ## `__typename` behavior
 
-The plugin keeps explicit `__typename` selections and also synthesizes fallback `__typename` values when they are needed to describe the response shape precisely.
+The plugin keeps explicit `__typename` selections and also synthesizes fallback `__typename` values when they are needed
+to describe the response shape precisely.
 
 - for object-like results, fallback `__typename` is usually optional;
-- for `Query`, `Mutation`, and `Subscription` operation results, fallback `__typename` is optional unless it was selected explicitly;
-- for concrete object shapes, selecting `__typename` through an alias such as `kind: __typename` suppresses the synthesized fallback `__typename`; the aliased field is rendered as a regular string-literal field;
-- for abstract fields that split into distinct concrete shapes, the plugin may synthesize required discriminating `__typename` values when no explicit `__typename` selection exists;
-- if `__typename` is selected only conditionally or only for part of the branches, the generated `__typename` remains optional;
-- if multiple concrete branches collapse to the same rendered shape, the plugin merges them into a single object type and renders `__typename` as a union of possible string literals.
+- for `Query`, `Mutation`, and `Subscription` operation results, fallback `__typename` is optional unless
+it was selected explicitly;
+- for concrete object shapes, selecting `__typename` through an alias such as `kind: __typename` suppresses
+the synthesized fallback `__typename`; the aliased field is rendered as a regular string-literal field;
+- for abstract fields that split into distinct concrete shapes, the plugin may synthesize required
+discriminating `__typename` values when no explicit `__typename` selection exists;
+- if `__typename` is selected only conditionally or only for part of the branches,
+the generated `__typename` remains optional;
+- if multiple concrete branches collapse to the same rendered shape, the plugin merges them into a single object type
+and renders `__typename` as a union of possible string literals.
 
 Reserved name rule:
-
 - aliasing a non-`__typename` field to the response name `__typename` is not supported and causes plugin generation to fail.
+- incompatible selections that resolve to the same response name cause plugin generation to fail with a conflict diagnostic.
 
 ## Configuration
 
@@ -203,5 +236,7 @@ Supported effects:
 - `warn`
 
 ## Additional documentation
-- [Module path resolution](docs/MODULE_PATH_RESOLUTION.md) - path resolution rules and examples for generated `declare module` ids.
-- [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies, and current `__typename` behavior for conditional and excluded selections.
+- [Module path resolution](docs/MODULE_PATH_RESOLUTION.md) - path resolution rules and examples
+for generated `declare module` ids.
+- [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies,
+and current `__typename` behavior for conditional and excluded selections.

@@ -54,6 +54,8 @@ export const field = (
     kind: SELECTION_MODEL_KIND.FIELD,
     name: responseName,
     responseName,
+    argumentsSignature: '',
+    conditional: false,
     typeRef: isList ? listType(nullable) : namedType(nullable),
     value,
     directives,

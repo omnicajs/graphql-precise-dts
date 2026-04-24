@@ -524,7 +524,6 @@ describe('model builder', () => {
             expect.objectContaining({
                 kind: SELECTION_MODEL_KIND.FIELD,
                 name: 'name',
-                conditional: false,
                 directives: [],
             }),
         ])
