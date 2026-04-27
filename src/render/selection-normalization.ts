@@ -7,6 +7,11 @@ import type {
 } from '../models/types'
 
 import {
+    isSameTsType,
+    renderTsType,
+} from '../ts-type'
+
+import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
@@ -63,11 +68,11 @@ const mergeDirectiveNames = <T extends string>(left: T[] = [], right: T[] = []):
 
 const fieldValueMergers: FieldValueMergers = {
     [VALUE_MODEL_KIND.SCALAR]: (left, right, { existingSelection, duplicateSelection }) => {
-        if (left.typeTs !== right.typeTs) {
+        if (!isSameTsType(left.typeTs, right.typeTs)) {
             throw makeSelectionConflictError(
                 existingSelection,
                 duplicateSelection,
-                `different scalar result types "${left.typeTs}" and "${right.typeTs}" cannot be merged`
+                `different scalar result types "${renderTsType(left.typeTs)}" and "${renderTsType(right.typeTs)}" cannot be merged`
             )
         }
 
@@ -196,7 +201,11 @@ const mergeFieldSelections = (
             duplicateSelection,
             `different field nullability or list structure cannot be merged`
         )
-    } else if (existingSelection.overrideTypeTs !== duplicateSelection.overrideTypeTs) {
+    } else if (
+        existingSelection.overrideTypeTs
+            ? !duplicateSelection.overrideTypeTs || !isSameTsType(existingSelection.overrideTypeTs, duplicateSelection.overrideTypeTs)
+            : !!duplicateSelection.overrideTypeTs
+    ) {
         throw makeSelectionConflictError(
             existingSelection,
             duplicateSelection,

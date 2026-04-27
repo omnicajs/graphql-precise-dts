@@ -9,7 +9,7 @@ import type {
 import type { ScalarShape } from '../scalars/types'
 import type { Schema } from '../config'
 import type { Source } from 'graphql'
-import type { TsTypeString } from '../config'
+import type { TsType } from '../ts-type'
 
 import {
     FRAGMENT_ROOT_KIND,
@@ -32,7 +32,7 @@ export type TypeRef =
     | { kind: typeof TYPE_REF_KIND.NON_NULL; ofType: TypeRef }
 
 export type FieldValue =
-    | { kind: typeof VALUE_MODEL_KIND.SCALAR; typeTs: string }
+    | { kind: typeof VALUE_MODEL_KIND.SCALAR; typeTs: TsType }
     | { kind: typeof VALUE_MODEL_KIND.TYPENAME; typeNames: string[] }
     | { kind: typeof VALUE_MODEL_KIND.ENUM; name: string }
     | {
@@ -47,7 +47,7 @@ export type FieldValue =
     | { kind: typeof VALUE_MODEL_KIND.UNKNOWN; reason: string }
 
 export type InputValue =
-    | { kind: typeof VALUE_MODEL_KIND.SCALAR; typeTs: string }
+    | { kind: typeof VALUE_MODEL_KIND.SCALAR; typeTs: TsType }
     | { kind: typeof VALUE_MODEL_KIND.ENUM; name: string }
     | { kind: typeof VALUE_MODEL_KIND.OBJECT; fields: InputField[] }
     | { kind: typeof VALUE_MODEL_KIND.UNKNOWN; reason: string }
@@ -64,7 +64,7 @@ export type FieldSelectionModel = NamedTypedNode<FieldValue> & {
     argumentsSignature: string;
     diagnosticLocation?: string;
     conditional: boolean;
-    overrideTypeTs?: string;
+    overrideTypeTs?: TsType;
     directives?: string[];
 }
 export type FragmentSpreadSelectionModel = {
@@ -88,7 +88,7 @@ export type FragmentInlineSelectionModel = {
 export type SelectionModel = FieldSelectionModel | FragmentSpreadSelectionModel | FragmentInlineSelectionModel
 
 export type EnumValueEntries = { name: string; value: string }[]
-export type ScalarModelShape = ScalarShape<TsTypeString, TsTypeString>
+export type ScalarModelShape = ScalarShape<string, string>
 
 export type InputField = NamedTypedNode<InputValue> & {
     optional?: boolean;

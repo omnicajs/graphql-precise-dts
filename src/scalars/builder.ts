@@ -1,13 +1,21 @@
-import type { ConfigScalars } from '../config'
+import type {
+    ConfigScalars,
+    ConfigTsType,
+} from '../config'
 import type {
     ScalarPrimitiveMap,
     ScalarShape,
     Scalars,
 } from './types'
 import type { ScalarUsage } from './types'
-import type { TsTypeString } from '../config'
+import type { TsType } from '../ts-type'
 
+import { canonicalizeTsType } from '../ts-type'
 import { isUndefined } from '../lib/predicates'
+import {
+    namedTsType,
+    renderTsType,
+} from '../ts-type'
 
 const scalarPrimitiveTypesMap = {
     ID: { input: 'string', output: 'string' },
@@ -20,27 +28,27 @@ const scalarPrimitiveTypesMap = {
 export const getScalarPrimitiveTypeTs = <TScalar extends keyof Scalars>(
     gqlType: TScalar,
     usage: ScalarUsage = 'output'
-): ScalarPrimitiveMap[TScalar] => {
-    return scalarPrimitiveTypesMap[gqlType][usage] as ScalarPrimitiveMap[TScalar]
+): TsType => {
+    return namedTsType(scalarPrimitiveTypesMap[gqlType][usage] as ScalarPrimitiveMap[TScalar])
 }
 
 export const getScalarPrimitiveShapeTs = <TScalar extends keyof Scalars>(
     gqlType: TScalar
 ): ScalarShape<ScalarPrimitiveMap[TScalar]> => ({
-        input: getScalarPrimitiveTypeTs(gqlType, 'input'),
-        output: getScalarPrimitiveTypeTs(gqlType, 'output'),
+        input: renderTsType(getScalarPrimitiveTypeTs(gqlType, 'input')) as ScalarPrimitiveMap[TScalar],
+        output: renderTsType(getScalarPrimitiveTypeTs(gqlType, 'output')) as ScalarPrimitiveMap[TScalar],
     })
 
 export const resolveCustomScalarTypeTs = (
-    scalar: TsTypeString | Partial<ScalarShape<TsTypeString, TsTypeString>>,
+    scalar: ConfigTsType | Partial<ScalarShape<ConfigTsType, ConfigTsType>>,
     usage: ScalarUsage = 'output'
-): TsTypeString => {
-    return typeof scalar === 'object' && scalar !== null
+): TsType => {
+    return typeof scalar === 'object' && scalar !== null && !('kind' in scalar)
         ? (usage in scalar && !isUndefined(scalar[usage])
-            ? scalar[usage]
-            : 'unknown'
+            ? canonicalizeTsType(scalar[usage])
+            : namedTsType('unknown')
         )
-        : scalar
+        : canonicalizeTsType(scalar)
 }
 
 export const isScalarPrimitiveKey = (key: string): key is keyof Scalars => {
@@ -54,18 +62,18 @@ export const getScalarTsType = (
     namedType: string,
     customScalars: ConfigScalars = {},
     usage: ScalarUsage = 'output'
-): TsTypeString => {
+): TsType => {
     return isScalarCustomKey(namedType, customScalars)
         ? resolveCustomScalarTypeTs(customScalars[namedType], usage)
         : isScalarPrimitiveKey(namedType)
             ? getScalarPrimitiveTypeTs(namedType, usage)
-            : 'unknown'
+            : namedTsType('unknown')
 }
 
 export const getScalarTsShape = (
     namedType: string,
     customScalars: ConfigScalars = {}
-): ScalarShape<TsTypeString, TsTypeString> => ({
-    input: getScalarTsType(namedType, customScalars, 'input'),
-    output: getScalarTsType(namedType, customScalars, 'output'),
+): ScalarShape<string, string> => ({
+    input: renderTsType(getScalarTsType(namedType, customScalars, 'input')),
+    output: renderTsType(getScalarTsType(namedType, customScalars, 'output')),
 })

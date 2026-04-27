@@ -32,6 +32,7 @@ import {
     makeTypeRefForInput,
 } from '../../src/models/resolve'
 import { specializeTypeNameSelectionForConcreteType } from '../../src/models/resolve'
+import { stringType } from '../../src'
 
 import { Kind } from 'graphql'
 import {
@@ -420,7 +421,7 @@ describe('type resolution for models', () => {
             },
             value: {
                 kind: VALUE_MODEL_KIND.SCALAR,
-                typeTs: 'string',
+                typeTs: stringType(),
             },
             directives: [],
         }] satisfies SelectionModel[]

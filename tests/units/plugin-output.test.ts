@@ -7,10 +7,16 @@ import {
 
 import { buildSchema } from 'graphql'
 import { join } from 'path'
+import {
+    namedType,
+    nullType,
+} from '../../src'
 import { parse } from 'graphql'
 import { plugin } from '../../src'
 import { readFileSync } from 'fs'
+import { stringType } from '../../src'
 import { withTempOutput } from './utils/temp-output'
+import { unionOf } from '../../src'
 
 const schema = buildSchema(`
     type Query {
@@ -300,7 +306,7 @@ describe('plugin directive handling', () => {
                         opaque: {
                             field: {
                                 effect: 'override-type',
-                                type: 'OpaqueId',
+                                type: namedType('OpaqueId'),
                             },
                         },
                     },
@@ -1201,8 +1207,8 @@ describe('plugin __typename support', () => {
                     prefix: '~tests/',
                     scalars: {
                         DateTime: {
-                            input: 'string',
-                            output: 'string',
+                            input: stringType(),
+                            output: stringType(),
                         },
                     },
                 },
@@ -1219,6 +1225,50 @@ describe('plugin __typename support', () => {
                     `export type Permission = 'GroupCreate' | 'GroupEdit'`,
                 ].join('\n')
             )
+        })
+    })
+
+    test('renders nullable custom scalar unions without duplicating null', async () => {
+        const scalarSchema = buildSchema(`
+            scalar DateTime
+
+            type Query {
+                user: User!
+            }
+
+            type User {
+                createdAt: DateTime
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                scalarSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserDates on User {
+                            createdAt
+                        }
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    scalars: {
+                        DateTime: {
+                            output: unionOf(namedType('Date'), nullType()),
+                        },
+                    },
+                },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                '\texport type UserDates = {',
+                `\t\t__typename?: 'User';`,
+                '\t\tcreatedAt: Date | null;',
+                '\t}',
+            ].join('\n'))
         })
     })
 

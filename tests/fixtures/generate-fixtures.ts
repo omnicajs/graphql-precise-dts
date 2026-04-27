@@ -1,6 +1,8 @@
 import { generate } from '@graphql-codegen/cli'
-
-import { plugin } from '../../src'
+import {
+    plugin,
+    stringType,
+} from '../../src'
 
 const LOCAL_PLUGIN_NAME = 'graphql-precise-dts'
 const supportedPluginNames = new Set([
@@ -25,7 +27,7 @@ const main = async (): Promise<void> => {
                     scope: 'fixtures/documents/',
                     emit: 'types',
                     scalars: {
-                        DateTime: 'string',
+                        DateTime: stringType(),
                     },
                 },
             },

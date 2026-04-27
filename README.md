@@ -44,6 +44,7 @@ Example GraphQL Code Generator config:
 
 ```ts
 import type { CodegenConfig } from '@graphql-codegen/cli'
+import { stringType } from '@omnicajs/graphql-precise-dts'
 
 const config: CodegenConfig = {
   schema: 'src/schema.graphql',
@@ -56,7 +57,7 @@ const config: CodegenConfig = {
         scope: 'src/',
         relativeToCwd: false,
         scalars: {
-          DateTime: 'string',
+          DateTime: stringType(),
         },
       },
     },
@@ -173,7 +174,7 @@ type PluginConfig = {
   prefix?: string
   scope?: string
   relativeToCwd?: boolean
-  scalars?: Record<string, string | { input?: string; output?: string }>
+  scalars?: Record<string, TsType | { input?: TsType; output?: TsType }>
   directivePolicies?: Record<string, DirectivePolicy | DirectiveNodePolicies>
 }
 ```
@@ -194,12 +195,14 @@ When enabled, absolute document paths are normalized relative to `process.cwd()`
 
 Overrides scalar TypeScript types.
 
+String-based type config is not supported. Scalar mappings must be declared with `TsType` helpers.
+
 Examples:
 
 ```ts
 {
   scalars: {
-    DateTime: 'string',
+    DateTime: stringType(),
   },
 }
 ```
@@ -210,8 +213,20 @@ or:
 {
   scalars: {
     DateTime: {
-      input: 'string',
-      output: 'Date',
+      input: stringType(),
+      output: namedType('Date'),
+    },
+  },
+}
+```
+
+Nullable unions are declared structurally:
+
+```ts
+{
+  scalars: {
+    DateTime: {
+      output: unionOf(namedType('Date'), nullType()),
     },
   },
 }
@@ -238,5 +253,6 @@ Supported effects:
 ## Additional documentation
 - [Module path resolution](docs/MODULE_PATH_RESOLUTION.md) - path resolution rules and examples
 for generated `declare module` ids.
+- [Types](docs/TYPES.md) - structural `TsType` model, available helpers, supported operations, and config examples.
 - [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies,
 and current `__typename` behavior for conditional and excluded selections.

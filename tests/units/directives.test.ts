@@ -5,7 +5,9 @@ import {
 } from 'vitest'
 
 import { isConditionalSelectionState } from '../../src/directives'
+import { namedType } from '../../src'
 import { parse } from 'graphql'
+import { renderType } from '../../src'
 import {
     resolveSelectionDirectives,
     shouldForceNonNull,
@@ -125,7 +127,7 @@ describe('directives', () => {
             opaque: {
                 field: {
                     effect: 'override-type',
-                    type: 'OpaqueId',
+                    type: namedType('OpaqueId'),
                 },
             },
             review: {
@@ -143,7 +145,7 @@ describe('directives', () => {
 
         expect(resolved).toEqual({
             directives: [],
-            overrideTypeTs: 'OpaqueId',
+            overrideTypeTs: namedType('OpaqueId'),
             state: SELECTION_STATE.INCLUDED,
             warnings: [ 'Review this field' ],
         })
@@ -187,5 +189,24 @@ describe('directives', () => {
             state: SELECTION_STATE.INCLUDED,
             warnings: [ 'Directive "@review" requires manual review' ],
         })
+    })
+
+    test('accepts structured override-type policies', () => {
+        const directives = getSelectionDirectives(`
+            fragment UserCard on User {
+                id @opaque
+            }
+        `)
+
+        const resolved = resolveSelectionDirectives(directives, SELECTION_MODEL_KIND.FIELD, {
+            opaque: {
+                field: {
+                    effect: 'override-type',
+                    type: namedType('UserId'),
+                },
+            },
+        })
+
+        expect(renderType(resolved.overrideTypeTs!)).toBe('UserId')
     })
 })

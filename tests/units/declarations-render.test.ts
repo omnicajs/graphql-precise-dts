@@ -6,6 +6,10 @@ import {
 } from 'vitest'
 
 import {
+    arrayOf,
+    booleanType,
+} from '../../src'
+import {
     declarationDefinitions,
     enumValue,
     field,
@@ -13,15 +17,22 @@ import {
     inputField,
     inputObjectValue,
     namedType,
+} from '../fixtures/builders/declaration-render'
+import {
+    namedType as tsNamedType,
+    nullType,
+    numberType,
+} from '../../src'
+import {
     operation,
     objectValue,
 } from '../fixtures/builders/declaration-render'
 import { renderDeclaration } from '../../src/render/declarations'
-import {
-    scalar,
-    typenameValue,
-    unionValue,
-} from '../fixtures/builders/declaration-render'
+import { scalar } from '../fixtures/builders/declaration-render'
+import { stringType } from '../../src'
+import { typenameValue } from '../fixtures/builders/declaration-render'
+import { unionOf } from '../../src'
+import { unionValue } from '../fixtures/builders/declaration-render'
 
 import { FRAGMENT_ROOT_KIND } from '../../src/models/kinds'
 import { OperationTypeNode } from 'graphql'
@@ -38,7 +49,7 @@ describe('declaration render', () => {
                 './documents',
                 declarationDefinitions(new Map([
                     ['UserScalars', fragment([
-                        field('id', scalar('string'), false),
+                        field('id', scalar(stringType()), false),
                     ], 'User')],
                 ])),
                 new Map([
@@ -93,13 +104,13 @@ describe('declaration render', () => {
                             OperationTypeNode.QUERY,
                             [
                                 field('user', objectValue([
-                                    field('id', scalar('string'), false),
+                                    field('id', scalar(stringType()), false),
                                 ])),
                             ],
                             [
                                 inputField('id', {
                                     kind: VALUE_MODEL_KIND.SCALAR,
-                                    typeTs: 'string',
+                                    typeTs: stringType(),
                                 }, false),
                                 inputField('filter', inputObjectValue([
                                     inputField('status', {
@@ -154,24 +165,24 @@ describe('declaration render', () => {
                                 inputField('input', inputObjectValue([
                                     inputField('name', {
                                         kind: VALUE_MODEL_KIND.SCALAR,
-                                        typeTs: 'string',
+                                        typeTs: stringType(),
                                     }, false, false, false),
                                     inputField('nickname', {
                                         kind: VALUE_MODEL_KIND.SCALAR,
-                                        typeTs: 'string',
+                                        typeTs: stringType(),
                                     }, true, false, true),
                                     inputField('locale', {
                                         kind: VALUE_MODEL_KIND.SCALAR,
-                                        typeTs: 'string',
+                                        typeTs: stringType(),
                                     }, true, false, false),
                                     inputField('token', {
                                         kind: VALUE_MODEL_KIND.SCALAR,
-                                        typeTs: 'string',
+                                        typeTs: stringType(),
                                     }, false, false, true),
                                 ]), false, false, false),
                                 inputField('traceId', {
                                     kind: VALUE_MODEL_KIND.SCALAR,
-                                    typeTs: 'string',
+                                    typeTs: stringType(),
                                 }, true, false, true),
                             ],
                             'Mutation'
@@ -218,10 +229,10 @@ describe('declaration render', () => {
         test('renders multiple fragments in declaration artifacts', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserCard', fragment([
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                 ], 'User')],
                 ['PostCard', fragment([
-                    field('title', scalar('string'), false),
+                    field('title', scalar(stringType()), false),
                 ], 'Post')],
             ]))
 
@@ -244,9 +255,9 @@ describe('declaration render', () => {
         test('renders nullable and non-null scalar fields', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserScalars', fragment([
-                    field('id', scalar('string'), false),
-                    field('nickname', scalar('string')),
-                    field('rating', scalar('number'), false),
+                    field('id', scalar(stringType()), false),
+                    field('nickname', scalar(stringType())),
+                    field('rating', scalar(numberType()), false),
                 ], 'User')],
             ]))
 
@@ -256,6 +267,22 @@ describe('declaration render', () => {
                 '\t\tid: string;',
                 '\t\tnickname: string | null;',
                 '\t\trating: number;',
+            ].join('\n'))
+        })
+
+        test('does not duplicate null when a scalar type already includes it', () => {
+            const definitions = declarationDefinitions(new Map([
+                ['UserNullableScalar', fragment([
+                    field('nickname', scalar(unionOf(tsNamedType('Date'), nullType()))),
+                    field('tags', scalar(arrayOf(unionOf(stringType(), nullType())))),
+                ], 'User')],
+            ]))
+
+            expect(renderDeclaration('./documents', definitions, new Map())).toContain([
+                '\texport type UserNullableScalar = {',
+                `\t\t__typename?: 'User';`,
+                '\t\tnickname: Date | null;',
+                '\t\ttags: Array<string | null> | null;',
             ].join('\n'))
         })
 
@@ -278,7 +305,7 @@ describe('declaration render', () => {
         test('renders scalar and enum lists', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserLists', fragment([
-                    field('tags', scalar('string'), false, true),
+                    field('tags', scalar(stringType()), false, true),
                     field('roles', enumValue('UserRole'), true, true),
                 ], 'User')],
             ]))
@@ -307,7 +334,7 @@ describe('declaration render', () => {
                                 ofType: namedType(true),
                             },
                         },
-                        value: scalar('string'),
+                        value: scalar(stringType()),
                     },
                     {
                         kind: SELECTION_MODEL_KIND.FIELD,
@@ -319,7 +346,7 @@ describe('declaration render', () => {
                             kind: TYPE_REF_KIND.LIST,
                             ofType: namedType(false),
                         },
-                        value: scalar('string'),
+                        value: scalar(stringType()),
                     },
                 ], 'User')],
             ]))
@@ -335,8 +362,8 @@ describe('declaration render', () => {
         test('renders override types and non-null overrides from field model metadata', () => {
             const definitions = declarationDefinitions(new Map([
                 ['OverrideUser', fragment([{
-                    ...field('createdAt', scalar('string')),
-                    overrideTypeTs: 'Date',
+                    ...field('createdAt', scalar(stringType())),
+                    overrideTypeTs: tsNamedType('Date'),
                     typeRef: {
                         kind: TYPE_REF_KIND.NON_NULL,
                         ofType: {
@@ -360,8 +387,8 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserProfile', fragment([
                     field('profile', objectValue([
-                        field('bio', scalar('string')),
-                        field('age', scalar('number'), false),
+                        field('bio', scalar(stringType())),
+                        field('age', scalar(numberType()), false),
                     ], [ 'Profile' ]), false),
                 ], 'User')],
             ]))
@@ -381,7 +408,7 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['RemoveGroupMutation', fragment([
                     field('removeGroup', objectValue([
-                        field('id', scalar('string'), false),
+                        field('id', scalar(stringType()), false),
                     ], [ 'RemoveGroupPayload' ]), false),
                 ], 'Mutation')],
             ]))
@@ -404,7 +431,7 @@ describe('declaration render', () => {
                     root: {
                         kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
-                            field('id', scalar('string'), false),
+                            field('id', scalar(stringType()), false),
                         ],
                     },
                 }],
@@ -434,9 +461,9 @@ describe('declaration render', () => {
                 ['ProfileFragment', fragment([
                     field('profile', objectValue([
                         field('settings', objectValue([
-                            field('theme', scalar('string')),
+                            field('theme', scalar(stringType())),
                             field('privacy', objectValue([
-                                field('isPublic', scalar('boolean'), false),
+                                field('isPublic', scalar(booleanType()), false),
                             ]), false),
                         ]), false),
                     ]), false),
@@ -461,8 +488,8 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserFriends', fragment([
                     field('friends', objectValue([
-                        field('id', scalar('string'), false),
-                        field('name', scalar('string')),
+                        field('id', scalar(stringType()), false),
+                        field('name', scalar(stringType())),
                     ]), false, true),
                 ], 'User')],
             ]))
@@ -482,8 +509,8 @@ describe('declaration render', () => {
                 ['NestedArrays', fragment([
                     field('groups', objectValue([
                         field('members', objectValue([
-                            field('id', scalar('string'), false),
-                            field('labels', scalar('string'), true, true),
+                            field('id', scalar(stringType()), false),
+                            field('labels', scalar(stringType()), true, true),
                         ]), false, true),
                         field('tags', enumValue('GroupTag'), false, true),
                     ]), false, true),
@@ -510,14 +537,14 @@ describe('declaration render', () => {
                         {
                             typeName: 'User',
                             fields: [
-                                field('email', scalar('string'), false),
+                                field('email', scalar(stringType()), false),
                                 field('status', enumValue('UserStatus')),
                             ],
                         },
                         {
                             typeName: 'Guest',
                             fields: [
-                                field('nickname', scalar('string')),
+                                field('nickname', scalar(stringType())),
                             ],
                         },
                     ]), false),
@@ -558,8 +585,8 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['NullableOwner', fragment([
                     field('owner', objectValue([
-                        field('id', scalar('string'), false),
-                        field('username', scalar('string'), false),
+                        field('id', scalar(stringType()), false),
+                        field('username', scalar(stringType()), false),
                     ])),
                 ], 'Group')],
             ]))
@@ -585,15 +612,15 @@ describe('declaration render', () => {
                             {
                                 typeName: 'UserPayload',
                                 fields: [
-                                    field('id', scalar('string'), false),
-                                    field('permissions', scalar('Array<string>'), false),
+                                    field('id', scalar(stringType()), false),
+                                    field('permissions', scalar(arrayOf(stringType())), false),
                                 ],
                             },
                             {
                                 typeName: 'AdminPayload',
                                 fields: [
-                                    field('id', scalar('string'), false),
-                                    field('role', scalar('string'), false),
+                                    field('id', scalar(stringType()), false),
+                                    field('role', scalar(stringType()), false),
                                 ],
                             },
                         ],
@@ -620,7 +647,7 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserTypename', fragment([
                     field('__typename', typenameValue('User'), false),
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                 ], 'User')],
             ]))
 
@@ -703,7 +730,7 @@ describe('declaration render', () => {
                             field('__typename', typenameValue('User'), false),
                         ],
                     },
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                 ], 'User')],
             ]))
 
@@ -729,14 +756,14 @@ describe('declaration render', () => {
                                 typeName: 'UserPayload',
                                 fields: [
                                     field('__typename', typenameValue('UserPayload'), false),
-                                    field('id', scalar('string'), false),
+                                    field('id', scalar(stringType()), false),
                                 ],
                             },
                             {
                                 typeName: 'AdminPayload',
                                 fields: [
                                     field('__typename', typenameValue('AdminPayload'), false),
-                                    field('id', scalar('string'), false),
+                                    field('id', scalar(stringType()), false),
                                 ],
                             },
                         ],
@@ -765,7 +792,7 @@ describe('declaration render', () => {
                     root: {
                         kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
-                            field('id', scalar('string'), false),
+                            field('id', scalar(stringType()), false),
                         ],
                     },
                 }],
@@ -782,7 +809,7 @@ describe('declaration render', () => {
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                                 conditional: false,
                             },
-                            field('groups', scalar('GroupDetails'), false, true),
+                            field('groups', scalar(tsNamedType('GroupDetails')), false, true),
                         ],
                     },
                 }],
@@ -803,7 +830,7 @@ describe('declaration render', () => {
                     root: {
                         kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
-                            field('id', scalar('string'), false),
+                            field('id', scalar(stringType()), false),
                         ],
                     },
                 }],
@@ -821,7 +848,7 @@ describe('declaration render', () => {
                                 conditional: true,
                                 directives: [ 'include' ],
                             },
-                            field('groups', scalar('GroupDetails'), false, true),
+                            field('groups', scalar(tsNamedType('GroupDetails')), false, true),
                         ],
                     },
                 }],
@@ -843,7 +870,7 @@ describe('declaration render', () => {
                     root: {
                         kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
-                            field('id', scalar('string'), false),
+                            field('id', scalar(stringType()), false),
                         ],
                     },
                 }],
@@ -853,7 +880,7 @@ describe('declaration render', () => {
                     root: {
                         kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
-                            field('isOnline', scalar('boolean'), false),
+                            field('isOnline', scalar(booleanType()), false),
                         ],
                     },
                 }],
@@ -877,7 +904,7 @@ describe('declaration render', () => {
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                                 conditional: false,
                             },
-                            field('groups', scalar('GroupDetails'), false, true),
+                            field('groups', scalar(tsNamedType('GroupDetails')), false, true),
                         ],
                     },
                 }],
@@ -900,7 +927,7 @@ describe('declaration render', () => {
                     root: {
                         kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
-                            field('id', scalar('string'), false),
+                            field('id', scalar(stringType()), false),
                         ],
                     },
                 }],
@@ -910,7 +937,7 @@ describe('declaration render', () => {
                     root: {
                         kind: FRAGMENT_ROOT_KIND.OBJECT,
                         fields: [
-                            field('isOnline', scalar('boolean'), false),
+                            field('isOnline', scalar(booleanType()), false),
                         ],
                     },
                 }],
@@ -934,7 +961,7 @@ describe('declaration render', () => {
                                 onTypeNames: [ 'ModeratorPayload', 'AdminPayload' ],
                                 conditional: false,
                             },
-                            field('groups', scalar('GroupDetails'), false, true),
+                            field('groups', scalar(tsNamedType('GroupDetails')), false, true),
                         ],
                     },
                 }],
@@ -955,14 +982,14 @@ describe('declaration render', () => {
         test('renders inline fragment selections as sibling fields', () => {
             const definitions = declarationDefinitions(new Map([
                 ['AdminUser', fragment([
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                     {
                         kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
                         conditional: false,
                         selections: [
-                            field('permissions', scalar('string'), false, true),
-                            field('isOwner', scalar('boolean'), false),
+                            field('permissions', scalar(stringType()), false, true),
+                            field('isOwner', scalar(booleanType()), false),
                         ],
                     },
                 ], 'User')],
@@ -980,7 +1007,7 @@ describe('declaration render', () => {
         test('renders fragment spread rows literal', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserWithSpread', fragment([
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                     {
                         kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'SharedFields',
@@ -1000,14 +1027,14 @@ describe('declaration render', () => {
         test('renders conditional fields as optional properties', () => {
             const definitions = declarationDefinitions(new Map([
                 ['ConditionalUser', fragment([
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                     {
-                        ...field('nickname', scalar('string')),
+                        ...field('nickname', scalar(stringType())),
                         conditional: true,
                         directives: [ 'include' ],
                     },
                     {
-                        ...field('email', scalar('string'), false),
+                        ...field('email', scalar(stringType()), false),
                         conditional: true,
                         directives: [ 'skip' ],
                     },
@@ -1026,8 +1053,8 @@ describe('declaration render', () => {
         test('renders statically included selections as regular properties', () => {
             const definitions = declarationDefinitions(new Map([
                 ['StaticUser', fragment([
-                    field('id', scalar('string'), false),
-                    field('email', scalar('string')),
+                    field('id', scalar(stringType()), false),
+                    field('email', scalar(stringType())),
                 ], 'User')],
             ]))
 
@@ -1042,7 +1069,7 @@ describe('declaration render', () => {
         test('renders conditional fragment spreads as Partial intersections', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserWithConditionalSpread', fragment([
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                     {
                         kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'SharedFields',
@@ -1064,15 +1091,15 @@ describe('declaration render', () => {
         test('renders fields from conditional inline fragments as optional properties', () => {
             const definitions = declarationDefinitions(new Map([
                 ['ConditionalAdminUser', fragment([
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                     {
                         kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
                         conditional: true,
                         directives: [ 'skip' ],
                         selections: [
-                            field('permissions', scalar('string'), false, true),
-                            field('isOwner', scalar('boolean'), false),
+                            field('permissions', scalar(stringType()), false, true),
+                            field('isOwner', scalar(booleanType()), false),
                         ],
                     },
                 ], 'User')],
@@ -1091,7 +1118,7 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['NestedSpreadContainer', fragment([
                     field('profile', objectValue([
-                        field('id', scalar('string'), false),
+                        field('id', scalar(stringType()), false),
                         {
                             kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                             name: 'ProfileDetails',
@@ -1125,18 +1152,18 @@ describe('declaration render', () => {
         test('renders mixed nested structures in one fragment', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserDetails', fragment([
-                    field('id', scalar('string'), false),
+                    field('id', scalar(stringType()), false),
                     field('status', enumValue('UserStatus')),
-                    field('tags', scalar('string'), false, true),
+                    field('tags', scalar(stringType()), false, true),
                     field('profile', objectValue([
-                        field('bio', scalar('string')),
+                        field('bio', scalar(stringType())),
                     ]), false),
                     {
                         kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
                         conditional: false,
                         selections: [
-                            field('role', scalar('string'), false),
+                            field('role', scalar(stringType()), false),
                         ],
                     },
                     {
@@ -1148,11 +1175,11 @@ describe('declaration render', () => {
                     field('search', unionValue([
                         {
                             typeName: 'User',
-                            fields: [field('email', scalar('string'), false)],
+                            fields: [field('email', scalar(stringType()), false)],
                         },
                         {
                             typeName: 'Guest',
-                            fields: [field('nickname', scalar('string'))],
+                            fields: [field('nickname', scalar(stringType()))],
                         },
                     ]), false),
                 ], 'User')],

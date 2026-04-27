@@ -12,17 +12,20 @@ import type {
     OperationModel,
     SelectionModel,
 } from '../models/types'
+import type { TsType } from '../ts-type'
 import type { TypeRef } from '../models/types'
 
 import { capitalize } from '../lib/strings'
 import { collectImportsForDocumentModels } from '../plan/imports'
-import { indent } from '../lib/strings'
 import {
     hasAliasedRootTypenameSelection,
     hasRootSpreadWithSameTypeNames,
 } from './typename'
+import { indent } from '../lib/strings'
+import { makeNullableTsType } from '../ts-type'
 import { normalizeSelections } from './selection-normalization'
 import { renderStringLiteralUnion } from './basic'
+import { renderTsType } from '../ts-type'
 import { resolveTypenameSelection } from './typename'
 import { uncapitalize } from '../lib/strings'
 
@@ -44,15 +47,23 @@ type RenderedUnionVariant = RenderedSelections & {
     hasRequiredExplicitTypename: boolean;
 }
 
+type RenderableTypeValue = string | TsType
+
 const renderFieldRow = (
     name: string,
     value: string,
     optional = false
 ): string => `${name}${optional ? '?' : ''}: ${value};`
 
-const wrapNullable = (value: string): string => `${value} | null`
+const renderTypeValue = (value: RenderableTypeValue): string => typeof value === 'string'
+    ? value
+    : renderTsType(value)
 
-const renderNullableTypeRef = (typeRef: TypeRef, value: string): string => {
+const wrapNullable = (value: RenderableTypeValue): string => typeof value === 'string'
+    ? `${value} | null`
+    : renderTsType(makeNullableTsType(value))
+
+const renderNullableTypeRef = (typeRef: TypeRef, value: RenderableTypeValue): string => {
     switch (typeRef.kind) {
         case TYPE_REF_KIND.NAMED:
             return wrapNullable(value)
@@ -63,10 +74,10 @@ const renderNullableTypeRef = (typeRef: TypeRef, value: string): string => {
     }
 }
 
-const renderNonNullTypeRef = (typeRef: TypeRef, value: string): string => {
+const renderNonNullTypeRef = (typeRef: TypeRef, value: RenderableTypeValue): string => {
     switch (typeRef.kind) {
         case TYPE_REF_KIND.NAMED:
-            return value
+            return renderTypeValue(value)
         case TYPE_REF_KIND.LIST:
             return `Array<${renderNullableTypeRef(typeRef.ofType, value)}>`
         case TYPE_REF_KIND.NON_NULL:
@@ -215,7 +226,7 @@ const renderFragmentObjectRoot = (
     dedupeTypenameWithAlias: rootTypeNames.length === 1,
 })
 
-const renderFieldValue = (field: FieldValue): string => {
+const renderFieldValue = (field: FieldValue): RenderableTypeValue => {
     switch (field.kind) {
         case VALUE_MODEL_KIND.SCALAR:
             return field.typeTs
@@ -245,7 +256,7 @@ const renderTypeBody = (fragment: FragmentModel): string => {
         )
 }
 
-const renderInputValue = (value: InputValue): string => {
+const renderInputValue = (value: InputValue): RenderableTypeValue => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.SCALAR:
             return value.typeTs
