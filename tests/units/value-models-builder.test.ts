@@ -19,7 +19,9 @@ import {
     makeInputValue,
 } from '../../src/models/value-models-builder'
 import { makeTestModelContext } from './helpers/model-context'
+import { namedType } from '../../src'
 import { parse } from 'graphql'
+import { stringType } from '../../src'
 
 import {
     SELECTION_MODEL_KIND,
@@ -235,7 +237,7 @@ describe('value models builder', () => {
                     optional: false,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: 'string',
+                        typeTs: stringType(),
                     },
                 },
             ],
@@ -260,8 +262,8 @@ describe('value models builder', () => {
 
         const value = makeInputValue(inputType as GraphQLInputType, {
             DateTime: {
-                input: 'string',
-                output: 'Date',
+                input: stringType(),
+                output: namedType('Date'),
             },
         })
 
@@ -279,7 +281,7 @@ describe('value models builder', () => {
                 optional: false,
                 value: {
                     kind: VALUE_MODEL_KIND.SCALAR,
-                    typeTs: 'string',
+                    typeTs: stringType(),
                 },
             }],
         })

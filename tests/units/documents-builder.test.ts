@@ -4,6 +4,7 @@ import {
     test,
 } from 'vitest'
 
+import { booleanType } from '../../src'
 import { buildSchema } from 'graphql'
 import {
     getFragmentDefinition,
@@ -14,6 +15,10 @@ import {
     makeOperationModel,
 } from '../../src/models/documents-builder'
 import { makeTestModelContext } from './helpers/model-context'
+import {
+    namedType,
+    stringType,
+} from '../../src'
 
 import {
     FRAGMENT_ROOT_KIND,
@@ -91,7 +96,7 @@ describe('documents builder', () => {
                     optional: false,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: 'string',
+                        typeTs: stringType(),
                     },
                 }),
                 expect.objectContaining({
@@ -99,7 +104,7 @@ describe('documents builder', () => {
                     optional: true,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: 'boolean',
+                        typeTs: booleanType(),
                     },
                 }),
             ],
@@ -130,8 +135,8 @@ describe('documents builder', () => {
             schema,
             customScalars: {
                 DateTime: {
-                    input: 'string',
-                    output: 'Date',
+                    input: stringType(),
+                    output: namedType('Date'),
                 },
             },
         }))
@@ -143,7 +148,7 @@ describe('documents builder', () => {
                     optional: false,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: 'string',
+                        typeTs: stringType(),
                     },
                 }),
             ],

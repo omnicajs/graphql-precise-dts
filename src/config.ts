@@ -1,6 +1,7 @@
 import type { ConstValues } from './lib/types'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { ScalarShape } from './scalars/types'
+import type { TsType } from './ts-type'
 
 import { SELECTION_MODEL_KIND } from './models/kinds'
 
@@ -15,8 +16,8 @@ export interface PluginConfig {
 export type Schema = Parameters<PluginFunction<PluginConfig>>[0]
 export type DocumentFile = Parameters<PluginFunction<PluginConfig>>[1][number]
 
-export type TsTypeString = string
-export type ConfigScalars = { [K in string]: TsTypeString | Partial<ScalarShape<TsTypeString, TsTypeString>> }
+export type ConfigTsType = TsType
+export type ConfigScalars = { [K in string]: ConfigTsType | Partial<ScalarShape<ConfigTsType, ConfigTsType>> }
 
 export const DIRECTIVE_POLICY_EFFECT = {
     IGNORE: 'ignore',
@@ -38,7 +39,7 @@ export type DirectivePolicy =
     | Policy<typeof DIRECTIVE_POLICY_EFFECT.EXCLUDE>
     | Policy<typeof DIRECTIVE_POLICY_EFFECT.CONDITIONAL>
     | Policy<typeof DIRECTIVE_POLICY_EFFECT.NONNULL>
-    | Policy<typeof DIRECTIVE_POLICY_EFFECT.OVERRIDE_TYPE, { type: string }>
+    | Policy<typeof DIRECTIVE_POLICY_EFFECT.OVERRIDE_TYPE, { type: ConfigTsType }>
     | Policy<typeof DIRECTIVE_POLICY_EFFECT.WARN, { message?: string }>
 
 export type DirectiveNodePolicies = Partial<Record<ConstValues<typeof SELECTION_MODEL_KIND>, DirectivePolicy>>

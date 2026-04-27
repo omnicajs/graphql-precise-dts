@@ -5,12 +5,14 @@ import type {
     DirectiveNodePolicies,
     DirectivePolicy,
 } from './config'
+import type { TsType } from './ts-type'
 import type { ValueNode } from 'graphql'
 
-import { Kind } from 'graphql'
-import { SELECTION_MODEL_KIND } from './models/kinds'
+import { canonicalizeTsType } from './ts-type'
 
 import { DIRECTIVE_POLICY_EFFECT } from './config'
+import { Kind } from 'graphql'
+import { SELECTION_MODEL_KIND } from './models/kinds'
 
 const CONDITIONAL_DIRECTIVE = {
     INCLUDE: 'include',
@@ -28,7 +30,7 @@ export type ConditionalSelectionState = typeof SELECTION_STATE[keyof typeof SELE
 
 export type ResolvedSelectionDirectives = {
     directives: string[];
-    overrideTypeTs?: string;
+    overrideTypeTs?: TsType;
     state: ConditionalSelectionState;
     warnings: string[];
 }
@@ -112,7 +114,7 @@ const applyDirectivePolicy = (
             markSelectionConditional(resolved, directive.name.value)
             return
         case DIRECTIVE_POLICY_EFFECT.OVERRIDE_TYPE:
-            resolved.overrideTypeTs = policy.type
+            resolved.overrideTypeTs = canonicalizeTsType(policy.type)
             return
         case DIRECTIVE_POLICY_EFFECT.WARN:
             resolved.warnings.push(policy.message ?? `Directive "@${directive.name.value}" requires manual review`)

@@ -126,6 +126,8 @@ These warnings are diagnostics only. They do not add recovered fragments to the 
 The plugin does not try to infer custom directive semantics from the directive name. You need to define an explicit policy for them:
 
 ```ts
+import { namedType } from '@omnicajs/graphql-precise-dts'
+
 {
   directivePolicies: {
     mask: {
@@ -135,7 +137,7 @@ The plugin does not try to infer custom directive semantics from the directive n
       inlineFragment: { effect: 'exclude' },
     },
     opaque: {
-      field: { effect: 'override-type', type: 'OpaqueId' },
+      field: { effect: 'override-type', type: namedType('OpaqueId') },
     },
     required: {
       field: { effect: 'nonnull' },
@@ -155,6 +157,10 @@ Supported policies:
 - `nonnull`: removes `| null` from the field type;
 - `override-type`: replaces the rendered field type with a custom TypeScript type;
 - `warn`: emits a warning without changing the generated shape.
+
+For `override-type`, the `type` value must be a structural `TsType` created with the exported helpers from
+`@omnicajs/graphql-precise-dts`, for example `namedType('OpaqueId')`, `genericType('Readonly', namedType('User'))`,
+or `unionOf(namedType('Date'), nullType())`.
 
 Policies can be defined:
 
@@ -342,10 +348,12 @@ fragment UserCard on User {
 Config:
 
 ```ts
+import { namedType } from '@omnicajs/graphql-precise-dts'
+
 {
   directivePolicies: {
     opaque: {
-      field: { effect: 'override-type', type: 'OpaqueId' },
+      field: { effect: 'override-type', type: namedType('OpaqueId') },
     },
   },
 }

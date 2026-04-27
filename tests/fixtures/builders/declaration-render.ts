@@ -1,3 +1,4 @@
+import type { TsType } from '../../../src'
 import {
     DocumentModels,
     FieldSelectionModel,
@@ -61,9 +62,9 @@ export const field = (
     directives,
 })
 
-export const scalar = (type: string): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.SCALAR }> => ({
+export const scalar = (typeTs: TsType): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.SCALAR }> => ({
     kind: VALUE_MODEL_KIND.SCALAR,
-    typeTs: type,
+    typeTs,
 })
 
 export const typenameValue = (...typeNames: string[]): FieldValue => ({
