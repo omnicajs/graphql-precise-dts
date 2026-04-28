@@ -1,6 +1,6 @@
 import type { TsType } from '../../../src'
 import {
-    DocumentModels,
+    CollectedDocumentModels,
     FieldSelectionModel,
     FieldValue,
     FragmentModel,
@@ -87,10 +87,14 @@ export const objectValue = (
 })
 
 export const inputObjectValue = (
-    fields: InputField[]
+    fields: InputField[],
+    typeName?: string,
+    isRecursiveReference = false
 ): Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
     kind: VALUE_MODEL_KIND.OBJECT,
     fields,
+    ...(typeName && { typeName }),
+    ...(isRecursiveReference ? { isRecursiveReference } : {}),
 })
 
 export const unionValue = (
@@ -139,7 +143,7 @@ export const operation = (
 export const declarationDefinitions = (
     fragments: Map<string, FragmentModel>,
     operations: Map<string, OperationModel> = new Map()
-): DocumentModels => ({
+): CollectedDocumentModels => ({
     fragments,
     operations,
 })

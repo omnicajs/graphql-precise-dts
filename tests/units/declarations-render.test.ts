@@ -9,6 +9,7 @@ import {
     arrayOf,
     booleanType,
 } from '../../src'
+import { buildDocumentModels } from '../../src/plan/document-models'
 import {
     declarationDefinitions,
     enumValue,
@@ -27,7 +28,7 @@ import {
     operation,
     objectValue,
 } from '../fixtures/builders/declaration-render'
-import { renderDeclaration } from '../../src/render/declarations'
+import { renderDeclaration as renderPreparedDeclaration } from '../../src/render/declarations'
 import { scalar } from '../fixtures/builders/declaration-render'
 import { stringType } from '../../src'
 import { typenameValue } from '../fixtures/builders/declaration-render'
@@ -41,6 +42,16 @@ import {
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
 } from '../../src/models/kinds'
+
+const renderDeclaration = (
+    path: string,
+    definitions: ReturnType<typeof declarationDefinitions>,
+    importsMap: Map<string, string>
+): string => renderPreparedDeclaration(
+    path,
+    buildDocumentModels(definitions, [ ...importsMap.keys() ]),
+    importsMap
+)
 
 describe('declaration render', () => {
     describe('imports and module wrapper', () => {
@@ -224,6 +235,44 @@ describe('declaration render', () => {
 
             expect(result).toContain(`\texport type UsersListQueryQueryVariables = { [key: string]: never }`)
             expect(result).not.toContain('Exact<{ [key: string]: never }>')
+        })
+
+        test('renders recursive input object variables through named aliases', () => {
+            const treeInput = inputObjectValue([
+                inputField('value', {
+                    kind: VALUE_MODEL_KIND.SCALAR,
+                    typeTs: stringType(),
+                }),
+                inputField('children', inputObjectValue([], 'TreeInput', true), true, true),
+            ], 'TreeInput')
+
+            const result = renderDeclaration(
+                './documents',
+                declarationDefinitions(
+                    new Map(),
+                    new Map([
+                        ['CreateTree', operation(
+                            OperationTypeNode.MUTATION,
+                            [],
+                            [ inputField('input', treeInput, false, false, false) ],
+                            'Mutation'
+                        )],
+                    ])
+                ),
+                new Map()
+            )
+
+            expect(result).toContain([
+                '\texport type TreeInput = {',
+                '\t\tvalue?: string | null;',
+                '\t\tchildren?: Array<TreeInput> | null;',
+                '\t}',
+            ].join('\n'))
+            expect(result).toContain([
+                '\texport type CreateTreeMutationVariables = Exact<{',
+                '\t\tinput: TreeInput;',
+                '\t}>',
+            ].join('\n'))
         })
 
         test('renders multiple fragments in declaration artifacts', () => {
@@ -482,6 +531,64 @@ describe('declaration render', () => {
                 '\t\t\t};',
                 '\t\t};',
             ].join('\n'))
+        })
+
+        test('renders recursive result objects through named aliases', () => {
+            const recursiveTree = objectValue([], [ 'Tree' ])
+            recursiveTree.fields.push(
+                field('value', scalar(stringType())),
+                field('children', recursiveTree, true, true)
+            )
+
+            const definitions = declarationDefinitions(new Map([
+                ['TreeFragment', fragment([
+                    field('node', recursiveTree, false),
+                ], 'Query')],
+            ]))
+
+            const result = renderDeclaration('./documents', definitions, new Map())
+
+            expect(result).toContain([
+                '\texport type TreeFragmentTree = {',
+                `\t\t__typename?: 'Tree';`,
+                '\t\tvalue: string | null;',
+                '\t\tchildren: Array<TreeFragmentTree> | null;',
+                '\t}',
+            ].join('\n'))
+            expect(result).toContain([
+                '\texport type TreeFragment = {',
+                `\t\t__typename?: 'Query';`,
+                '\t\tnode: TreeFragmentTree;',
+                '\t}',
+            ].join('\n'))
+        })
+
+        test('reuses recursive result aliases for structurally equal shapes from different instances', () => {
+            const leftTree = objectValue([], [ 'Tree' ])
+            leftTree.fields.push(
+                field('value', scalar(stringType())),
+                field('children', leftTree, true, true)
+            )
+
+            const rightTree = objectValue([], [ 'Tree' ])
+            rightTree.fields.push(
+                field('value', scalar(stringType())),
+                field('children', rightTree, true, true)
+            )
+
+            const definitions = declarationDefinitions(new Map([
+                ['TreeFragment', fragment([
+                    field('left', leftTree, false),
+                    field('right', rightTree, false),
+                ], 'Query')],
+            ]))
+
+            const result = renderDeclaration('./documents', definitions, new Map())
+
+            expect(result).toContain(`\texport type TreeFragmentTree = {`)
+            expect(result).toContain(`\t\tleft: TreeFragmentTree;`)
+            expect(result).toContain(`\t\tright: TreeFragmentTree;`)
+            expect(result.match(/export type TreeFragmentTree =/g)).toHaveLength(1)
         })
 
         test('renders lists of object fields', () => {

@@ -1172,6 +1172,53 @@ describe('plugin __typename support', () => {
         })
     })
 
+    test('renders recursive input objects through named aliases instead of infinitely expanding them', async () => {
+        const recursiveInputSchema = buildSchema(`
+            input TreeInput {
+                value: String
+                children: [TreeInput!]
+            }
+
+            type Mutation {
+                createTree(input: TreeInput!): Boolean!
+            }
+
+            type Query {
+                _: Boolean!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                recursiveInputSchema,
+                [{
+                    location: 'tree.graphql',
+                    document: parse(`
+                        mutation CreateTree($input: TreeInput!) {
+                            createTree(input: $input)
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `declare module '~tests/tree.graphql' {`,
+                `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'\n`,
+                `\texport type TreeInput = {`,
+                `\t\tvalue?: string | null;`,
+                `\t\tchildren?: Array<TreeInput> | null;`,
+                `\t}`,
+            ].join('\n'))
+            expect(result.content).toContain([
+                `\texport type CreateTreeMutationVariables = Exact<{`,
+                `\t\tinput: TreeInput;`,
+                `\t}>`,
+            ].join('\n'))
+        })
+    })
+
     test('writes schema.d.ts next to the generated declarations and imports enums from it', async () => {
         const enumSchema = buildSchema(`
             scalar DateTime

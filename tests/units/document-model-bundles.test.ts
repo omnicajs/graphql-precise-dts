@@ -4,12 +4,15 @@ import {
     test,
 } from 'vitest'
 
-import { buildSchema, parse } from 'graphql'
+import {
+    buildSchema,
+    parse,
+} from 'graphql'
 import { buildModelRegistry } from '../../src/models/registry-builder'
-import { makeDocumentModelBundles } from '../../src/plan/declarations'
+import { makeDocumentModelBundles } from '../../src/plan/document-model-bundles'
 import { makeTestModelContext } from './helpers/model-context'
 
-describe('declarations plan', () => {
+describe('document model bundles', () => {
     test('builds document model bundles for documents with fragments and operations', () => {
         const schema = buildSchema(`
             type User {
@@ -47,8 +50,12 @@ describe('declarations plan', () => {
             { fragments: [ 'UserDetails' ], enums: [] },
             context
         ).documents.fragments
+        const importMap = {
+            fragments: new Map<string, string>(),
+            enums: new Map<string, string>(),
+        }
 
-        const bundles = makeDocumentModelBundles(documents, fragments, context)
+        const bundles = makeDocumentModelBundles(documents, fragments, context, importMap)
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: 'user.graphql' })
@@ -105,8 +112,12 @@ describe('declarations plan', () => {
             { fragments: [ 'UserDetails' ], enums: [] },
             context
         ).documents.fragments
+        const importMap = {
+            fragments: new Map<string, string>(),
+            enums: new Map<string, string>(),
+        }
 
-        const bundles = makeDocumentModelBundles(documents, fragments, context)
+        const bundles = makeDocumentModelBundles(documents, fragments, context, importMap)
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: 'user.graphql' })
