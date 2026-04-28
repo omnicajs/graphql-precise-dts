@@ -304,7 +304,7 @@ const renderOperationDeclaration = (
         `export type ${operationName}Variables = ${variablesType}`,
         `export const ${exportName}: TypedDocumentNode<${operationName}, ${operationName}Variables>`,
         `export default ${exportName}`,
-    ].join('\n\n')
+    ].map(block => indent(block)).join('\n\n')
 }
 
 export const renderDeclaration = (
@@ -352,11 +352,11 @@ export const renderDeclaration = (
 
     for (const [ key, operation ] of models.operations.entries()) {
         declarationRowsBlocks.push(
-            indent(renderOperationDeclaration(
+            renderOperationDeclaration(
                 getOperationTypeName(key, operation.operationType),
                 operation,
                 aliasedInputObjectTypeNames
-            ))
+            )
         )
     }
 
