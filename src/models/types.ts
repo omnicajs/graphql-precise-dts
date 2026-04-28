@@ -49,7 +49,12 @@ export type FieldValue =
 export type InputValue =
     | { kind: typeof VALUE_MODEL_KIND.SCALAR; typeTs: TsType }
     | { kind: typeof VALUE_MODEL_KIND.ENUM; name: string }
-    | { kind: typeof VALUE_MODEL_KIND.OBJECT; fields: InputField[] }
+    | {
+        kind: typeof VALUE_MODEL_KIND.OBJECT;
+        typeName?: string;
+        fields: InputField[];
+        isRecursiveReference?: boolean;
+    }
     | { kind: typeof VALUE_MODEL_KIND.UNKNOWN; reason: string }
 
 export type NamedTypedNode<TValue> = {
@@ -118,7 +123,7 @@ export type OperationModel = {
     result: SelectionModel[];
 }
 
-export type DocumentModels = {
+export type CollectedDocumentModels = {
     fragments: Map<string, FragmentModel>;
     operations: Map<string, OperationModel>;
 }

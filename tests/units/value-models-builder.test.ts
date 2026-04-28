@@ -212,6 +212,7 @@ describe('value models builder', () => {
 
         expect(value).toEqual({
             kind: VALUE_MODEL_KIND.OBJECT,
+            typeName: 'UserFilter',
             fields: [
                 {
                     name: 'status',
@@ -269,6 +270,7 @@ describe('value models builder', () => {
 
         expect(value).toEqual({
             kind: VALUE_MODEL_KIND.OBJECT,
+            typeName: 'UserFilter',
             fields: [{
                 name: 'createdAfter',
                 typeRef: {
@@ -284,6 +286,63 @@ describe('value models builder', () => {
                     typeTs: stringType(),
                 },
             }],
+        })
+    })
+
+    test('detects recursive input object references without infinitely expanding them', () => {
+        const schema = buildSchema(`
+            input TreeInput {
+                value: String
+                children: [TreeInput!]
+            }
+
+            type Query {
+                users: [String!]!
+            }
+        `)
+
+        const inputType = schema.getType('TreeInput')
+        expect(inputType).toBeDefined()
+
+        const value = makeInputValue(inputType as GraphQLInputType, {})
+
+        expect(value).toEqual({
+            kind: VALUE_MODEL_KIND.OBJECT,
+            typeName: 'TreeInput',
+            fields: [
+                {
+                    name: 'value',
+                    typeRef: {
+                        kind: 'named',
+                        name: 'String',
+                    },
+                    optional: true,
+                    value: {
+                        kind: VALUE_MODEL_KIND.SCALAR,
+                        typeTs: stringType(),
+                    },
+                },
+                {
+                    name: 'children',
+                    typeRef: {
+                        kind: 'list',
+                        ofType: {
+                            kind: 'non-null',
+                            ofType: {
+                                kind: 'named',
+                                name: 'TreeInput',
+                            },
+                        },
+                    },
+                    optional: true,
+                    value: {
+                        kind: VALUE_MODEL_KIND.OBJECT,
+                        typeName: 'TreeInput',
+                        fields: [],
+                        isRecursiveReference: true,
+                    },
+                },
+            ],
         })
     })
 

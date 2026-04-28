@@ -1,25 +1,21 @@
-import type { DocumentModelBundle } from './plan/declarations'
-import type {
-    ModelContext,
-    OperationModel,
-} from './models/types'
+import type { DocumentModelBundle } from './plan/document-model-bundles'
+import type { DocumentOperationModel } from './plan/document-models-types'
+import type { ModelContext } from './models/types'
 import type { PluginConfig } from './config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { Types } from '@graphql-codegen/plugin-helpers'
 
 import { buildModelRegistry } from './models/registry-builder'
 import { dirname } from 'path'
-import {
-    emitMissingFragmentDefinitionWarnings,
-    findFragmentDefinitions,
-} from './lib/documents'
+import { emitMissingFragmentDefinitionWarnings } from './lib/documents'
+import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
+import { findFragmentDefinitions } from './lib/documents'
 import { join } from 'path'
 import { makeDocumentLocationMap } from './lib/documents'
-import { makeDocumentModelBundles } from './plan/declarations'
+import { makeDocumentModelBundles } from './plan/document-model-bundles'
 import { makeImportMap } from './plan/imports'
 import { makeModuleSpecifier } from './path'
 import { mkdirSync } from 'fs'
-import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
 import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
 import { writeFileSync } from 'fs'
@@ -27,9 +23,9 @@ import { writeFileSync } from 'fs'
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
 const EXACT_TYPE_DECLARATION = 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n'
 
-const haveVariables = (operations: OperationModel[]): boolean => operations.some(op => op.variables.length > 0)
+const haveVariables = (operations: DocumentOperationModel[]): boolean => operations.some(op => op.variables.length > 0)
 
-const getExactType = (operations: OperationModel[]): string[] => haveVariables(operations) ? [ EXACT_TYPE_DECLARATION ] : []
+const getExactType = (operations: DocumentOperationModel[]): string[] => haveVariables(operations) ? [ EXACT_TYPE_DECLARATION ] : []
 
 const makePrepend = (bundles: DocumentModelBundle[]): string[] => [
     ...getExactType(bundles.flatMap(({ models }) => [ ...models.operations.values() ])),
@@ -80,13 +76,12 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     mkdirSync(dirname(schemaOutputFile), { recursive: true })
     writeFileSync(schemaOutputFile, renderSchemaDeclaration(registry.schema))
 
-    const documentBundles = makeDocumentModelBundles(documents, registry.documents.fragments, context)
+    const documentBundles = makeDocumentModelBundles(documents, registry.documents.fragments, context, importMap)
 
     return {
         prepend: makePrepend(documentBundles),
         content: renderDeclarations(
             documentBundles,
-            importMap,
             documentModuleSpecifier
         ),
     }

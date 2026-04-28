@@ -3,6 +3,7 @@ import type { FieldNode } from 'graphql'
 import type { FieldValue } from './types'
 import type {
     GraphQLInputType,
+    GraphQLInputObjectType,
     GraphQLInterfaceType,
 } from 'graphql'
 import type {
@@ -202,6 +203,18 @@ export const makeFieldValue = (
 export const makeInputValue = (
     type: GraphQLInputType,
     customScalars: ConfigScalars
+): InputValue => buildInputValue(type, customScalars, {
+    inProgress: new Set(),
+    cache: new Map(),
+})
+
+const buildInputValue = (
+    type: GraphQLInputType,
+    customScalars: ConfigScalars,
+    state: {
+        inProgress: Set<string>;
+        cache: Map<string, Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
+    }
 ): InputValue => {
     const namedType = getNamedType(type)
 
@@ -217,16 +230,47 @@ export const makeInputValue = (
     }
 
     if (isInputObjectType(namedType)) {
-        return {
-            kind: VALUE_MODEL_KIND.OBJECT,
-            fields: Object.values(namedType.getFields()).map(field => ({
-                name: field.name,
-                typeRef: makeTypeRefForInput(field.type),
-                optional: isNullableType(field.type) || !isUndefined(field.defaultValue),
-                value: makeInputValue(field.type, customScalars),
-            })),
-        }
+        return buildInputObjectValue(namedType, customScalars, state)
     }
 
     return { kind: VALUE_MODEL_KIND.UNKNOWN, reason: 'Unknown input type' }
+}
+
+const buildInputObjectValue = (
+    namedType: GraphQLInputObjectType,
+    customScalars: ConfigScalars,
+    state: {
+        inProgress: Set<string>;
+        cache: Map<string, Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
+    }
+): Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => {
+    const cached = state.cache.get(namedType.name)
+    if (cached) return cached
+
+    if (state.inProgress.has(namedType.name)) {
+        return {
+            kind: VALUE_MODEL_KIND.OBJECT,
+            typeName: namedType.name,
+            fields: [],
+            isRecursiveReference: true,
+        }
+    }
+
+    state.inProgress.add(namedType.name)
+
+    const value: Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> = {
+        kind: VALUE_MODEL_KIND.OBJECT,
+        typeName: namedType.name,
+        fields: Object.values(namedType.getFields()).map(field => ({
+            name: field.name,
+            typeRef: makeTypeRefForInput(field.type),
+            optional: isNullableType(field.type) || !isUndefined(field.defaultValue),
+            value: buildInputValue(field.type, customScalars, state),
+        })),
+    }
+
+    state.inProgress.delete(namedType.name)
+    state.cache.set(namedType.name, value)
+
+    return value
 }

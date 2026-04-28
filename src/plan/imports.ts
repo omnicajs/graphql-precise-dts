@@ -1,8 +1,6 @@
+import type { CollectedDocumentModels } from '../models/types'
 import type { DocumentFile } from '../config'
-import type {
-    DocumentModels,
-    FieldValue,
-} from '../models/types'
+import type { FieldValue } from '../models/types'
 import type { FragmentDefinitionNode } from 'graphql'
 import type { FragmentModel } from '../models/types'
 import type {
@@ -191,7 +189,7 @@ const visitFragmentImports = (
 }
 
 export const collectImportsForDocumentModels = (
-    { fragments, operations }: DocumentModels,
+    { fragments, operations }: CollectedDocumentModels,
     importMap: ImportMap
 ): Map<string, string> => {
     const collector: DocumentImportCollector = {

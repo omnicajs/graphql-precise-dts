@@ -1,26 +1,34 @@
+import type { CollectedDocumentModels } from '../models/types'
 import type { DocumentFile } from '../config'
-import type {
-    DocumentModels,
-    FragmentModel,
-} from '../models/types'
+import type { DocumentModels } from './document-models-types'
+import type { FragmentModel } from '../models/types'
+import type { ImportMap } from './imports'
 import type { ModelContext } from '../models/types'
 import type { OperationDefinitionNode } from 'graphql'
 
 import { TypeInfo } from 'graphql'
 
+import { buildDocumentModels } from './document-models'
+import { collectImportsForDocumentModels } from './imports'
 import { makeOperationModel } from '../models/documents-builder'
 import {
     visit,
     visitWithTypeInfo,
 } from 'graphql'
 
+type CollectedDocumentModelBundle = {
+    location: string;
+    models: CollectedDocumentModels;
+}
+
 export type DocumentModelBundle = {
     location: string;
+    imports: Map<string, string>;
     models: DocumentModels;
 }
 
 type DocumentModelCollector = {
-    models: DocumentModels;
+    models: CollectedDocumentModels;
     addFragment(name: string): void;
     addOperation(node: OperationDefinitionNode): void;
 }
@@ -29,7 +37,7 @@ const createDocumentModelCollector = (
     fragments:  Map<string, FragmentModel>,
     context: ModelContext
 ): DocumentModelCollector => {
-    const documentModels: DocumentModels = {
+    const documentModels: CollectedDocumentModels = {
         fragments: new Map(),
         operations: new Map(),
     }
@@ -63,11 +71,11 @@ const createDocumentModelVisitor = (collector: DocumentModelCollector) => ({
     },
 })
 
-const createDocumentModelBundle = (
+const collectDocumentModelBundle = (
     documentFile: DocumentFile,
     fragments:  Map<string, FragmentModel>,
     context: ModelContext
-): DocumentModelBundle | undefined => {
+): CollectedDocumentModelBundle | undefined => {
     if (!documentFile.document) return
 
     const collector = createDocumentModelCollector(fragments, context)
@@ -86,18 +94,32 @@ const createDocumentModelBundle = (
     }
 }
 
+const prepareDocumentModelBundle = (
+    { location, models }: CollectedDocumentModelBundle,
+    importMap: ImportMap
+): DocumentModelBundle => {
+    const imports = collectImportsForDocumentModels(models, importMap)
+
+    return {
+        location,
+        imports,
+        models: buildDocumentModels(models, [ ...imports.keys() ]),
+    }
+}
+
 export const makeDocumentModelBundles = (
     documents: DocumentFile[],
     fragments:  Map<string, FragmentModel>,
-    context: ModelContext
+    context: ModelContext,
+    importMap: ImportMap
 ): DocumentModelBundle[] => {
     return documents.flatMap(documentFile => {
-        const documentModel = createDocumentModelBundle(
+        const documentModel = collectDocumentModelBundle(
             documentFile,
             fragments,
             context
         )
 
-        return documentModel ? [ documentModel ] : []
+        return documentModel ? [ prepareDocumentModelBundle(documentModel, importMap) ] : []
     })
 }
