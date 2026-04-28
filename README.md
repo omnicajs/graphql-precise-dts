@@ -97,6 +97,10 @@ export const getUserQuery: TypedDocumentNode<GetUserQuery, GetUserQueryVariables
 export default getUserQuery
 ```
 
+When repeated or recursive input/output object shapes appear in generated types, the plugin may lift them into
+named `type` declarations and render their usage sites as references to those aliases. This keeps recursive
+structures representable and reduces duplication in the emitted declarations.
+
 If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation
 declarations into the same `declare module '...'` block.
 
