@@ -8,7 +8,7 @@ import type {
 import type { TsType } from './ts-type'
 import type { ValueNode } from 'graphql'
 
-import { canonicalizeTsType } from './ts-type'
+import { normalizeTsType } from './ts-type'
 
 import { DIRECTIVE_POLICY_EFFECT } from './config'
 import { Kind } from 'graphql'
@@ -114,7 +114,7 @@ const applyDirectivePolicy = (
             markSelectionConditional(resolved, directive.name.value)
             return
         case DIRECTIVE_POLICY_EFFECT.OVERRIDE_TYPE:
-            resolved.overrideTypeTs = canonicalizeTsType(policy.type)
+            resolved.overrideTypeTs = normalizeTsType(policy.type)
             return
         case DIRECTIVE_POLICY_EFFECT.WARN:
             resolved.warnings.push(policy.message ?? `Directive "@${directive.name.value}" requires manual review`)

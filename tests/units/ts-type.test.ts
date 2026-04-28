@@ -7,13 +7,13 @@ import {
 import {
     arrayOf,
     booleanType,
-    canonicalizeTsType,
     genericType,
     intersectionOf,
     isSameTsType,
     literalType,
     makeNullableType,
     namedType,
+    normalizeTsType,
     nullType,
     numberType,
     objectType,
@@ -82,8 +82,8 @@ describe('ts type', () => {
         })
     })
 
-    test('canonicalizes arrays recursively', () => {
-        expect(canonicalizeTsType(arrayOf(unionOf(stringType(), nullType(), nullType())))).toEqual({
+    test('normalizes arrays recursively', () => {
+        expect(normalizeTsType(arrayOf(unionOf(stringType(), nullType(), nullType())))).toEqual({
             kind: TS_TYPE_KIND.ARRAY,
             ofType: {
                 kind: TS_TYPE_KIND.UNION,
@@ -95,8 +95,8 @@ describe('ts type', () => {
         })
     })
 
-    test('canonicalizes objects recursively', () => {
-        expect(canonicalizeTsType(objectType([
+    test('normalizes objects recursively', () => {
+        expect(normalizeTsType(objectType([
             {
                 name: 'profile',
                 type: intersectionOf(
@@ -140,8 +140,8 @@ describe('ts type', () => {
         })
     })
 
-    test('canonicalizes tuples recursively', () => {
-        expect(canonicalizeTsType(tupleType(
+    test('normalizes tuples recursively', () => {
+        expect(normalizeTsType(tupleType(
             unionOf(stringType(), nullType(), nullType()),
             intersectionOf(namedType('Node'), namedType('Node')),
             objectType([{
@@ -182,8 +182,8 @@ describe('ts type', () => {
         })
     })
 
-    test('canonicalizes nested intersection and union structures recursively', () => {
-        const type = canonicalizeTsType(intersectionOf(
+    test('normalizes nested intersection and union structures recursively', () => {
+        const type = normalizeTsType(intersectionOf(
             namedType('A'),
             intersectionOf(namedType('B'), namedType('A')),
             genericType('Readonly', unionOf(namedType('C'), nullType(), nullType()))

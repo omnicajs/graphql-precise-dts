@@ -10,10 +10,10 @@ import type {
 import type { ScalarUsage } from './types'
 import type { TsType } from '../ts-type'
 
-import { canonicalizeTsType } from '../ts-type'
 import { isUndefined } from '../lib/predicates'
 import {
     namedTsType,
+    normalizeTsType,
     renderTsType,
 } from '../ts-type'
 
@@ -45,10 +45,10 @@ export const resolveCustomScalarTypeTs = (
 ): TsType => {
     return typeof scalar === 'object' && scalar !== null && !('kind' in scalar)
         ? (usage in scalar && !isUndefined(scalar[usage])
-            ? canonicalizeTsType(scalar[usage])
+            ? normalizeTsType(scalar[usage])
             : namedTsType('unknown')
         )
-        : canonicalizeTsType(scalar)
+        : normalizeTsType(scalar)
 }
 
 export const isScalarPrimitiveKey = (key: string): key is keyof Scalars => {

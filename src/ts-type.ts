@@ -29,11 +29,11 @@ export const TS_TYPE_KIND = {
     LITERAL: 'literal',
 } as const
 
-const canonicalizeUnionTypes = (types: TsType[]): TsType[] => {
+const normalizeUnionTypes = (types: TsType[]): TsType[] => {
     const uniqueTypes = new Map<string, TsType>()
 
     for (const type of types.flatMap(current =>
-        current.kind === TS_TYPE_KIND.UNION ? canonicalizeUnionTypes(current.types) : [ canonicalizeTsType(current) ]
+        current.kind === TS_TYPE_KIND.UNION ? normalizeUnionTypes(current.types) : [ normalizeTsType(current) ]
     )) {
         uniqueTypes.set(renderTsType(type), type)
     }
@@ -41,13 +41,13 @@ const canonicalizeUnionTypes = (types: TsType[]): TsType[] => {
     return [ ...uniqueTypes.values() ]
 }
 
-const canonicalizeIntersectionTypes = (types: TsType[]): TsType[] => {
+const normalizeIntersectionTypes = (types: TsType[]): TsType[] => {
     const uniqueTypes = new Map<string, TsType>()
 
     for (const type of types.flatMap(current =>
         current.kind === TS_TYPE_KIND.INTERSECTION
-            ? canonicalizeIntersectionTypes(current.types)
-            : [ canonicalizeTsType(current) ]
+            ? normalizeIntersectionTypes(current.types)
+            : [ normalizeTsType(current) ]
     )) {
         uniqueTypes.set(renderTsType(type), type)
     }
@@ -55,36 +55,36 @@ const canonicalizeIntersectionTypes = (types: TsType[]): TsType[] => {
     return [ ...uniqueTypes.values() ]
 }
 
-export const canonicalizeTsType = (type: TsType): TsType => {
+export const normalizeTsType = (type: TsType): TsType => {
     switch (type.kind) {
         case TS_TYPE_KIND.ARRAY:
-            return { kind: TS_TYPE_KIND.ARRAY, ofType: canonicalizeTsType(type.ofType) }
+            return { kind: TS_TYPE_KIND.ARRAY, ofType: normalizeTsType(type.ofType) }
         case TS_TYPE_KIND.UNION: {
-            const types = canonicalizeUnionTypes(type.types)
+            const types = normalizeUnionTypes(type.types)
             return types.length === 1 ? types[0] : { kind: TS_TYPE_KIND.UNION, types }
         }
         case TS_TYPE_KIND.INTERSECTION: {
-            const types = canonicalizeIntersectionTypes(type.types)
+            const types = normalizeIntersectionTypes(type.types)
             return types.length === 1 ? types[0] : { kind: TS_TYPE_KIND.INTERSECTION, types }
         }
         case TS_TYPE_KIND.GENERIC:
             return {
                 kind: TS_TYPE_KIND.GENERIC,
                 name: type.name,
-                args: type.args.map(canonicalizeTsType),
+                args: type.args.map(normalizeTsType),
             }
         case TS_TYPE_KIND.OBJECT:
             return {
                 kind: TS_TYPE_KIND.OBJECT,
                 fields: type.fields.map(field => ({
                     ...field,
-                    type: canonicalizeTsType(field.type),
+                    type: normalizeTsType(field.type),
                 })),
             }
         case TS_TYPE_KIND.TUPLE:
             return {
                 kind: TS_TYPE_KIND.TUPLE,
-                items: type.items.map(canonicalizeTsType),
+                items: type.items.map(normalizeTsType),
             }
         default:
             return type
@@ -100,7 +100,7 @@ export const nullTsType = (): TsType => ({ kind: TS_TYPE_KIND.NULL })
 export const arrayTsType = (ofType: TsType): TsType => ({ kind: TS_TYPE_KIND.ARRAY, ofType })
 
 export const unionTsType = (...types: TsType[]): TsType => {
-    const normalizedTypes = canonicalizeUnionTypes(types)
+    const normalizedTypes = normalizeUnionTypes(types)
 
     return normalizedTypes.length === 1
         ? normalizedTypes[0]
@@ -111,7 +111,7 @@ export const unionTsType = (...types: TsType[]): TsType => {
 }
 
 export const intersectionTsType = (...types: TsType[]): TsType => {
-    const normalizedTypes = canonicalizeIntersectionTypes(types)
+    const normalizedTypes = normalizeIntersectionTypes(types)
 
     return normalizedTypes.length === 1
         ? normalizedTypes[0]
@@ -183,7 +183,7 @@ const renderTsTypeWithParentPrecedence = (type: TsType, parentPrecedence = 0): s
 export const renderTsType = (type: TsType): string => renderTsTypeWithParentPrecedence(type)
 
 const normalizeComparableTsType = (type: TsType): TsType => {
-    const canonicalType = canonicalizeTsType(type)
+    const canonicalType = normalizeTsType(type)
 
     switch (canonicalType.kind) {
         case TS_TYPE_KIND.ARRAY:
