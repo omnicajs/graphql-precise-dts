@@ -4,16 +4,18 @@ import {
     test,
 } from 'vitest'
 
+import {
+    defineNamed,
+    defineString,
+} from '../../src'
 import { field } from '../fixtures/builders/declaration-render'
 import {
     listType,
     namedType,
 } from '../fixtures/builders/declaration-render'
-import { namedType as namedTsType } from '../../src'
 import { normalizeSelections } from '../../src/render/selection-normalization'
 import { objectValue } from '../fixtures/builders/declaration-render'
 import { scalar } from '../fixtures/builders/declaration-render'
-import { stringType } from '../../src'
 import { typenameValue } from '../fixtures/builders/declaration-render'
 import { unionValue } from '../fixtures/builders/declaration-render'
 
@@ -26,7 +28,7 @@ describe('selection normalization', () => {
     test('merges duplicate fields from the same level and nested inline fragments', () => {
         const selections = normalizeSelections([
             field('profile', objectValue([
-                field('id', scalar(stringType()), false),
+                field('id', scalar(defineString()), false),
             ], [ 'User' ]), false),
             field('profile', objectValue([
                 {
@@ -34,7 +36,7 @@ describe('selection normalization', () => {
                     conditional: false,
                     typeCondition: 'User',
                     selections: [
-                        field('id', scalar(stringType()), false),
+                        field('id', scalar(defineString()), false),
                     ],
                     directives: [],
                 },
@@ -60,7 +62,7 @@ describe('selection normalization', () => {
                     conditional: false,
                     typeCondition: 'User',
                     selections: [
-                        field('id', scalar(stringType()), false),
+                        field('id', scalar(defineString()), false),
                     ],
                     directives: [],
                 },
@@ -76,13 +78,13 @@ describe('selection normalization', () => {
     test('throws when fields with the same response name have different arguments', () => {
         expect(() => normalizeSelections([
             {
-                ...field('user', scalar(stringType()), false),
+                ...field('user', scalar(defineString()), false),
                 name: 'user',
                 responseName: 'user',
                 argumentsSignature: 'id: 1',
             },
             {
-                ...field('user', scalar(stringType()), false),
+                ...field('user', scalar(defineString()), false),
                 name: 'user',
                 responseName: 'user',
                 argumentsSignature: 'id: 2',
@@ -93,11 +95,11 @@ describe('selection normalization', () => {
     test('throws when fields with the same response name target different fields', () => {
         expect(() => normalizeSelections([
             {
-                ...field('name', scalar(stringType()), false),
+                ...field('name', scalar(defineString()), false),
                 responseName: 'profileName',
             },
             {
-                ...field('nickname', scalar(stringType()), false),
+                ...field('nickname', scalar(defineString()), false),
                 responseName: 'profileName',
             },
         ])).toThrow(/different target fields "name" and "nickname" cannot be merged/)
@@ -106,12 +108,12 @@ describe('selection normalization', () => {
     test('throws when fields with the same response name have different nullability or list structure', () => {
         expect(() => normalizeSelections([
             {
-                ...field('groups', scalar(stringType()), false, true),
+                ...field('groups', scalar(defineString()), false, true),
                 responseName: 'groups',
                 typeRef: listType(false),
             },
             {
-                ...field('groups', scalar(stringType()), false, true),
+                ...field('groups', scalar(defineString()), false, true),
                 responseName: 'groups',
                 typeRef: namedType(false),
             },
@@ -121,12 +123,12 @@ describe('selection normalization', () => {
     test('throws when fields with the same response name have different override types', () => {
         expect(() => normalizeSelections([
             {
-                ...field('id', scalar(stringType()), false),
-                overrideTypeTs: namedTsType('OpaqueId'),
+                ...field('id', scalar(defineString()), false),
+                overrideTypeTs: defineNamed('OpaqueId'),
             },
             {
-                ...field('id', scalar(stringType()), false),
-                overrideTypeTs: namedTsType('RawId'),
+                ...field('id', scalar(defineString()), false),
+                overrideTypeTs: defineNamed('RawId'),
             },
         ])).toThrow(/different override types cannot be merged/)
     })
@@ -135,7 +137,7 @@ describe('selection normalization', () => {
         const selections = normalizeSelections([
             {
                 ...field('profile', objectValue([
-                    field('id', scalar(stringType()), false),
+                    field('id', scalar(defineString()), false),
                 ], [ 'User' ]), false),
                 diagnosticLocation: 'group.graphql:4:5',
                 directives: [ 'include' ],
@@ -143,7 +145,7 @@ describe('selection normalization', () => {
             },
             {
                 ...field('profile', objectValue([
-                    field('name', scalar(stringType())),
+                    field('name', scalar(defineString())),
                 ], [ 'User' ]), false),
                 diagnosticLocation: 'group.graphql:8:5',
                 directives: [ 'client' ],
@@ -196,11 +198,11 @@ describe('selection normalization', () => {
                 ...field('search', unionValue([
                     {
                         typeName: 'User',
-                        fields: [ field('id', scalar(stringType()), false) ],
+                        fields: [ field('id', scalar(defineString()), false) ],
                     },
                     {
                         typeName: 'Group',
-                        fields: [ field('slug', scalar(stringType()), false) ],
+                        fields: [ field('slug', scalar(defineString()), false) ],
                     },
                 ]), false),
             },
@@ -208,7 +210,7 @@ describe('selection normalization', () => {
                 ...field('search', unionValue([
                     {
                         typeName: 'User',
-                        fields: [ field('name', scalar(stringType())) ],
+                        fields: [ field('name', scalar(defineString())) ],
                     },
                 ]), false),
             },

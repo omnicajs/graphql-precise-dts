@@ -6,14 +6,17 @@ export type TsType =
     | { kind: typeof TS_TYPE_KIND.UNION; types: TsType[] }
     | { kind: typeof TS_TYPE_KIND.INTERSECTION; types: TsType[] }
     | { kind: typeof TS_TYPE_KIND.GENERIC; name: string; args: TsType[] }
-    | { kind: typeof TS_TYPE_KIND.OBJECT; fields: TsObjectField[] }
+    | { kind: typeof TS_TYPE_KIND.OBJECT; fields: NamedObjectField[] }
     | { kind: typeof TS_TYPE_KIND.TUPLE; items: TsType[] }
     | { kind: typeof TS_TYPE_KIND.LITERAL; value: string | number | boolean }
 
-export type TsObjectField = {
+export type NamedObjectField = {
     name: string;
+} & ObjectFieldConfig
+
+export type ObjectFieldConfig = {
     type: TsType;
-    optional?: boolean;
+    optional: boolean;
 }
 
 export const TS_TYPE_KIND = {
@@ -228,22 +231,29 @@ export const isSameTsType = (left: TsType, right: TsType): boolean => {
 
 export const makeNullableTsType = (type: TsType): TsType => unionTsType(type, nullTsType())
 
-export const namedType = namedTsType
-export const nullType = nullTsType
+export const defineNamed = namedTsType
+export const defineNull = nullTsType
 export const arrayOf = arrayTsType
 export const unionOf = unionTsType
 export const intersectionOf = intersectionTsType
-export const genericType = genericTsType
-export const tupleType = tupleTsType
-export const stringType = (): TsType => namedTsType('string')
-export const numberType = (): TsType => namedTsType('number')
-export const booleanType = (): TsType => namedTsType('boolean')
-export const unknownType = (): TsType => namedTsType('unknown')
-export const literalType = (value: string | number | boolean): TsType => ({ kind: TS_TYPE_KIND.LITERAL, value })
-export const objectType = (fields: TsObjectField[]): TsType => ({
+export const defineGeneric = genericTsType
+export const defineTuple = tupleTsType
+export const defineString = (): TsType => namedTsType('string')
+export const defineNumber = (): TsType => namedTsType('number')
+export const defineBoolean = (): TsType => namedTsType('boolean')
+export const defineUnknown = (): TsType => namedTsType('unknown')
+export const defineLiteral = (value: string | number | boolean): TsType => ({ kind: TS_TYPE_KIND.LITERAL, value })
+export const defineObjectField = (type: TsType, optional = false): ObjectFieldConfig => ({
+    type,
+    optional,
+})
+export const defineObject = (fields: { [key: string]: ObjectFieldConfig }): TsType => ({
     kind: TS_TYPE_KIND.OBJECT,
-    fields,
+    fields: Object.entries(fields).map(([ name, field ]) => ({
+        name,
+        ...field,
+    })),
 })
 
 export const renderType = renderTsType
-export const makeNullableType = makeNullableTsType
+export const makeNullable = makeNullableTsType

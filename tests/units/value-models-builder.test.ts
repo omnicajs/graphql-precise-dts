@@ -11,6 +11,10 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
+import {
+    defineNamed,
+    defineString,
+} from '../../src'
 import { getFragmentDefinition } from './helpers/graphql-document'
 import { getSelectionNode } from './helpers/graphql-selection'
 import { getTypeForDefinition } from '../../src/models/resolve'
@@ -19,9 +23,7 @@ import {
     makeInputValue,
 } from '../../src/models/value-models-builder'
 import { makeTestModelContext } from './helpers/model-context'
-import { namedType } from '../../src'
 import { parse } from 'graphql'
-import { stringType } from '../../src'
 
 import {
     SELECTION_MODEL_KIND,
@@ -238,7 +240,7 @@ describe('value models builder', () => {
                     optional: false,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: stringType(),
+                        typeTs: defineString(),
                     },
                 },
             ],
@@ -263,8 +265,8 @@ describe('value models builder', () => {
 
         const value = makeInputValue(inputType as GraphQLInputType, {
             DateTime: {
-                input: stringType(),
-                output: namedType('Date'),
+                input: defineString(),
+                output: defineNamed('Date'),
             },
         })
 
@@ -283,7 +285,7 @@ describe('value models builder', () => {
                 optional: false,
                 value: {
                     kind: VALUE_MODEL_KIND.SCALAR,
-                    typeTs: stringType(),
+                    typeTs: defineString(),
                 },
             }],
         })
@@ -319,7 +321,7 @@ describe('value models builder', () => {
                     optional: true,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: stringType(),
+                        typeTs: defineString(),
                     },
                 },
                 {

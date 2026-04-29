@@ -6,10 +6,12 @@ import {
 
 import { buildModelRegistry } from '../../src/models/registry-builder'
 import { buildSchema } from 'graphql'
+import {
+    defineNamed,
+    defineString,
+} from '../../src'
 import { makeTestModelContext } from './helpers/model-context'
-import { namedType } from '../../src'
 import { parse } from 'graphql'
-import { stringType } from '../../src'
 
 import {
     FRAGMENT_ROOT_KIND,
@@ -53,7 +55,7 @@ describe('model builder', () => {
             },
             makeTestModelContext({
                 schema,
-                customScalars: { String: namedType('DateIsoString') },
+                customScalars: { String: defineNamed('DateIsoString') },
                 documents,
             })
         )
@@ -134,7 +136,7 @@ describe('model builder', () => {
                     responseName: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: stringType(),
+                        typeTs: defineString(),
                     },
                     directives: [],
                 })],
@@ -171,7 +173,7 @@ describe('model builder', () => {
                             responseName: 'bio',
                             value: {
                                 kind: VALUE_MODEL_KIND.SCALAR,
-                                typeTs: stringType(),
+                                typeTs: defineString(),
                             },
                             directives: [],
                         })],
@@ -273,7 +275,7 @@ describe('model builder', () => {
                     name: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: stringType(),
+                        typeTs: defineString(),
                     },
                 }),
                 expect.objectContaining({
@@ -297,7 +299,7 @@ describe('model builder', () => {
                     name: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: stringType(),
+                        typeTs: defineString(),
                     },
                 }),
                 expect.objectContaining({
@@ -379,7 +381,7 @@ describe('model builder', () => {
                     name: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: stringType(),
+                        typeTs: defineString(),
                     },
                 }),
                 expect.objectContaining({
@@ -395,7 +397,7 @@ describe('model builder', () => {
                     name: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: stringType(),
+                        typeTs: defineString(),
                     },
                 }),
                 expect.objectContaining({

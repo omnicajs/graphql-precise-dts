@@ -6,15 +6,15 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
-import { join } from 'path'
 import {
-    namedType,
-    nullType,
+    defineNamed,
+    defineNull,
+    defineString,
 } from '../../src'
+import { join } from 'path'
 import { parse } from 'graphql'
 import { plugin } from '../../src'
 import { readFileSync } from 'fs'
-import { stringType } from '../../src'
 import { withTempOutput } from './utils/temp-output'
 import { unionOf } from '../../src'
 
@@ -306,7 +306,7 @@ describe('plugin directive handling', () => {
                         opaque: {
                             field: {
                                 effect: 'override-type',
-                                type: namedType('OpaqueId'),
+                                type: defineNamed('OpaqueId'),
                             },
                         },
                     },
@@ -1254,8 +1254,8 @@ describe('plugin __typename support', () => {
                     prefix: '~tests/',
                     scalars: {
                         DateTime: {
-                            input: stringType(),
-                            output: stringType(),
+                            input: defineString(),
+                            output: defineString(),
                         },
                     },
                 },
@@ -1303,7 +1303,7 @@ describe('plugin __typename support', () => {
                     prefix: '~tests/',
                     scalars: {
                         DateTime: {
-                            output: unionOf(namedType('Date'), nullType()),
+                            output: unionOf(defineNamed('Date'), defineNull()),
                         },
                     },
                 },

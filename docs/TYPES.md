@@ -13,20 +13,21 @@ Import helpers from the package root:
 import {
   TS_TYPE_KIND,
   arrayOf,
-  booleanType,
-  genericType,
+  defineBoolean,
+  defineGeneric,
+  defineLiteral,
+  defineNamed,
+  defineNull,
+  defineNumber,
+  defineObject,
+  defineObjectField,
+  defineString,
+  defineTuple,
+  defineUnknown,
   intersectionOf,
-  literalType,
-  makeNullableType,
-  namedType,
-  nullType,
-  numberType,
-  objectType,
-  renderType,
-  stringType,
-  tupleType,
   unionOf,
-  unknownType,
+  makeNullable,
+  renderType,
 } from '@omnicajs/graphql-precise-dts'
 ```
 
@@ -41,32 +42,35 @@ type TsType =
   | { kind: TS_TYPE_KIND.UNION; types: TsType[] }
   | { kind: TS_TYPE_KIND.INTERSECTION; types: TsType[] }
   | { kind: TS_TYPE_KIND.GENERIC; name: string; args: TsType[] }
-  | { kind: TS_TYPE_KIND.OBJECT; fields: TsObjectField[] }
+  | { kind: TS_TYPE_KIND.OBJECT; fields: NamedObjectField[] }
   | { kind: TS_TYPE_KIND.TUPLE; items: TsType[] }
   | { kind: TS_TYPE_KIND.LITERAL; value: string | number | boolean }
 
-type TsObjectField = {
-  name: string
+type ObjectFieldConfig = {
   type: TsType
-  optional?: boolean
+  optional: boolean
 }
+
+type NamedObjectField = {
+  name: string
+} & ObjectFieldConfig
 ```
 
 Recommended usage is through helpers instead of manual object construction.
 
 ## Available Operations
 
-- `namedType('Date')` for named references and primitives like `string`, `number`, `boolean`
-- `nullType()` for `null`
-- `unknownType()` for `unknown`
+- `defineNamed('Date')` for named references and primitives like `string`, `number`, `boolean`
+- `defineNull()` for `null`
+- `defineUnknown()` for `unknown`
 - `arrayOf(type)` for `Array<T>`
 - `unionOf(a, b, c)` for `A | B | C`
 - `intersectionOf(a, b, c)` for `A & B & C`
-- `genericType('Record', stringType(), namedType('User'))` for `Record<string, User>`
-- `objectType([{ name: 'id', type: stringType() }])` for object literals
-- `tupleType(stringType(), numberType())` for tuples
-- `literalType('User')`, `literalType(true)`, `literalType(1)` for literal values
-- `makeNullableType(type)` as a convenience wrapper over `unionOf(type, nullType())`
+- `defineGeneric('Record', defineString(), defineNamed('User'))` for `Record<string, User>`
+- `defineObject({ id: defineObjectField(defineString()) })` for object literals
+- `defineTuple(defineString(), defineNumber())` for tuples
+- `defineLiteral('User')`, `defineLiteral(true)`, `defineLiteral(1)` for literal values
+- `makeNullable(type)` as a convenience wrapper over `unionOf(type, defineNull())`
 - `renderType(type)` for debug rendering and tests
 
 ## Config Usage
@@ -76,10 +80,10 @@ Recommended usage is through helpers instead of manual object construction.
 ```ts
 {
   scalars: {
-    DateTime: stringType(),
+    DateTime: defineString(),
     Timestamp: {
-      input: stringType(),
-      output: namedType('Date'),
+      input: defineString(),
+      output: defineNamed('Date'),
     },
   },
 }
@@ -91,7 +95,7 @@ Nullable scalar output:
 {
   scalars: {
     DateTime: {
-      output: unionOf(namedType('Date'), nullType()),
+      output: unionOf(defineNamed('Date'), defineNull()),
     },
   },
 }
@@ -105,7 +109,7 @@ Nullable scalar output:
     opaque: {
       field: {
         effect: 'override-type',
-        type: namedType('OpaqueId'),
+        type: defineNamed('OpaqueId'),
       },
     },
   },
@@ -117,7 +121,7 @@ Nullable scalar output:
 ### Generic
 
 ```ts
-genericType('Record', stringType(), namedType('User'))
+defineGeneric('Record', defineString(), defineNamed('User'))
 ```
 
 Renders as:
@@ -130,8 +134,8 @@ Record<string, User>
 
 ```ts
 intersectionOf(
-  namedType('UserBase'),
-  genericType('Partial', namedType('UserMeta')),
+  defineNamed('UserBase'),
+  defineGeneric('Partial', defineNamed('UserMeta')),
 )
 ```
 
@@ -144,7 +148,7 @@ UserBase & Partial<UserMeta>
 ### Tuple
 
 ```ts
-tupleType(stringType(), nullType(), namedType('User'))
+defineTuple(defineString(), defineNull(), defineNamed('User'))
 ```
 
 Renders as:
@@ -156,10 +160,10 @@ Renders as:
 ### Object
 
 ```ts
-objectType([
-  { name: 'id', type: stringType() },
-  { name: 'active', type: booleanType(), optional: true },
-])
+defineObject({
+  id: defineObjectField(defineString()),
+  active: defineObjectField(defineBoolean(), true),
+})
 ```
 
 Renders as:
@@ -173,6 +177,25 @@ Renders as:
 
 ## Scope of the Model
 
+`ObjectFieldConfig` is the public input helper shape for `defineObject(...)`.
+`NamedObjectField` is the normalized internal object-member representation stored inside `TsType`.
+Both types are exported so consumers can build object-member values either through the provided helpers or manually
+when that is more convenient for their use case.
+
+Example:
+
+```ts
+defineObject({
+  id: defineObjectField(defineString()),
+  profile: defineObjectField(
+    defineObject({
+      displayName: defineObjectField(defineString()),
+    }),
+    true,
+  ),
+})
+```
+
 Only the supported structural operations can be used in config. If a needed TypeScript shape is missing, the model
 should be extended explicitly rather than bypassed with arbitrary strings.
 
@@ -183,8 +206,8 @@ TypeScript type checker for custom type expressions.
 
 The plugin does not validate:
 
-- whether a named type such as `namedType('UserId')` actually exists in your TypeScript environment;
-- whether a generic type such as `genericType('Record', ...)` exists in your project;
+- whether a named type such as `defineNamed('UserId')` actually exists in your TypeScript environment;
+- whether a generic type such as `defineGeneric('Record', ...)` exists in your project;
 - whether the number of generic arguments matches what the target generic expects;
 - whether generic arguments are supplied in a semantically correct order;
 - whether the chosen argument shapes are semantically valid for a given generic;

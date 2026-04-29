@@ -7,22 +7,20 @@ import {
 } from 'vitest'
 
 import {
+    defineNull,
+    defineNamed,
+    defineNumber,
+    defineString,
+} from '../../src'
+import {
     getScalarPrimitiveTypeTs,
     getScalarTsType,
     isScalarCustomKey,
     isScalarPrimitiveKey,
 } from '../../src/scalars/builder'
-import {
-    namedType,
-    nullType,
-    numberType,
-    renderType,
-} from '../../src'
+import { renderType } from '../../src'
 import { resolveCustomScalarTypeTs } from '../../src/scalars/builder'
-import {
-    stringType,
-    unionOf,
-} from '../../src'
+import { unionOf } from '../../src'
 
 describe('converting graphQL scalars to TS types', () => {
     test('resolves built-in scalar artifacts types', () => {
@@ -53,22 +51,22 @@ describe('converting graphQL scalars to TS types', () => {
     })
 
     test('detects only own custom scalar keys', () => {
-        const inheritedScalars = Object.create({ DateTime: namedType('Date') }) as ConfigScalars
-        inheritedScalars.JSON = namedType('JsonValue')
+        const inheritedScalars = Object.create({ DateTime: defineNamed('Date') }) as ConfigScalars
+        inheritedScalars.JSON = defineNamed('JsonValue')
 
         expect(isScalarCustomKey('JSON', inheritedScalars)).toBe(true)
         expect(isScalarCustomKey('DateTime', inheritedScalars)).toBe(false)
     })
 
     test('resolves custom scalars as-is', () => {
-        expect(renderType(resolveCustomScalarTypeTs(namedType('Date')))).toBe('Date')
-        expect(renderType(resolveCustomScalarTypeTs(namedType('UserId'), 'input'))).toBe('UserId')
+        expect(renderType(resolveCustomScalarTypeTs(defineNamed('Date')))).toBe('Date')
+        expect(renderType(resolveCustomScalarTypeTs(defineNamed('UserId'), 'input'))).toBe('UserId')
     })
 
     test('prefers matching custom scalar direction when both input and artifacts exist', () => {
         const scalar = {
-            input: stringType(),
-            output: namedType('Date'),
+            input: defineString(),
+            output: defineNamed('Date'),
         }
 
         expect(renderType(resolveCustomScalarTypeTs(scalar, 'input'))).toBe('string')
@@ -76,8 +74,8 @@ describe('converting graphQL scalars to TS types', () => {
     })
 
     test('returns unknown for missing custom scalar direction in partial config', () => {
-        expect(renderType(resolveCustomScalarTypeTs({ input: stringType() }))).toBe('unknown')
-        expect(renderType(resolveCustomScalarTypeTs({ output: namedType('Date') }, 'input'))).toBe('unknown')
+        expect(renderType(resolveCustomScalarTypeTs({ input: defineString() }))).toBe('unknown')
+        expect(renderType(resolveCustomScalarTypeTs({ output: defineNamed('Date') }, 'input'))).toBe('unknown')
     })
 
     test('returns unknown for empty custom scalar object config', () => {
@@ -86,21 +84,21 @@ describe('converting graphQL scalars to TS types', () => {
 
     test('prefers custom scalar map entries over built-in scalars', () => {
         const customScalars: ConfigScalars = {
-            String: { output: namedType('CustomString') },
-            DateTime: namedType('Date'),
+            String: { output: defineNamed('CustomString') },
+            DateTime: defineNamed('Date'),
         }
 
         expect(renderType(getScalarTsType('String', customScalars))).toBe('CustomString')
         expect(renderType(getScalarTsType('String', customScalars, 'input'))).toBe('unknown')
         expect(renderType(getScalarTsType('DateTime', customScalars))).toBe('Date')
-        expect(getScalarTsType('Int', customScalars)).toEqual(numberType())
+        expect(getScalarTsType('Int', customScalars)).toEqual(defineNumber())
     })
 
     test('resolves custom scalar direction through getScalarTsType', () => {
         const customScalars: ConfigScalars = {
             DateTime: {
-                input: stringType(),
-                output: namedType('Date'),
+                input: defineString(),
+                output: defineNamed('Date'),
             },
         }
 
@@ -111,7 +109,7 @@ describe('converting graphQL scalars to TS types', () => {
     test('returns unknown through getScalarTsType when partial config misses requested direction', () => {
         const customScalars: ConfigScalars = {
             DateTime: {
-                input: stringType(),
+                input: defineString(),
             },
         }
 
@@ -126,7 +124,7 @@ describe('converting graphQL scalars to TS types', () => {
     test('accepts structured scalar config without string parsing', () => {
         const customScalars: ConfigScalars = {
             DateTime: {
-                output: unionOf(namedType('Date'), nullType()),
+                output: unionOf(defineNamed('Date'), defineNull()),
             },
         }
 
