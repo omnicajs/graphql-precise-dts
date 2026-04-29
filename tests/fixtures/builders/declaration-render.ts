@@ -4,14 +4,14 @@ import {
     FieldSelectionModel,
     FieldValue,
     FragmentModel,
-    InputField,
-    InputValue,
     OperationModel,
 } from '../../../src/models/types'
 import type { OperationTypeNode } from 'graphql'
 import type {
     SelectionModel,
     TypeRef,
+    VariableField,
+    VariableValue,
 } from '../../../src/models/types'
 
 import {
@@ -86,11 +86,11 @@ export const objectValue = (
     ...(typeNames && { typeNames }),
 })
 
-export const inputObjectValue = (
-    fields: InputField[],
+export const variableObjectValue = (
+    fields: VariableField[],
     typeName?: string,
     isRecursiveReference = false
-): Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
+): Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
     kind: VALUE_MODEL_KIND.OBJECT,
     fields,
     ...(typeName && { typeName }),
@@ -115,13 +115,13 @@ export const fragment = (
     },
 })
 
-export const inputField = (
+export const variableField = (
     name: string,
-    value: InputValue,
+    value: VariableValue,
     nullable = true,
     isList = false,
     optional = nullable
-): InputField => ({
+): VariableField => ({
     name,
     typeRef: isList ? listType(nullable) : namedType(nullable),
     optional,
@@ -131,7 +131,7 @@ export const inputField = (
 export const operation = (
     operationType: OperationTypeNode,
     result: SelectionModel[],
-    variables: InputField[] = [],
+    variables: VariableField[] = [],
     onType = 'Query'
 ): OperationModel => ({
     operationType,

@@ -8,16 +8,14 @@ import type {
     GraphQLAbstractType,
     GraphQLInputType,
 } from 'graphql'
-import type {
-    InputField,
-    ModelContext,
-} from './types'
+import type { ModelContext } from './types'
 import type { OperationDefinitionNode } from 'graphql'
 import type { OperationModel } from './types'
 import type { Schema } from '../config'
 import type { SelectionNode } from 'graphql'
 import type { TypeSelectionNode } from './selection'
 import type { VariableDefinitionNode } from 'graphql'
+import type { VariableField } from './types'
 
 import { TypeInfo } from 'graphql'
 
@@ -29,10 +27,10 @@ import {
 import { getTypeForDefinition } from './resolve'
 import { isNullableType } from 'graphql'
 import { isUndefined } from '../lib/predicates'
-import { makeInputValue } from './value-models-builder'
 import { makeSelectionModels } from './selections-builder'
+import { makeTypeRefForVariable } from './resolve'
+import { makeVariableValue } from './value-models-builder'
 import {
-    makeTypeRefForInput,
     shouldBuildTypeSelectionUnion,
     specializeTypeNameSelectionForConcreteType,
 } from './resolve'
@@ -114,11 +112,11 @@ const makeOperationVariable = (
     type: GraphQLInputType,
     customScalars: ConfigScalars,
     hasDefaultValue = false
-): InputField => ({
+): VariableField => ({
     name: variableName,
-    typeRef: makeTypeRefForInput(type),
+    typeRef: makeTypeRefForVariable(type),
     optional: isNullableType(type) || hasDefaultValue,
-    value: makeInputValue(type, customScalars),
+    value: makeVariableValue(type, customScalars),
 })
 
 const getRootTypeForOperation = (

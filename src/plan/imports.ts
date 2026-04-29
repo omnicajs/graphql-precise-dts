@@ -7,9 +7,11 @@ import type {
     GraphQLInputType,
     GraphQLOutputType,
 } from 'graphql'
-import type { InputValue } from '../models/types'
 import type { Schema } from '../config'
-import type { SelectionModel } from '../models/types'
+import type {
+    SelectionModel,
+    VariableValue,
+} from '../models/types'
 
 import { TypeInfo } from 'graphql'
 
@@ -158,9 +160,9 @@ const visitSelectionModel = (
     }
 }
 
-const visitInputValueImports = (
+const visitVariableValueImports = (
     collector: DocumentImportCollector,
-    value: InputValue
+    value: VariableValue
 ) => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.ENUM: {
@@ -171,7 +173,7 @@ const visitInputValueImports = (
             return
         }
         case VALUE_MODEL_KIND.OBJECT:
-            value.fields.forEach(field => visitInputValueImports(collector, field.value))
+            value.fields.forEach(field => visitVariableValueImports(collector, field.value))
             return
     }
 }
@@ -200,7 +202,7 @@ export const collectImportsForDocumentModels = (
     fragments.forEach(fragment => visitFragmentImports(collector, fragment))
 
     operations.forEach(({ variables, result }) => {
-        variables.forEach(variable => visitInputValueImports(collector, variable.value))
+        variables.forEach(variable => visitVariableValueImports(collector, variable.value))
         visitSelectionModels(collector, result)
     })
 

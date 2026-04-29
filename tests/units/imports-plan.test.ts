@@ -11,14 +11,16 @@ import {
     enumValue,
     field,
     fragment,
-    inputField,
-    inputObjectValue,
 } from '../fixtures/builders/declaration-render'
 import { makeImportMap } from '../../src/plan/imports'
-import { parse } from 'graphql'
 import {
     objectValue,
     operation,
+} from '../fixtures/builders/declaration-render'
+import { parse } from 'graphql'
+import {
+    variableField,
+    variableObjectValue,
 } from '../fixtures/builders/declaration-render'
 
 import { FRAGMENT_ROOT_KIND } from '../../src/models/kinds'
@@ -96,8 +98,8 @@ describe('imports plan', () => {
                     OperationTypeNode.QUERY,
                     [],
                     [
-                        inputField('filter', inputObjectValue([
-                            inputField('status', {
+                        variableField('filter', variableObjectValue([
+                            variableField('status', {
                                 kind: VALUE_MODEL_KIND.ENUM,
                                 name: 'UserStatus',
                             }),
@@ -132,7 +134,7 @@ describe('imports plan', () => {
                     OperationTypeNode.QUERY,
                     [],
                     [
-                        inputField('status', {
+                        variableField('status', {
                             kind: VALUE_MODEL_KIND.ENUM,
                             name: 'UserStatus',
                         }),

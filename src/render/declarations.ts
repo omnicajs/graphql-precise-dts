@@ -1,20 +1,20 @@
 import type {
     DocumentFieldValue,
     DocumentFragmentModel,
-    DocumentInputField,
-    DocumentInputValue,
 } from '../plan/document-models-types'
 import type { DocumentModelBundle } from '../plan/document-model-bundles'
 import type {
     DocumentModels,
     DocumentOperationModel,
     DocumentSelectionModel,
+    DocumentVariableField,
+    DocumentVariableValue,
 } from '../plan/document-models-types'
 import type { TsType } from '../ts-type'
 import type { TypeRef } from '../models/types'
 
-import { getInputObjectAliasName } from '../plan/document-models'
 import { getOperationTypeName } from '../lib/operation-name'
+import { getVariableObjectAliasName } from '../plan/document-models'
 import {
     hasAliasedRootTypenameSelection,
     hasRootSpreadWithSameTypeNames,
@@ -245,9 +245,9 @@ const renderFragmentRoot = (
         dedupeTypenameWithAlias: (fragment.onTypeNames ?? [ fragment.onType ]).length === 1,
     })
 
-const renderInputValue = (
-    value: DocumentInputValue,
-    aliasedInputObjectTypeNames: Set<string>
+const renderVariableValue = (
+    value: DocumentVariableValue,
+    aliasedVariableObjectTypeNames: Set<string>
 ): RenderableTypeValue => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.SCALAR:
@@ -258,17 +258,17 @@ const renderInputValue = (
             if (value.renderAsReference && value.renderAliasName) {
                 return value.renderAliasName
             }
-            if (value.typeName && aliasedInputObjectTypeNames.has(value.typeName)) {
-                return getInputObjectAliasName(value.typeName)
+            if (value.typeName && aliasedVariableObjectTypeNames.has(value.typeName)) {
+                return getVariableObjectAliasName(value.typeName)
             }
-            return renderInputObject(value.fields, aliasedInputObjectTypeNames)
+            return renderVariableObject(value.fields, aliasedVariableObjectTypeNames)
         default:
-            console.warn('Unknown input type')
+            console.warn('Unknown variable type')
             return 'unknown'
     }
 }
 
-const renderInputObject = (fields: DocumentInputField[], aliasedInputObjectTypeNames: Set<string>): string => {
+const renderVariableObject = (fields: DocumentVariableField[], aliasedVariableObjectTypeNames: Set<string>): string => {
     if (!fields.length) return '{ [key: string]: never }'
 
     return [
@@ -278,7 +278,7 @@ const renderInputObject = (fields: DocumentInputField[], aliasedInputObjectTypeN
                 field.name,
                 renderNullableTypeRef(
                     field.typeRef,
-                    renderInputValue(field.value, aliasedInputObjectTypeNames)
+                    renderVariableValue(field.value, aliasedVariableObjectTypeNames)
                 ),
                 field.optional
             )}`)
@@ -290,12 +290,12 @@ const renderInputObject = (fields: DocumentInputField[], aliasedInputObjectTypeN
 const renderOperationDeclaration = (
     operationName: string,
     operation: DocumentOperationModel,
-    aliasedInputObjectTypeNames: Set<string>
+    aliasedVariableObjectTypeNames: Set<string>
 ): string => {
     const exportName = uncapitalize(operationName)
     const variablesType = operation.variables.length > 0
-        ? `Exact<${renderInputObject(operation.variables, aliasedInputObjectTypeNames)}>`
-        : renderInputObject(operation.variables, aliasedInputObjectTypeNames)
+        ? `Exact<${renderVariableObject(operation.variables, aliasedVariableObjectTypeNames)}>`
+        : renderVariableObject(operation.variables, aliasedVariableObjectTypeNames)
 
     return [
         `export type ${operationName}Variables = ${variablesType}`,
@@ -329,12 +329,12 @@ export const renderDeclaration = (
         declarationRowsBlocks.push(typesBlock.join('\n'))
     }
 
-    const aliasedInputObjectTypeNames = new Set(models.inputAliases.map(alias => alias.typeName))
+    const aliasedVariableObjectTypeNames = new Set(models.variableAliases.map(alias => alias.typeName))
 
-    models.inputAliases.forEach(({ aliasName, fields }) => {
-        declarationRowsBlocks.push(indent(`export type ${aliasName} = ${renderInputObject(
+    models.variableAliases.forEach(({ aliasName, fields }) => {
+        declarationRowsBlocks.push(indent(`export type ${aliasName} = ${renderVariableObject(
             fields,
-            aliasedInputObjectTypeNames
+            aliasedVariableObjectTypeNames
         )}`))
     })
 
@@ -355,7 +355,7 @@ export const renderDeclaration = (
             renderOperationDeclaration(
                 getOperationTypeName(key, operation.operationType),
                 operation,
-                aliasedInputObjectTypeNames
+                aliasedVariableObjectTypeNames
             )
         )
     }

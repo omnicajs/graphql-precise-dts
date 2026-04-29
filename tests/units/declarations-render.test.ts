@@ -19,8 +19,6 @@ import {
     enumValue,
     field,
     fragment,
-    inputField,
-    inputObjectValue,
     namedType,
 } from '../fixtures/builders/declaration-render'
 import {
@@ -31,7 +29,11 @@ import { renderDeclaration as renderPreparedDeclaration } from '../../src/render
 import { scalar } from '../fixtures/builders/declaration-render'
 import { typenameValue } from '../fixtures/builders/declaration-render'
 import { unionOf } from '../../src'
-import { unionValue } from '../fixtures/builders/declaration-render'
+import {
+    unionValue,
+    variableField,
+    variableObjectValue,
+} from '../fixtures/builders/declaration-render'
 
 import { FRAGMENT_ROOT_KIND } from '../../src/models/kinds'
 import { OperationTypeNode } from 'graphql'
@@ -117,12 +119,12 @@ describe('declaration render', () => {
                                 ])),
                             ],
                             [
-                                inputField('id', {
+                                variableField('id', {
                                     kind: VALUE_MODEL_KIND.SCALAR,
                                     typeTs: defineString(),
                                 }, false),
-                                inputField('filter', inputObjectValue([
-                                    inputField('status', {
+                                variableField('filter', variableObjectValue([
+                                    variableField('status', {
                                         kind: VALUE_MODEL_KIND.ENUM,
                                         name: 'UserStatus',
                                     }),
@@ -171,25 +173,25 @@ describe('declaration render', () => {
                             OperationTypeNode.MUTATION,
                             [],
                             [
-                                inputField('input', inputObjectValue([
-                                    inputField('name', {
+                                variableField('input', variableObjectValue([
+                                    variableField('name', {
                                         kind: VALUE_MODEL_KIND.SCALAR,
                                         typeTs: defineString(),
                                     }, false, false, false),
-                                    inputField('nickname', {
+                                    variableField('nickname', {
                                         kind: VALUE_MODEL_KIND.SCALAR,
                                         typeTs: defineString(),
                                     }, true, false, true),
-                                    inputField('locale', {
+                                    variableField('locale', {
                                         kind: VALUE_MODEL_KIND.SCALAR,
                                         typeTs: defineString(),
                                     }, true, false, false),
-                                    inputField('token', {
+                                    variableField('token', {
                                         kind: VALUE_MODEL_KIND.SCALAR,
                                         typeTs: defineString(),
                                     }, false, false, true),
                                 ]), false, false, false),
-                                inputField('traceId', {
+                                variableField('traceId', {
                                     kind: VALUE_MODEL_KIND.SCALAR,
                                     typeTs: defineString(),
                                 }, true, false, true),
@@ -236,12 +238,12 @@ describe('declaration render', () => {
         })
 
         test('renders recursive input object variables through named aliases', () => {
-            const treeInput = inputObjectValue([
-                inputField('value', {
+            const treeInput = variableObjectValue([
+                variableField('value', {
                     kind: VALUE_MODEL_KIND.SCALAR,
                     typeTs: defineString(),
                 }),
-                inputField('children', inputObjectValue([], 'TreeInput', true), true, true),
+                variableField('children', variableObjectValue([], 'TreeInput', true), true, true),
             ], 'TreeInput')
 
             const result = renderDeclaration(
@@ -252,7 +254,7 @@ describe('declaration render', () => {
                         ['CreateTree', operation(
                             OperationTypeNode.MUTATION,
                             [],
-                            [ inputField('input', treeInput, false, false, false) ],
+                            [ variableField('input', treeInput, false, false, false) ],
                             'Mutation'
                         )],
                     ])
