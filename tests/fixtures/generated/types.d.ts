@@ -48,12 +48,12 @@ declare module '~tests/fixtures/documents/mutations/addGroup.graphql' {
 		};
 	}>
 
-	export type AddGroupMutation = {
+	export type AddGroupMutationPayload = {
 		__typename?: 'Mutation';
 		addGroup: GroupDetails;
 	}
 
-	export const addGroupMutation: TypedDocumentNode<AddGroupMutation, AddGroupMutationVariables>
+	export const addGroupMutation: TypedDocumentNode<AddGroupMutationPayload, AddGroupMutationVariables>
 
 	export default addGroupMutation
 }
@@ -69,12 +69,12 @@ declare module '~tests/fixtures/documents/mutations/changeOwner.graphql' {
 		};
 	}>
 
-	export type ChangeOwnerMutation = {
+	export type ChangeOwnerMutationPayload = {
 		__typename?: 'Mutation';
 		changeOwner: UserWithGroups;
 	}
 
-	export const changeOwnerMutation: TypedDocumentNode<ChangeOwnerMutation, ChangeOwnerMutationVariables>
+	export const changeOwnerMutation: TypedDocumentNode<ChangeOwnerMutationPayload, ChangeOwnerMutationVariables>
 
 	export default changeOwnerMutation
 }
@@ -93,12 +93,12 @@ declare module '~tests/fixtures/documents/mutations/createUser.graphql' {
 		};
 	}>
 
-	export type CreateUserMutation = {
+	export type CreateUserMutationPayload = {
 		__typename?: 'Mutation';
 		createUser: UserWithGroups;
 	}
 
-	export const createUserMutation: TypedDocumentNode<CreateUserMutation, CreateUserMutationVariables>
+	export const createUserMutation: TypedDocumentNode<CreateUserMutationPayload, CreateUserMutationVariables>
 
 	export default createUserMutation
 }
@@ -110,7 +110,7 @@ declare module '~tests/fixtures/documents/mutations/removeGroup.graphql' {
 		id: string;
 	}>
 
-	export type RemoveGroupMutation = {
+	export type RemoveGroupMutationPayload = {
 		__typename?: 'Mutation';
 		removeGroup: {
 			__typename?: 'RemoveGroupPayload';
@@ -118,7 +118,7 @@ declare module '~tests/fixtures/documents/mutations/removeGroup.graphql' {
 		};
 	}
 
-	export const removeGroupMutation: TypedDocumentNode<RemoveGroupMutation, RemoveGroupMutationVariables>
+	export const removeGroupMutation: TypedDocumentNode<RemoveGroupMutationPayload, RemoveGroupMutationVariables>
 
 	export default removeGroupMutation
 }
@@ -132,12 +132,12 @@ declare module '~tests/fixtures/documents/queries/groupMembers.graphql' {
 		groudId: string;
 	}>
 
-	export type GroupMembersQuery = {
+	export type GroupMembersQueryPayload = {
 		__typename?: 'Query';
 		groupMembers: Array<UserDetails>;
 	}
 
-	export const groupMembersQuery: TypedDocumentNode<GroupMembersQuery, GroupMembersQueryVariables>
+	export const groupMembersQuery: TypedDocumentNode<GroupMembersQueryPayload, GroupMembersQueryVariables>
 
 	export default groupMembersQuery
 }
@@ -151,12 +151,12 @@ declare module '~tests/fixtures/documents/queries/ownerGroup.graphql' {
 		id: string;
 	}>
 
-	export type OwnerGroupQuery = {
+	export type OwnerGroupQueryPayload = {
 		__typename?: 'Query';
 		ownerGroup: UserWithGroups | null;
 	}
 
-	export const ownerGroupQuery: TypedDocumentNode<OwnerGroupQuery, OwnerGroupQueryVariables>
+	export const ownerGroupQuery: TypedDocumentNode<OwnerGroupQueryPayload, OwnerGroupQueryVariables>
 
 	export default ownerGroupQuery
 }
@@ -170,12 +170,12 @@ declare module '~tests/fixtures/documents/queries/user.graphql' {
 		id: string;
 	}>
 
-	export type UserQuery = {
+	export type UserQueryPayload = {
 		__typename?: 'Query';
 		user: UserWithGroups | null;
 	}
 
-	export const userQuery: TypedDocumentNode<UserQuery, UserQueryVariables>
+	export const userQuery: TypedDocumentNode<UserQueryPayload, UserQueryVariables>
 
 	export default userQuery
 }
@@ -189,12 +189,12 @@ declare module '~tests/fixtures/documents/queries/userGroups.graphql' {
 		id: string;
 	}>
 
-	export type UserGroupsQuery = {
+	export type UserGroupsQueryPayload = {
 		__typename?: 'Query';
 		userGroups: Array<GroupDetails>;
 	}
 
-	export const userGroupsQuery: TypedDocumentNode<UserGroupsQuery, UserGroupsQueryVariables>
+	export const userGroupsQuery: TypedDocumentNode<UserGroupsQueryPayload, UserGroupsQueryVariables>
 
 	export default userGroupsQuery
 }
@@ -210,12 +210,12 @@ declare module '~tests/fixtures/documents/queries/users.graphql' {
 		} | null;
 	}>
 
-	export type UsersQuery = {
+	export type UsersQueryPayload = {
 		__typename?: 'Query';
 		users: Array<UserWithGroups>;
 	}
 
-	export const usersQuery: TypedDocumentNode<UsersQuery, UsersQueryVariables>
+	export const usersQuery: TypedDocumentNode<UsersQueryPayload, UsersQueryVariables>
 
 	export default usersQuery
 }
@@ -229,14 +229,14 @@ declare module '~tests/fixtures/documents/subscriptions/ownerGroupChanged.graphq
 		groupId: string;
 	}>
 
-	export type OwnerGroupChangedSubscription = {
+	export type OwnerGroupChangedSubscriptionPayload = {
 		__typename?: 'Subscription';
 		ownerGroupChanged: {
 			changedAt: string;
 		} & GroupDetails;
 	}
 
-	export const ownerGroupChangedSubscription: TypedDocumentNode<OwnerGroupChangedSubscription, OwnerGroupChangedSubscriptionVariables>
+	export const ownerGroupChangedSubscription: TypedDocumentNode<OwnerGroupChangedSubscriptionPayload, OwnerGroupChangedSubscriptionVariables>
 
 	export default ownerGroupChangedSubscription
 }
@@ -248,14 +248,14 @@ declare module '~tests/fixtures/documents/subscriptions/userCreated.graphql' {
 
 	export type UserCreatedSubscriptionVariables = { [key: string]: never }
 
-	export type UserCreatedSubscription = {
+	export type UserCreatedSubscriptionPayload = {
 		__typename?: 'Subscription';
 		userCreated: {
 			createdAt: string;
 		} & UserWithGroups;
 	}
 
-	export const userCreatedSubscription: TypedDocumentNode<UserCreatedSubscription, UserCreatedSubscriptionVariables>
+	export const userCreatedSubscription: TypedDocumentNode<UserCreatedSubscriptionPayload, UserCreatedSubscriptionVariables>
 
 	export default userCreatedSubscription
 }
