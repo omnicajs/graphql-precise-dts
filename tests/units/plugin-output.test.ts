@@ -614,7 +614,10 @@ describe('plugin directive handling', () => {
                 `\t\t\t__typename?: 'UserPayload' | 'AdminPayload';`,
                 `\t\t\tid: string;`,
                 `\t\t};`,
-                `\t}\n`,
+                `\t}`,
+            ].join('\n'))
+
+            expect(result.content).toContain([
                 `\texport type GroupOwnerQueryQuery = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tgroup: GroupOwner;`,
@@ -1521,14 +1524,17 @@ describe('plugin multi-definition documents', () => {
 
             expect(result.content).toContain([
                 `declare module '~tests/users.graphql' {`,
-                `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'\n`,
+                `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'`,
+            ].join('\n'))
+
+            expect(result.content).toContain([
                 `\texport type UserByIdQuery = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: {`,
                 `\t\t\t__typename?: 'User';`,
                 `\t\t\tid: string;`,
                 `\t\t} | null;`,
-                `\t}\n`,
+                `\t}`,
             ].join('\n'))
 
             expect(result.content).toContain([
