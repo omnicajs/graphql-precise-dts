@@ -299,10 +299,10 @@ const renderOperationDeclaration = (
 
     return [
         `export type ${operationName}Variables = ${variablesType}`,
-        `export type ${operationName} = ${renderObjectSelections(operation.result, [ operation.onType ], {
+        `export type ${operationName}Payload = ${renderObjectSelections(operation.result, [ operation.onType ], {
             dedupeTypenameWithAlias: true,
         })}`,
-        `export const ${exportName}: TypedDocumentNode<${operationName}, ${operationName}Variables>`,
+        `export const ${exportName}: TypedDocumentNode<${operationName}Payload, ${operationName}Variables>`,
         `export default ${exportName}`,
     ].map(block => indent(block)).join('\n\n')
 }

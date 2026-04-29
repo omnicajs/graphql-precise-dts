@@ -618,7 +618,7 @@ describe('plugin directive handling', () => {
             ].join('\n'))
 
             expect(result.content).toContain([
-                `\texport type GroupOwnerQueryQuery = {`,
+                `\texport type GroupOwnerQueryQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tgroup: GroupOwner;`,
                 `\t}`,
@@ -1157,7 +1157,7 @@ describe('plugin __typename support', () => {
                 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n',
             ])
             expect(result.content).toContain([
-                `\texport type UserQueryQuery = {`,
+                `\texport type UserQueryQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: {`,
                 `\t\t\t__typename?: 'User';`,
@@ -1170,7 +1170,7 @@ describe('plugin __typename support', () => {
                 `\t\tid: string;`,
                 `\t}>`,
             ].join('\n'))
-            expect(result.content).toContain(`\texport const userQueryQuery: TypedDocumentNode<UserQueryQuery, UserQueryQueryVariables>`)
+            expect(result.content).toContain(`\texport const userQueryQuery: TypedDocumentNode<UserQueryQueryPayload, UserQueryQueryVariables>`)
             expect(result.content).toContain(`\texport default userQueryQuery`)
         })
     })
@@ -1421,7 +1421,7 @@ describe('plugin operation output', () => {
             )
 
             expect(result.content).toContain([
-                `\texport type GroupUpdatedSubscription = {`,
+                `\texport type GroupUpdatedSubscriptionPayload = {`,
                 `\t\t__typename?: 'Subscription';`,
                 `\t\tgroupUpdated: {`,
                 `\t\t\t__typename?: 'Group';`,
@@ -1430,7 +1430,7 @@ describe('plugin operation output', () => {
                 `\t}`,
             ].join('\n'))
             expect(result.content).toContain(
-                `\texport const groupUpdatedSubscription: TypedDocumentNode<GroupUpdatedSubscription, GroupUpdatedSubscriptionVariables>`
+                `\texport const groupUpdatedSubscription: TypedDocumentNode<GroupUpdatedSubscriptionPayload, GroupUpdatedSubscriptionVariables>`
             )
             expect(result.content).toContain(`\texport default groupUpdatedSubscription`)
         })
@@ -1528,7 +1528,7 @@ describe('plugin multi-definition documents', () => {
             ].join('\n'))
 
             expect(result.content).toContain([
-                `\texport type UserByIdQuery = {`,
+                `\texport type UserByIdQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: {`,
                 `\t\t\t__typename?: 'User';`,
@@ -1538,7 +1538,7 @@ describe('plugin multi-definition documents', () => {
             ].join('\n'))
 
             expect(result.content).toContain([
-                `\texport type UsersListQuery = {`,
+                `\texport type UsersListQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tusers: Array<{`,
                 `\t\t\t__typename?: 'User';`,
@@ -1594,7 +1594,7 @@ describe('plugin multi-definition documents', () => {
                 `\t}`,
             ].join('\n'))
             expect(result.content).toContain([
-                `\texport type UserQueryQuery = {`,
+                `\texport type UserQueryQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: UserFields | null;`,
                 `\t}`,

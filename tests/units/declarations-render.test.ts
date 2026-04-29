@@ -138,7 +138,7 @@ describe('declaration render', () => {
             )
 
             expect(result).toContain([
-                `\texport type GetUserQueryQuery = {`,
+                `\texport type GetUserQueryQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: {`,
                 `\t\t\tid: string;`,
@@ -154,7 +154,7 @@ describe('declaration render', () => {
                 `\t}>`,
             ].join('\n'))
             expect(result).toContain([
-                `\texport const getUserQueryQuery: TypedDocumentNode<GetUserQueryQuery, GetUserQueryQueryVariables>`,
+                `\texport const getUserQueryQuery: TypedDocumentNode<GetUserQueryQueryPayload, GetUserQueryQueryVariables>`,
             ].join('\n'))
             expect(result).toContain([
                 `\texport default getUserQueryQuery`,

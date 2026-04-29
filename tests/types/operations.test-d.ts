@@ -5,49 +5,49 @@ import type { UserDetails as UserDetailsFragment } from '~tests/fixtures/documen
 import type { UserWithGroups as UserWithGroupsFragment } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
 
 import type {
-    GroupMembersQuery,
+    GroupMembersQueryPayload,
     GroupMembersQueryVariables,
 } from '~tests/fixtures/documents/queries/groupMembers.graphql'
 import type {
-    OwnerGroupQuery,
+    OwnerGroupQueryPayload,
     OwnerGroupQueryVariables,
 } from '~tests/fixtures/documents/queries/ownerGroup.graphql'
 import type {
-    UserQuery,
+    UserQueryPayload,
     UserQueryVariables,
 } from '~tests/fixtures/documents/queries/user.graphql'
 import type {
-    UserGroupsQuery,
+    UserGroupsQueryPayload,
     UserGroupsQueryVariables,
 } from '~tests/fixtures/documents/queries/userGroups.graphql'
 import type {
-    UsersQuery,
+    UsersQueryPayload,
     UsersQueryVariables,
 } from '~tests/fixtures/documents/queries/users.graphql'
 
 import type {
-    AddGroupMutation,
+    AddGroupMutationPayload,
     AddGroupMutationVariables,
 } from '~tests/fixtures/documents/mutations/addGroup.graphql'
 import type {
-    ChangeOwnerMutation,
+    ChangeOwnerMutationPayload,
     ChangeOwnerMutationVariables,
 } from '~tests/fixtures/documents/mutations/changeOwner.graphql'
 import type {
-    CreateUserMutation,
+    CreateUserMutationPayload,
     CreateUserMutationVariables,
 } from '~tests/fixtures/documents/mutations/createUser.graphql'
 import type {
-    RemoveGroupMutation,
+    RemoveGroupMutationPayload,
     RemoveGroupMutationVariables,
 } from '~tests/fixtures/documents/mutations/removeGroup.graphql'
 
 import type {
-    OwnerGroupChangedSubscription,
+    OwnerGroupChangedSubscriptionPayload,
     OwnerGroupChangedSubscriptionVariables,
 } from '~tests/fixtures/documents/subscriptions/ownerGroupChanged.graphql'
 import type {
-    UserCreatedSubscription,
+    UserCreatedSubscriptionPayload,
     UserCreatedSubscriptionVariables,
 } from '~tests/fixtures/documents/subscriptions/userCreated.graphql'
 
@@ -140,7 +140,7 @@ describe('fragments', () => {
                 variables: { id: '1' },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<UserGroupsQuery>()
+            expectTypeOf(data!).toEqualTypeOf<UserGroupsQueryPayload>()
             data!.userGroups!.map(g => {
                 expectTypeOf(g).toEqualTypeOf<GroupDetailsFragment>()
 
@@ -186,7 +186,7 @@ describe('queries', () => {
                 variables: { id: '1' },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<OwnerGroupQuery>()
+            expectTypeOf(data!).toEqualTypeOf<OwnerGroupQueryPayload>()
         })
 
         test('variables', () => {
@@ -203,7 +203,7 @@ describe('queries', () => {
                 variables: { id: '1' },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<UserQuery>()
+            expectTypeOf(data!).toEqualTypeOf<UserQueryPayload>()
         })
 
         test('variables', () => {
@@ -223,7 +223,7 @@ describe('queries', () => {
                 variables,
             })
 
-            expectTypeOf(data!).toEqualTypeOf<UsersQuery>()
+            expectTypeOf(data!).toEqualTypeOf<UsersQueryPayload>()
         })
 
         test('variables', () => {
@@ -240,7 +240,7 @@ describe('queries', () => {
                 variables: { id: '1' },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<UserGroupsQuery>()
+            expectTypeOf(data!).toEqualTypeOf<UserGroupsQueryPayload>()
         })
 
         test('variables', () => {
@@ -257,7 +257,7 @@ describe('queries', () => {
                 variables: { groudId: '1' },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<GroupMembersQuery>()
+            expectTypeOf(data!).toEqualTypeOf<GroupMembersQueryPayload>()
         })
 
         test('variables', () => {
@@ -281,7 +281,7 @@ describe('mutations', () => {
                 },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<AddGroupMutation>()
+            expectTypeOf(data!).toEqualTypeOf<AddGroupMutationPayload>()
         })
 
         test('variables', () => {
@@ -305,7 +305,7 @@ describe('mutations', () => {
                 },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<ChangeOwnerMutation>()
+            expectTypeOf(data!).toEqualTypeOf<ChangeOwnerMutationPayload>()
         })
 
         test('variables', () => {
@@ -330,7 +330,7 @@ describe('mutations', () => {
                 },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<CreateUserMutation>()
+            expectTypeOf(data!).toEqualTypeOf<CreateUserMutationPayload>()
         })
 
         test('variables', () => {
@@ -352,7 +352,7 @@ describe('mutations', () => {
                 variables: { id: '1' },
             })
 
-            expectTypeOf(data!).toEqualTypeOf<RemoveGroupMutation>()
+            expectTypeOf(data!).toEqualTypeOf<RemoveGroupMutationPayload>()
         })
 
         test('variables', () => {
@@ -372,7 +372,7 @@ describe('subscriptions', () => {
             })
 
             observable.subscribe(({ data }) => {
-                expectTypeOf(data!).toEqualTypeOf<OwnerGroupChangedSubscription>()
+                expectTypeOf(data!).toEqualTypeOf<OwnerGroupChangedSubscriptionPayload>()
             })
         })
 
@@ -390,7 +390,7 @@ describe('subscriptions', () => {
             })
 
             observable.subscribe(({ data }) => {
-                expectTypeOf(data!).toEqualTypeOf<UserCreatedSubscription>()
+                expectTypeOf(data!).toEqualTypeOf<UserCreatedSubscriptionPayload>()
             })
         })
 
