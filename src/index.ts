@@ -88,24 +88,29 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
 }
 
 export type { DirectivePolicy, PluginConfig } from './config'
-export type { TsObjectField, TsType } from './ts-type'
+export type {
+    NamedObjectField,
+    ObjectFieldConfig,
+    TsType,
+} from './ts-type'
 
 export {
     arrayOf,
-    booleanType,
-    genericType,
+    defineBoolean,
+    defineGeneric,
+    defineLiteral,
+    defineNamed,
+    defineNull,
+    defineNumber,
+    defineObject,
+    defineObjectField,
+    defineString,
+    defineTuple,
+    defineUnknown,
     intersectionOf,
-    literalType,
-    makeNullableType,
-    namedType,
-    nullType,
-    numberType,
-    objectType,
-    renderType,
-    stringType,
-    tupleType,
     unionOf,
-    unknownType,
+    makeNullable,
+    renderType,
 } from './ts-type'
 
 export { TS_TYPE_KIND } from './ts-type'

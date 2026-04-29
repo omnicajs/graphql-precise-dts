@@ -6,74 +6,75 @@ import {
 
 import {
     arrayOf,
-    booleanType,
-    genericType,
+    defineBoolean,
+    defineGeneric,
+    defineLiteral,
+    defineNamed,
+    defineNull,
+    defineNumber,
+    defineObject,
+    defineObjectField,
+    defineString,
+    defineTuple,
+    defineUnknown,
     intersectionOf,
     isSameTsType,
-    literalType,
-    makeNullableType,
-    namedType,
+    makeNullable,
     normalizeTsType,
-    nullType,
-    numberType,
-    objectType,
     renderType,
-    stringType,
-    tupleType,
     unionOf,
-    unknownType,
 } from '../../src/ts-type'
 
 import { TS_TYPE_KIND } from '../../src'
 
 describe('ts type', () => {
     test('renders generic, intersection and tuple types', () => {
-        expect(renderType(genericType('Record', namedType('string'), namedType('User'))))
+        expect(renderType(defineGeneric('Record', defineNamed('string'), defineNamed('User'))))
             .toBe('Record<string, User>')
-        expect(renderType(intersectionOf(namedType('UserBase'), genericType('Partial', namedType('UserMeta')))))
+        expect(renderType(intersectionOf(defineNamed('UserBase'), defineGeneric('Partial', defineNamed('UserMeta')))))
             .toBe('UserBase & Partial<UserMeta>')
-        expect(renderType(tupleType(namedType('string'), nullType(), namedType('User'))))
+        expect(renderType(defineTuple(defineNamed('string'), defineNull(), defineNamed('User'))))
             .toBe('[string, null, User]')
     })
 
     test('renders arrays, objects and literals', () => {
-        expect(renderType(arrayOf(stringType()))).toBe('Array<string>')
-        expect(renderType(objectType([
-            { name: 'id', type: stringType() },
-            { name: 'age', type: numberType(), optional: true },
-            { name: 'flags', type: arrayOf(booleanType()) },
-        ]))).toBe([
+        expect(renderType(arrayOf(defineString()))).toBe('Array<string>')
+        expect(renderType(defineObject({
+            id: defineObjectField(defineString()),
+            age: defineObjectField(defineNumber(), true),
+            flags: defineObjectField(arrayOf(defineBoolean())),
+        }))).toBe([
             '{',
             '\tid: string;',
             '\tage?: number;',
             '\tflags: Array<boolean>;',
             '}',
         ].join('\n'))
-        expect(renderType(literalType('user'))).toBe('\'user\'')
-        expect(renderType(literalType(7))).toBe('7')
-        expect(renderType(literalType(false))).toBe('false')
+        expect(renderType(defineLiteral('user'))).toBe('\'user\'')
+        expect(renderType(defineLiteral(7))).toBe('7')
+        expect(renderType(defineLiteral(false))).toBe('false')
     })
 
     test('renders parentheses when union and intersection precedence would change meaning', () => {
         expect(renderType(unionOf(
-            namedType('User'),
-            intersectionOf(namedType('Node'), namedType('AuditFields'))
+            defineNamed('User'),
+            intersectionOf(defineNamed('Node'), defineNamed('AuditFields'))
         ))).toBe('User | Node & AuditFields')
 
         expect(renderType(intersectionOf(
-            namedType('User'),
-            unionOf(namedType('Node'), namedType('AuditFields'))
+            defineNamed('User'),
+            unionOf(defineNamed('Node'), defineNamed('AuditFields'))
         ))).toBe('User & (Node | AuditFields)')
     })
 
     test('creates primitive and nullable aliases consistently', () => {
-        expect(stringType()).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'string' })
-        expect(numberType()).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'number' })
-        expect(booleanType()).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'boolean' })
-        expect(unknownType()).toEqual({ kind: TS_TYPE_KIND.UNKNOWN })
-        expect(namedType('unknown')).toEqual({ kind: TS_TYPE_KIND.UNKNOWN })
-        expect(renderType(unknownType())).toBe('unknown')
-        expect(makeNullableType(stringType())).toEqual({
+        expect(defineString()).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'string' })
+        expect(defineNumber()).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'number' })
+        expect(defineBoolean()).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'boolean' })
+        expect(defineUnknown()).toEqual({ kind: TS_TYPE_KIND.UNKNOWN })
+        expect(defineNamed('unknown')).toEqual({ kind: TS_TYPE_KIND.UNKNOWN })
+        expect(renderType(defineUnknown())).toBe('unknown')
+        expect(makeNullable(defineString())).toEqual({
             kind: TS_TYPE_KIND.UNION,
             types: [
                 { kind: TS_TYPE_KIND.NAMED, name: 'string' },
@@ -83,7 +84,7 @@ describe('ts type', () => {
     })
 
     test('normalizes arrays recursively', () => {
-        expect(normalizeTsType(arrayOf(unionOf(stringType(), nullType(), nullType())))).toEqual({
+        expect(normalizeTsType(arrayOf(unionOf(defineString(), defineNull(), defineNull())))).toEqual({
             kind: TS_TYPE_KIND.ARRAY,
             ofType: {
                 kind: TS_TYPE_KIND.UNION,
@@ -96,24 +97,20 @@ describe('ts type', () => {
     })
 
     test('normalizes objects recursively', () => {
-        expect(normalizeTsType(objectType([
-            {
-                name: 'profile',
-                type: intersectionOf(
-                    namedType('ProfileBase'),
-                    intersectionOf(namedType('ProfileMeta'), namedType('ProfileBase'))
-                ),
-            },
-            {
-                name: 'roles',
-                optional: true,
-                type: arrayOf(unionOf(namedType('Role'), nullType(), nullType())),
-            },
-        ]))).toEqual({
+        expect(normalizeTsType(defineObject({
+            profile: defineObjectField(
+                intersectionOf(
+                    defineNamed('ProfileBase'),
+                    intersectionOf(defineNamed('ProfileMeta'), defineNamed('ProfileBase'))
+                )
+            ),
+            roles: defineObjectField(arrayOf(unionOf(defineNamed('Role'), defineNull(), defineNull())), true),
+        }))).toEqual({
             kind: TS_TYPE_KIND.OBJECT,
             fields: [
                 {
                     name: 'profile',
+                    optional: false,
                     type: {
                         kind: TS_TYPE_KIND.INTERSECTION,
                         types: [
@@ -141,13 +138,12 @@ describe('ts type', () => {
     })
 
     test('normalizes tuples recursively', () => {
-        expect(normalizeTsType(tupleType(
-            unionOf(stringType(), nullType(), nullType()),
-            intersectionOf(namedType('Node'), namedType('Node')),
-            objectType([{
-                name: 'roles',
-                type: arrayOf(unionOf(namedType('Role'), nullType(), nullType())),
-            }])
+        expect(normalizeTsType(defineTuple(
+            unionOf(defineString(), defineNull(), defineNull()),
+            intersectionOf(defineNamed('Node'), defineNamed('Node')),
+            defineObject({
+                roles: defineObjectField(arrayOf(unionOf(defineNamed('Role'), defineNull(), defineNull()))),
+            })
         ))).toEqual({
             kind: TS_TYPE_KIND.TUPLE,
             items: [
@@ -166,6 +162,7 @@ describe('ts type', () => {
                     kind: TS_TYPE_KIND.OBJECT,
                     fields: [{
                         name: 'roles',
+                        optional: false,
                         type: {
                             kind: TS_TYPE_KIND.ARRAY,
                             ofType: {
@@ -184,9 +181,9 @@ describe('ts type', () => {
 
     test('normalizes nested intersection and union structures recursively', () => {
         const type = normalizeTsType(intersectionOf(
-            namedType('A'),
-            intersectionOf(namedType('B'), namedType('A')),
-            genericType('Readonly', unionOf(namedType('C'), nullType(), nullType()))
+            defineNamed('A'),
+            intersectionOf(defineNamed('B'), defineNamed('A')),
+            defineGeneric('Readonly', unionOf(defineNamed('C'), defineNull(), defineNull()))
         ))
 
         expect(type).toEqual({
@@ -210,35 +207,35 @@ describe('ts type', () => {
     })
 
     test('collapses unions and intersections with one unique type and compares canonical shapes', () => {
-        expect(unionOf(stringType(), stringType())).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'string' })
-        expect(intersectionOf(namedType('Node'), namedType('Node'))).toEqual({
+        expect(unionOf(defineString(), defineString())).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'string' })
+        expect(intersectionOf(defineNamed('Node'), defineNamed('Node'))).toEqual({
             kind: TS_TYPE_KIND.NAMED,
             name: 'Node',
         })
 
         expect(isSameTsType(
-            unionOf(stringType(), nullType(), nullType()),
-            unionOf(stringType(), nullType())
+            unionOf(defineString(), defineNull(), defineNull()),
+            unionOf(defineString(), defineNull())
         )).toBe(true)
 
         expect(isSameTsType(
-            unionOf(stringType(), nullType()),
-            unionOf(nullType(), stringType())
+            unionOf(defineString(), defineNull()),
+            unionOf(defineNull(), defineString())
         )).toBe(true)
 
         expect(isSameTsType(
-            intersectionOf(namedType('User'), unionOf(namedType('Node'), namedType('AuditFields'))),
-            intersectionOf(unionOf(namedType('AuditFields'), namedType('Node')), namedType('User'))
+            intersectionOf(defineNamed('User'), unionOf(defineNamed('Node'), defineNamed('AuditFields'))),
+            intersectionOf(unionOf(defineNamed('AuditFields'), defineNamed('Node')), defineNamed('User'))
         )).toBe(true)
 
         expect(isSameTsType(
-            intersectionOf(namedType('User'), unionOf(namedType('Node'), namedType('AuditFields'))),
-            unionOf(intersectionOf(namedType('User'), namedType('Node')), namedType('AuditFields'))
+            intersectionOf(defineNamed('User'), unionOf(defineNamed('Node'), defineNamed('AuditFields'))),
+            unionOf(intersectionOf(defineNamed('User'), defineNamed('Node')), defineNamed('AuditFields'))
         )).toBe(false)
 
         expect(isSameTsType(
-            objectType([{ name: 'id', type: stringType() }]),
-            objectType([{ name: 'id', type: numberType() }])
+            defineObject({ id: defineObjectField(defineString()) }),
+            defineObject({ id: defineObjectField(defineNumber()) })
         )).toBe(false)
     })
 })

@@ -44,7 +44,7 @@ Example GraphQL Code Generator config:
 
 ```ts
 import type { CodegenConfig } from '@graphql-codegen/cli'
-import { stringType } from '@omnicajs/graphql-precise-dts'
+import { defineString } from '@omnicajs/graphql-precise-dts'
 
 const config: CodegenConfig = {
   schema: 'src/schema.graphql',
@@ -57,7 +57,7 @@ const config: CodegenConfig = {
         scope: 'src/',
         relativeToCwd: false,
         scalars: {
-          DateTime: stringType(),
+          DateTime: defineString(),
         },
       },
     },
@@ -200,13 +200,15 @@ When enabled, absolute document paths are normalized relative to `process.cwd()`
 Overrides scalar TypeScript types.
 
 String-based type config is not supported. Scalar mappings must be declared with `TsType` helpers.
+For object literals inside custom type expressions, use `defineObject({...})` together with
+`defineObjectField(type, optional?)`.
 
 Examples:
 
 ```ts
 {
   scalars: {
-    DateTime: stringType(),
+    DateTime: defineString(),
   },
 }
 ```
@@ -217,8 +219,8 @@ or:
 {
   scalars: {
     DateTime: {
-      input: stringType(),
-      output: namedType('Date'),
+      input: defineString(),
+      output: defineNamed('Date'),
     },
   },
 }
@@ -230,8 +232,21 @@ Nullable unions are declared structurally:
 {
   scalars: {
     DateTime: {
-      output: unionOf(namedType('Date'), nullType()),
+      output: unionOf(defineNamed('Date'), defineNull()),
     },
+  },
+}
+```
+
+Object-shaped custom types are declared through keyed field maps:
+
+```ts
+{
+  scalars: {
+    JsonObject: defineObject({
+      id: defineObjectField(defineString()),
+      archived: defineObjectField(defineBoolean(), true),
+    }),
   },
 }
 ```

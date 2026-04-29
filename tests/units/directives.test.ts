@@ -4,8 +4,8 @@ import {
     test,
 } from 'vitest'
 
+import { defineNamed } from '../../src'
 import { isConditionalSelectionState } from '../../src/directives'
-import { namedType } from '../../src'
 import { parse } from 'graphql'
 import { renderType } from '../../src'
 import {
@@ -127,7 +127,7 @@ describe('directives', () => {
             opaque: {
                 field: {
                     effect: 'override-type',
-                    type: namedType('OpaqueId'),
+                    type: defineNamed('OpaqueId'),
                 },
             },
             review: {
@@ -145,7 +145,7 @@ describe('directives', () => {
 
         expect(resolved).toEqual({
             directives: [],
-            overrideTypeTs: namedType('OpaqueId'),
+            overrideTypeTs: defineNamed('OpaqueId'),
             state: SELECTION_STATE.INCLUDED,
             warnings: [ 'Review this field' ],
         })
@@ -202,7 +202,7 @@ describe('directives', () => {
             opaque: {
                 field: {
                     effect: 'override-type',
-                    type: namedType('UserId'),
+                    type: defineNamed('UserId'),
                 },
             },
         })

@@ -18,6 +18,7 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
+import { defineString } from '../../src'
 import { filterSelectionsForConcreteType } from '../../src/models/resolve'
 import { getFragmentDefinition } from './helpers/graphql-document'
 import { getFragmentTypeNames } from '../../src/models/resolve'
@@ -32,7 +33,6 @@ import {
     makeTypeRefForInput,
 } from '../../src/models/resolve'
 import { specializeTypeNameSelectionForConcreteType } from '../../src/models/resolve'
-import { stringType } from '../../src'
 
 import { Kind } from 'graphql'
 import {
@@ -421,7 +421,7 @@ describe('type resolution for models', () => {
             },
             value: {
                 kind: VALUE_MODEL_KIND.SCALAR,
-                typeTs: stringType(),
+                typeTs: defineString(),
             },
             directives: [],
         }] satisfies SelectionModel[]
