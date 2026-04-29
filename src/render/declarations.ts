@@ -298,10 +298,10 @@ const renderOperationDeclaration = (
         : renderInputObject(operation.variables, aliasedInputObjectTypeNames)
 
     return [
+        `export type ${operationName}Variables = ${variablesType}`,
         `export type ${operationName} = ${renderObjectSelections(operation.result, [ operation.onType ], {
             dedupeTypenameWithAlias: true,
         })}`,
-        `export type ${operationName}Variables = ${variablesType}`,
         `export const ${exportName}: TypedDocumentNode<${operationName}, ${operationName}Variables>`,
         `export default ${exportName}`,
     ].map(block => indent(block)).join('\n\n')

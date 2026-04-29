@@ -41,17 +41,17 @@ declare module '~tests/fixtures/documents/mutations/addGroup.graphql' {
 
 	import type { GroupDetails } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'
 
-	export type AddGroupMutation = {
-		__typename?: 'Mutation';
-		addGroup: GroupDetails;
-	}
-
 	export type AddGroupMutationVariables = Exact<{
 		input: {
 			createdBy: string;
 			name: string;
 		};
 	}>
+
+	export type AddGroupMutation = {
+		__typename?: 'Mutation';
+		addGroup: GroupDetails;
+	}
 
 	export const addGroupMutation: TypedDocumentNode<AddGroupMutation, AddGroupMutationVariables>
 
@@ -63,16 +63,16 @@ declare module '~tests/fixtures/documents/mutations/changeOwner.graphql' {
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
 
-	export type ChangeOwnerMutation = {
-		__typename?: 'Mutation';
-		changeOwner: UserWithGroups;
-	}
-
 	export type ChangeOwnerMutationVariables = Exact<{
 		input: {
 			id: string;
 		};
 	}>
+
+	export type ChangeOwnerMutation = {
+		__typename?: 'Mutation';
+		changeOwner: UserWithGroups;
+	}
 
 	export const changeOwnerMutation: TypedDocumentNode<ChangeOwnerMutation, ChangeOwnerMutationVariables>
 
@@ -84,11 +84,6 @@ declare module '~tests/fixtures/documents/mutations/createUser.graphql' {
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
 
-	export type CreateUserMutation = {
-		__typename?: 'Mutation';
-		createUser: UserWithGroups;
-	}
-
 	export type CreateUserMutationVariables = Exact<{
 		input: {
 			firstName?: string | null;
@@ -98,6 +93,11 @@ declare module '~tests/fixtures/documents/mutations/createUser.graphql' {
 		};
 	}>
 
+	export type CreateUserMutation = {
+		__typename?: 'Mutation';
+		createUser: UserWithGroups;
+	}
+
 	export const createUserMutation: TypedDocumentNode<CreateUserMutation, CreateUserMutationVariables>
 
 	export default createUserMutation
@@ -106,6 +106,10 @@ declare module '~tests/fixtures/documents/mutations/createUser.graphql' {
 declare module '~tests/fixtures/documents/mutations/removeGroup.graphql' {
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
+	export type RemoveGroupMutationVariables = Exact<{
+		id: string;
+	}>
+
 	export type RemoveGroupMutation = {
 		__typename?: 'Mutation';
 		removeGroup: {
@@ -113,10 +117,6 @@ declare module '~tests/fixtures/documents/mutations/removeGroup.graphql' {
 			id: string;
 		};
 	}
-
-	export type RemoveGroupMutationVariables = Exact<{
-		id: string;
-	}>
 
 	export const removeGroupMutation: TypedDocumentNode<RemoveGroupMutation, RemoveGroupMutationVariables>
 
@@ -128,14 +128,14 @@ declare module '~tests/fixtures/documents/queries/groupMembers.graphql' {
 
 	import type { UserDetails } from '~tests/fixtures/documents/fragments/UserDetails.graphql'
 
+	export type GroupMembersQueryVariables = Exact<{
+		groudId: string;
+	}>
+
 	export type GroupMembersQuery = {
 		__typename?: 'Query';
 		groupMembers: Array<UserDetails>;
 	}
-
-	export type GroupMembersQueryVariables = Exact<{
-		groudId: string;
-	}>
 
 	export const groupMembersQuery: TypedDocumentNode<GroupMembersQuery, GroupMembersQueryVariables>
 
@@ -147,14 +147,14 @@ declare module '~tests/fixtures/documents/queries/ownerGroup.graphql' {
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
 
+	export type OwnerGroupQueryVariables = Exact<{
+		id: string;
+	}>
+
 	export type OwnerGroupQuery = {
 		__typename?: 'Query';
 		ownerGroup: UserWithGroups | null;
 	}
-
-	export type OwnerGroupQueryVariables = Exact<{
-		id: string;
-	}>
 
 	export const ownerGroupQuery: TypedDocumentNode<OwnerGroupQuery, OwnerGroupQueryVariables>
 
@@ -166,14 +166,14 @@ declare module '~tests/fixtures/documents/queries/user.graphql' {
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
 
+	export type UserQueryVariables = Exact<{
+		id: string;
+	}>
+
 	export type UserQuery = {
 		__typename?: 'Query';
 		user: UserWithGroups | null;
 	}
-
-	export type UserQueryVariables = Exact<{
-		id: string;
-	}>
 
 	export const userQuery: TypedDocumentNode<UserQuery, UserQueryVariables>
 
@@ -185,14 +185,14 @@ declare module '~tests/fixtures/documents/queries/userGroups.graphql' {
 
 	import type { GroupDetails } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'
 
+	export type UserGroupsQueryVariables = Exact<{
+		id: string;
+	}>
+
 	export type UserGroupsQuery = {
 		__typename?: 'Query';
 		userGroups: Array<GroupDetails>;
 	}
-
-	export type UserGroupsQueryVariables = Exact<{
-		id: string;
-	}>
 
 	export const userGroupsQuery: TypedDocumentNode<UserGroupsQuery, UserGroupsQueryVariables>
 
@@ -204,16 +204,16 @@ declare module '~tests/fixtures/documents/queries/users.graphql' {
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
 
-	export type UsersQuery = {
-		__typename?: 'Query';
-		users: Array<UserWithGroups>;
-	}
-
 	export type UsersQueryVariables = Exact<{
 		filter?: {
 			isOnline: boolean;
 		} | null;
 	}>
+
+	export type UsersQuery = {
+		__typename?: 'Query';
+		users: Array<UserWithGroups>;
+	}
 
 	export const usersQuery: TypedDocumentNode<UsersQuery, UsersQueryVariables>
 
@@ -225,16 +225,16 @@ declare module '~tests/fixtures/documents/subscriptions/ownerGroupChanged.graphq
 
 	import type { GroupDetails } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'
 
+	export type OwnerGroupChangedSubscriptionVariables = Exact<{
+		groupId: string;
+	}>
+
 	export type OwnerGroupChangedSubscription = {
 		__typename?: 'Subscription';
 		ownerGroupChanged: {
 			changedAt: string;
 		} & GroupDetails;
 	}
-
-	export type OwnerGroupChangedSubscriptionVariables = Exact<{
-		groupId: string;
-	}>
 
 	export const ownerGroupChangedSubscription: TypedDocumentNode<OwnerGroupChangedSubscription, OwnerGroupChangedSubscriptionVariables>
 
@@ -246,14 +246,14 @@ declare module '~tests/fixtures/documents/subscriptions/userCreated.graphql' {
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
 
+	export type UserCreatedSubscriptionVariables = { [key: string]: never }
+
 	export type UserCreatedSubscription = {
 		__typename?: 'Subscription';
 		userCreated: {
 			createdAt: string;
 		} & UserWithGroups;
 	}
-
-	export type UserCreatedSubscriptionVariables = { [key: string]: never }
 
 	export const userCreatedSubscription: TypedDocumentNode<UserCreatedSubscription, UserCreatedSubscriptionVariables>
 
