@@ -46,13 +46,13 @@ export type FieldValue =
     }
     | { kind: typeof VALUE_MODEL_KIND.UNKNOWN; reason: string }
 
-export type InputValue =
+export type VariableValue =
     | { kind: typeof VALUE_MODEL_KIND.SCALAR; typeTs: TsType }
     | { kind: typeof VALUE_MODEL_KIND.ENUM; name: string }
     | {
         kind: typeof VALUE_MODEL_KIND.OBJECT;
         typeName?: string;
-        fields: InputField[];
+        fields: VariableField[];
         isRecursiveReference?: boolean;
     }
     | { kind: typeof VALUE_MODEL_KIND.UNKNOWN; reason: string }
@@ -95,7 +95,7 @@ export type SelectionModel = FieldSelectionModel | FragmentSpreadSelectionModel 
 export type EnumValueEntries = { name: string; value: string }[]
 export type ScalarModelShape = ScalarShape<string, string>
 
-export type InputField = NamedTypedNode<InputValue> & {
+export type VariableField = NamedTypedNode<VariableValue> & {
     optional?: boolean;
 }
 
@@ -119,7 +119,7 @@ export type FragmentModel = {
 export type OperationModel = {
     operationType: OperationTypeNode;
     onType: string;
-    variables: InputField[];
+    variables: VariableField[];
     result: SelectionModel[];
 }
 

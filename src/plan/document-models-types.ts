@@ -4,9 +4,9 @@ import type {
     FragmentInlineSelectionModel,
     FragmentModel,
     FragmentSpreadSelectionModel,
-    InputField,
-    InputValue,
     OperationModel,
+    VariableField,
+    VariableValue,
 } from '../models/types'
 
 import { FRAGMENT_ROOT_KIND, VALUE_MODEL_KIND } from '../models/kinds'
@@ -64,23 +64,26 @@ export type DocumentFragmentModel = Omit<FragmentModel, 'root'> & {
     root: DocumentFragmentRoot;
 }
 
-export type DocumentInputObjectValue = Omit<Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>, 'fields' | 'isRecursiveReference'> & {
-    fields: DocumentInputField[];
+export type DocumentVariableObjectValue = Omit<
+    Extract<VariableValue,
+    { kind: typeof VALUE_MODEL_KIND.OBJECT }>, 'fields' | 'isRecursiveReference'
+> & {
+    fields: DocumentVariableField[];
     renderAliasName?: string;
     renderAsReference?: boolean;
 }
 
-export type DocumentInputValue =
-    | Exclude<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>
-    | DocumentInputObjectValue
+export type DocumentVariableValue =
+    | Exclude<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>
+    | DocumentVariableObjectValue
 
-export type DocumentInputField = Omit<InputField, 'value'> & {
-    value: DocumentInputValue;
+export type DocumentVariableField = Omit<VariableField, 'value'> & {
+    value: DocumentVariableValue;
 }
 
 export type DocumentOperationModel = Omit<OperationModel, 'result' | 'variables'> & {
     result: DocumentSelectionModel[];
-    variables: DocumentInputField[];
+    variables: DocumentVariableField[];
 }
 
 export type DocumentOutputAlias = {
@@ -90,16 +93,16 @@ export type DocumentOutputAlias = {
     renderOptions: ObjectRenderOptions;
 }
 
-export type DocumentInputAlias = {
+export type DocumentVariableAlias = {
     typeName: string;
     aliasName: string;
-    fields: DocumentInputField[];
+    fields: DocumentVariableField[];
 }
 
 export type DocumentModels = {
     fragments: Map<string, DocumentFragmentModel>;
     operations: Map<string, DocumentOperationModel>;
-    inputAliases: DocumentInputAlias[];
+    variableAliases: DocumentVariableAlias[];
     outputAliases: DocumentOutputAlias[];
 }
 

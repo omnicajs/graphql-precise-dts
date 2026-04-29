@@ -18,11 +18,9 @@ import {
 import { getFragmentDefinition } from './helpers/graphql-document'
 import { getSelectionNode } from './helpers/graphql-selection'
 import { getTypeForDefinition } from '../../src/models/resolve'
-import {
-    makeFieldValue,
-    makeInputValue,
-} from '../../src/models/value-models-builder'
+import { makeFieldValue } from '../../src/models/value-models-builder'
 import { makeTestModelContext } from './helpers/model-context'
+import { makeVariableValue } from '../../src/models/value-models-builder'
 import { parse } from 'graphql'
 
 import {
@@ -210,7 +208,7 @@ describe('value models builder', () => {
         const inputType = schema.getType('UserFilter')
         expect(inputType).toBeDefined()
 
-        const value = makeInputValue(inputType as GraphQLInputType, {})
+        const value = makeVariableValue(inputType as GraphQLInputType, {})
 
         expect(value).toEqual({
             kind: VALUE_MODEL_KIND.OBJECT,
@@ -263,7 +261,7 @@ describe('value models builder', () => {
         const inputType = schema.getType('UserFilter')
         expect(inputType).toBeDefined()
 
-        const value = makeInputValue(inputType as GraphQLInputType, {
+        const value = makeVariableValue(inputType as GraphQLInputType, {
             DateTime: {
                 input: defineString(),
                 output: defineNamed('Date'),
@@ -306,7 +304,7 @@ describe('value models builder', () => {
         const inputType = schema.getType('TreeInput')
         expect(inputType).toBeDefined()
 
-        const value = makeInputValue(inputType as GraphQLInputType, {})
+        const value = makeVariableValue(inputType as GraphQLInputType, {})
 
         expect(value).toEqual({
             kind: VALUE_MODEL_KIND.OBJECT,

@@ -30,9 +30,9 @@ import {
 import {
     getTypeForDefinition,
     makeTypeRefForField,
-    makeTypeRefForInput,
+    makeTypeRefForVariable,
+    specializeTypeNameSelectionForConcreteType,
 } from '../../src/models/resolve'
-import { specializeTypeNameSelectionForConcreteType } from '../../src/models/resolve'
 
 import { Kind } from 'graphql'
 import {
@@ -291,7 +291,7 @@ describe('type resolution for models', () => {
         expect(tagsField, 'tags input field not found').not.toBeUndefined()
         expect(tagsField, 'tags input field not found').not.toBeNull()
 
-        expect(makeTypeRefForInput(tagsField.type)).toEqual({
+        expect(makeTypeRefForVariable(tagsField.type)).toEqual({
             kind: TYPE_REF_KIND.NON_NULL,
             ofType: {
                 kind: TYPE_REF_KIND.LIST,

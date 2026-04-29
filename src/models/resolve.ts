@@ -203,18 +203,18 @@ export const getTypeForDefinition = (
     return makeTypeTreeForDef(graphqlDef, fields, typeNames)
 }
 
-export const makeTypeRefForInput = (type: GraphQLInputType): TypeRef => {
+export const makeTypeRefForVariable = (type: GraphQLInputType): TypeRef => {
     if (isNonNullType(type)) {
         return {
             kind: TYPE_REF_KIND.NON_NULL,
-            ofType: makeTypeRefForInput(type.ofType),
+            ofType: makeTypeRefForVariable(type.ofType),
         }
     }
 
     if (isListType(type)) {
         return {
             kind: TYPE_REF_KIND.LIST,
-            ofType: makeTypeRefForInput(type.ofType),
+            ofType: makeTypeRefForVariable(type.ofType),
         }
     }
 

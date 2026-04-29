@@ -3,22 +3,20 @@ import type {
     DocumentFieldValue,
     DocumentFragmentModel,
     DocumentFragmentRoot,
-    DocumentInputAlias,
-    DocumentInputField,
-    DocumentInputObjectValue,
-    DocumentInputValue,
     DocumentModels,
     DocumentObjectFieldValue,
     DocumentOperationModel,
     DocumentOutputAlias,
     DocumentSelectionModel,
+    DocumentVariableAlias,
+    DocumentVariableField,
+    DocumentVariableObjectValue,
+    DocumentVariableValue,
 } from './document-models-types'
 import type {
     FieldValue,
     FragmentModel,
     FragmentRoot,
-    InputField,
-    InputValue,
 } from '../models/types'
 import type { ObjectRenderOptions } from './document-models-types'
 import type { OperationModel } from '../models/types'
@@ -28,6 +26,8 @@ import type {
 } from './document-models-types'
 import type {
     SelectionModel,
+    VariableField,
+    VariableValue,
 } from '../models/types'
 
 import { capitalize } from '../lib/strings'
@@ -40,12 +40,12 @@ import {
     VALUE_MODEL_KIND,
 } from '../models/kinds'
 
-type InputBuildState = {
-    cache: Map<string, DocumentInputObjectValue>;
+type VariableBuildState = {
+    cache: Map<string, DocumentVariableObjectValue>;
     inProgress: Set<string>;
 }
 
-export const getInputObjectAliasName = (typeName: string): string => {
+export const getVariableObjectAliasName = (typeName: string): string => {
     return typeName.endsWith('Input') ? typeName : `${typeName}Input`
 }
 
@@ -66,10 +66,10 @@ const makeObjectRenderOptions = (typeNames?: string[]): ObjectRenderOptions => (
     dedupeTypenameWithAlias: (typeNames?.length ?? 0) === 1,
 })
 
-const buildInputValue = (
-    value: InputValue,
-    state: InputBuildState
-): DocumentInputValue => {
+const buildVariableValue = (
+    value: VariableValue,
+    state: VariableBuildState
+): DocumentVariableValue => {
     if (value.kind !== VALUE_MODEL_KIND.OBJECT) return value
 
     if (value.typeName && value.isRecursiveReference) {
@@ -77,7 +77,7 @@ const buildInputValue = (
             kind: VALUE_MODEL_KIND.OBJECT,
             typeName: value.typeName,
             fields: [],
-            renderAliasName: getInputObjectAliasName(value.typeName),
+            renderAliasName: getVariableObjectAliasName(value.typeName),
             renderAsReference: true,
         }
     }
@@ -91,13 +91,13 @@ const buildInputValue = (
                 kind: VALUE_MODEL_KIND.OBJECT,
                 typeName: value.typeName,
                 fields: [],
-                renderAliasName: getInputObjectAliasName(value.typeName),
+                renderAliasName: getVariableObjectAliasName(value.typeName),
                 renderAsReference: true,
             }
         }
     }
 
-    const node: DocumentInputObjectValue = {
+    const node: DocumentVariableObjectValue = {
         kind: VALUE_MODEL_KIND.OBJECT,
         typeName: value.typeName,
         fields: [],
@@ -108,7 +108,7 @@ const buildInputValue = (
         state.cache.set(value.typeName, node)
     }
 
-    node.fields = value.fields.map(field => buildInputField(field, state))
+    node.fields = value.fields.map(field => buildVariableField(field, state))
 
     if (value.typeName) {
         state.inProgress.delete(value.typeName)
@@ -117,12 +117,12 @@ const buildInputValue = (
     return node
 }
 
-const buildInputField = (
-    field: InputField,
-    state: InputBuildState
-): DocumentInputField => ({
+const buildVariableField = (
+    field: VariableField,
+    state: VariableBuildState
+): DocumentVariableField => ({
     ...field,
-    value: buildInputValue(field.value, state),
+    value: buildVariableValue(field.value, state),
 })
 
 const registerOutputObjectOccurrence = (
@@ -246,10 +246,10 @@ const buildSelection = (
     }
 }
 
-const collectInputDefinitionsFromValue = (
-    value: InputValue,
+const collectVariableDefinitionsFromValue = (
+    value: VariableValue,
     requiredTypeNames: Set<string>,
-    definitions: Map<string, Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>
+    definitions: Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>
 ) => {
     if (value.kind !== VALUE_MODEL_KIND.OBJECT) return
 
@@ -262,34 +262,34 @@ const collectInputDefinitionsFromValue = (
         definitions.set(value.typeName, value)
     }
 
-    value.fields.forEach(field => collectInputDefinitionsFromValue(field.value, requiredTypeNames, definitions))
+    value.fields.forEach(field => collectVariableDefinitionsFromValue(field.value, requiredTypeNames, definitions))
 }
 
-const collectInputDefinitions = (operations: Map<string, OperationModel>) => {
+const collectVariableDefinitions = (operations: Map<string, OperationModel>) => {
     const requiredTypeNames = new Set<string>()
-    const definitions = new Map<string, Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>()
+    const definitions = new Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>()
 
     operations.forEach(operation => {
-        operation.variables.forEach(variable => collectInputDefinitionsFromValue(variable.value, requiredTypeNames, definitions))
+        operation.variables.forEach(variable => collectVariableDefinitionsFromValue(variable.value, requiredTypeNames, definitions))
     })
 
     return { requiredTypeNames, definitions }
 }
 
-const buildInputAliases = (
+const buildVariableAliases = (
     operations: Map<string, OperationModel>,
-    state: InputBuildState
-): DocumentInputAlias[] => {
-    const { requiredTypeNames, definitions } = collectInputDefinitions(operations)
+    state: VariableBuildState
+): DocumentVariableAlias[] => {
+    const { requiredTypeNames, definitions } = collectVariableDefinitions(operations)
 
     return [ ...requiredTypeNames ].flatMap(typeName => {
         const definition = definitions.get(typeName)
-        const preparedDefinition = definition ? buildInputValue(definition, state) : undefined
+        const preparedDefinition = definition ? buildVariableValue(definition, state) : undefined
 
         return preparedDefinition && preparedDefinition.kind === VALUE_MODEL_KIND.OBJECT
             ? [{
                 typeName,
-                aliasName: getInputObjectAliasName(typeName),
+                aliasName: getVariableObjectAliasName(typeName),
                 fields: preparedDefinition.fields,
             }]
             : []
@@ -374,13 +374,13 @@ const buildOperationModel = (
     operationName: string,
     operation: OperationModel,
     outputState: OutputBuildState,
-    inputState: InputBuildState
+    variableState: VariableBuildState
 ): DocumentOperationModel => {
     const operationTypeName = getOperationTypeName(operationName, operation.operationType)
 
     return {
         ...operation,
-        variables: operation.variables.map(variable => buildInputField(variable, inputState)),
+        variables: operation.variables.map(variable => buildVariableField(variable, variableState)),
         result: operation.result.map(selection => buildSelection(selection, operationTypeName, outputState)),
     }
 }
@@ -394,7 +394,7 @@ export const buildDocumentModels = (
         inProgressSignatures: new Set(),
         inProgressObjectNodes: new WeakMap(),
     }
-    const inputBuildState: InputBuildState = {
+    const variableBuildState: VariableBuildState = {
         cache: new Map(),
         inProgress: new Set(),
     }
@@ -416,10 +416,10 @@ export const buildDocumentModels = (
         operations: new Map(
             [ ...models.operations.entries() ].map(([ name, operation ]) => [
                 name,
-                buildOperationModel(name, operation, outputBuildState, inputBuildState),
+                buildOperationModel(name, operation, outputBuildState, variableBuildState),
             ])
         ),
-        inputAliases: buildInputAliases(models.operations, inputBuildState),
+        variableAliases: buildVariableAliases(models.operations, variableBuildState),
         outputAliases: buildOutputAliases(outputBuildState.occurrences, reservedAliasNames),
     }
 }

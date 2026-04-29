@@ -7,7 +7,6 @@ import type {
     GraphQLInterfaceType,
 } from 'graphql'
 import type {
-    InputValue,
     ModelContext,
     SelectionModel,
 } from './types'
@@ -16,6 +15,7 @@ import type {
     TypeFieldNode,
     TypeSelectionNode,
 } from './selection'
+import type { VariableValue } from './types'
 
 import { GraphQLObjectType } from 'graphql'
 
@@ -37,7 +37,7 @@ import {
     makeSelectionsForFields,
 } from './selections-builder'
 import {
-    makeTypeRefForInput,
+    makeTypeRefForVariable,
     shouldBuildTypeSelectionUnion,
     specializeTypeNameSelectionForConcreteType,
 } from './resolve'
@@ -200,22 +200,22 @@ export const makeFieldValue = (
     return { kind: VALUE_MODEL_KIND.UNKNOWN, reason: 'Unknown type' }
 }
 
-export const makeInputValue = (
+export const makeVariableValue = (
     type: GraphQLInputType,
     customScalars: ConfigScalars
-): InputValue => buildInputValue(type, customScalars, {
+): VariableValue => buildVariableValue(type, customScalars, {
     inProgress: new Set(),
     cache: new Map(),
 })
 
-const buildInputValue = (
+const buildVariableValue = (
     type: GraphQLInputType,
     customScalars: ConfigScalars,
     state: {
         inProgress: Set<string>;
-        cache: Map<string, Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
+        cache: Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
     }
-): InputValue => {
+): VariableValue => {
     const namedType = getNamedType(type)
 
     if (isScalarType(namedType)) {
@@ -230,20 +230,20 @@ const buildInputValue = (
     }
 
     if (isInputObjectType(namedType)) {
-        return buildInputObjectValue(namedType, customScalars, state)
+        return buildVariableObjectValue(namedType, customScalars, state)
     }
 
-    return { kind: VALUE_MODEL_KIND.UNKNOWN, reason: 'Unknown input type' }
+    return { kind: VALUE_MODEL_KIND.UNKNOWN, reason: 'Unknown variable type' }
 }
 
-const buildInputObjectValue = (
+const buildVariableObjectValue = (
     namedType: GraphQLInputObjectType,
     customScalars: ConfigScalars,
     state: {
         inProgress: Set<string>;
-        cache: Map<string, Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
+        cache: Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
     }
-): Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => {
+): Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => {
     const cached = state.cache.get(namedType.name)
     if (cached) return cached
 
@@ -258,14 +258,14 @@ const buildInputObjectValue = (
 
     state.inProgress.add(namedType.name)
 
-    const value: Extract<InputValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> = {
+    const value: Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> = {
         kind: VALUE_MODEL_KIND.OBJECT,
         typeName: namedType.name,
         fields: Object.values(namedType.getFields()).map(field => ({
             name: field.name,
-            typeRef: makeTypeRefForInput(field.type),
+            typeRef: makeTypeRefForVariable(field.type),
             optional: isNullableType(field.type) || !isUndefined(field.defaultValue),
-            value: buildInputValue(field.type, customScalars, state),
+            value: buildVariableValue(field.type, customScalars, state),
         })),
     }
 
