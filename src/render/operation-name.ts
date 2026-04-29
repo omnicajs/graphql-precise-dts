@@ -1,6 +1,6 @@
 import type { OperationTypeNode } from 'graphql'
 
-import { capitalize } from './strings'
+import { capitalize } from '../lib/strings'
 
 export const getOperationTypeName = (
     operationName: string,

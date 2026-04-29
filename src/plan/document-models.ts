@@ -31,7 +31,7 @@ import type {
 } from '../models/types'
 
 import { capitalize } from '../lib/strings'
-import { getOperationTypeName } from '../lib/operation-name'
+import { getOperationTypeName } from '../render/operation-name'
 import { makeOutputShapeSignature } from './output-shape-signature'
 
 import {
