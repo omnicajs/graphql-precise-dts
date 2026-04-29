@@ -47,7 +47,7 @@ const makeSelectionConflictError = (
     `Conflicting selections for response name "${existingSelection.responseName}" at ${formatDiagnosticLocation(existingSelection.diagnosticLocation)} and ${formatDiagnosticLocation(duplicateSelection.diagnosticLocation)}: ${reason}.`
 )
 
-const haveSameTypeRef = (left: TypeRef, right: TypeRef): boolean => {
+const hasSameTypeRef = (left: TypeRef, right: TypeRef): boolean => {
     if (left.kind !== right.kind) return false
 
     switch (left.kind) {
@@ -55,7 +55,7 @@ const haveSameTypeRef = (left: TypeRef, right: TypeRef): boolean => {
             return left.name === (right as typeof left).name
         case TYPE_REF_KIND.LIST:
         case TYPE_REF_KIND.NON_NULL:
-            return haveSameTypeRef(left.ofType, (right as typeof left).ofType)
+            return hasSameTypeRef(left.ofType, (right as typeof left).ofType)
     }
 }
 
@@ -195,7 +195,7 @@ const mergeFieldSelections = (
             duplicateSelection,
             `different field arguments cannot be merged`
         )
-    } else if (!haveSameTypeRef(existingSelection.typeRef, duplicateSelection.typeRef)) {
+    } else if (!hasSameTypeRef(existingSelection.typeRef, duplicateSelection.typeRef)) {
         throw makeSelectionConflictError(
             existingSelection,
             duplicateSelection,

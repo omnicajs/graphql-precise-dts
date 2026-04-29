@@ -6,8 +6,8 @@ import type {
     ScalarPrimitiveMap,
     ScalarShape,
     Scalars,
+    ScalarUsage,
 } from './types'
-import type { ScalarUsage } from './types'
 import type { TsType } from '../ts-type'
 
 import { isUndefined } from '../lib/predicates'

@@ -13,7 +13,7 @@ import type {
 import type { TsType } from '../ts-type'
 import type { TypeRef } from '../models/types'
 
-import { getOperationTypeName } from '../lib/operation-name'
+import { getOperationTypeName } from './operation-name'
 import { getVariableObjectAliasName } from '../plan/document-models'
 import {
     hasAliasedRootTypenameSelection,
