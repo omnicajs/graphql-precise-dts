@@ -8,7 +8,7 @@ import type {
 } from '../scalars/types'
 import type { Schema } from '../plugin-types'
 import type { Source } from 'graphql'
-import type { StructuralDirectivePolicies } from '../directives/policy'
+import type { StructuralDirectivePolicies } from '../directives/types'
 
 import {
     FRAGMENT_ROOT_KIND,
