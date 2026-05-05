@@ -4,13 +4,13 @@ import type {
     PlannedOperationModel,
     PlannedOutputAlias,
     PlannedVariableAlias,
-} from './planned-types'
+} from '../planned-types'
 
-import type { RenderableObjectShape } from './renderable-types'
+import type { RenderableObjectShape } from './types'
 
-import { prepareObjectShape } from './renderable-shapes'
+import { prepareObjectShape } from './shapes'
 
-import { FRAGMENT_ROOT_KIND } from '../kinds'
+import { FRAGMENT_ROOT_KIND } from '../../kinds'
 
 export type RenderableFragmentModel = Omit<PlannedFragmentModel, 'root'> & {
     root: {

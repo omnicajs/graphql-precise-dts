@@ -7,7 +7,7 @@ import {
 
 import { makeGenerationDirectivePolicies } from '../../src/directives/structural-policies'
 import { makePlannedDocumentModels } from '../../src/plan/planned-document-models'
-import { prepareRenderableDocumentModels } from '../../src/plan/renderable-document-models'
+import { prepareRenderableDocumentModels } from '../../src/plan/renderable/document-models'
 import { renderDeclaration as renderPlannedDeclaration } from '../../src/render/declarations'
 
 import {

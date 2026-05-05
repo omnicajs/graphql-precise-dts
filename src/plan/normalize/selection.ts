@@ -4,13 +4,13 @@ import type {
     FragmentSpreadSelectionModel,
     SelectionModel,
     TypeRef,
-} from '../models/types'
+} from '../../models/types'
 
 import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../kinds'
+} from '../../kinds'
 
 export type NormalizedSelectionModel = FieldSelectionModel | FragmentSpreadSelectionModel
 
@@ -217,32 +217,37 @@ const mergeFieldSelections = (
 
 const flattenSelections = (
     selections: SelectionModel[],
-    withinConditional = false
+    parentConditional = false
 ): NormalizedSelectionModel[] => selections.flatMap(selection => {
-    const conditional = withinConditional || selection.conditional
-
-    if (selection.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT) {
-        return flattenSelections(selection.selections, conditional)
+    switch (selection.kind) {
+        case SELECTION_MODEL_KIND.INLINE_FRAGMENT:
+            return flattenSelections(selection.selections, parentConditional || selection.conditional)
+                .map(flattenedSelection => ({
+                    ...flattenedSelection,
+                    conditional: flattenedSelection.conditional || parentConditional || selection.conditional,
+                }))
+        default:
+            return [{
+                ...selection,
+                conditional: selection.conditional || parentConditional,
+            }]
     }
-
-    return [{
-        ...selection,
-        conditional,
-    }]
 })
 
 export const normalizeSelections = (
     selections: SelectionModel[]
 ): NormalizedSelectionModel[] => {
     const normalizedSelections: NormalizedSelectionModel[] = []
-    const fieldsByResponseName = new Map<string, number>()
-    const spreadsByName = new Map<string, number>()
 
     flattenSelections(selections).forEach(selection => {
         if (selection.kind === SELECTION_MODEL_KIND.FIELD) {
-            const existingIndex = fieldsByResponseName.get(selection.responseName)
-            if (existingIndex === undefined) {
-                fieldsByResponseName.set(selection.responseName, normalizedSelections.push(selection) - 1)
+            const existingIndex = normalizedSelections.findIndex(existingSelection =>
+                existingSelection.kind === SELECTION_MODEL_KIND.FIELD
+                && existingSelection.responseName === selection.responseName
+            )
+
+            if (existingIndex === -1) {
+                normalizedSelections.push(selection)
                 return
             }
 
@@ -253,10 +258,13 @@ export const normalizeSelections = (
             return
         }
 
-        const existingIndex = spreadsByName.get(selection.name)
+        const existingIndex = normalizedSelections.findIndex(existingSelection =>
+            existingSelection.kind === SELECTION_MODEL_KIND.FRAGMENT_SPREAD
+            && existingSelection.name === selection.name
+        )
 
-        if (existingIndex === undefined) {
-            spreadsByName.set(selection.name, normalizedSelections.push(selection) - 1)
+        if (existingIndex === -1) {
+            normalizedSelections.push(selection)
             return
         }
 
