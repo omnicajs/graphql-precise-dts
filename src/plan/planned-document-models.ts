@@ -9,7 +9,7 @@ import type {
     VariableValue,
 } from '../models/types'
 import type { CustomScalarMappings } from '../scalars/types'
-import type { NormalizedSelectionModel } from './selection-normalization'
+import type { NormalizedSelectionModel } from './normalize/selection'
 
 import type {
     ObjectRenderOptions,
@@ -31,8 +31,8 @@ import type {
 
 import { capitalize } from '../lib/strings'
 import { getScalarTsType } from '../scalars/builder'
-import { makeOutputShapeSignature } from './output-shape-signature'
-import { normalizeSelections } from './selection-normalization'
+import { makeOutputShapeSignature } from './normalize/shape-signature'
+import { normalizeSelections } from './normalize/selection'
 import { normalizeTsType } from '../ts-type'
 import { resolveGenerationSelectionDirectives } from '../directives/resolve'
 

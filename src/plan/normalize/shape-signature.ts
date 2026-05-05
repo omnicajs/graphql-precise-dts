@@ -1,18 +1,18 @@
-import type { ObjectRenderOptions } from './planned-types'
-import type { NormalizedSelectionModel } from './selection-normalization'
+import type { ObjectRenderOptions } from '../planned-types'
+import type { NormalizedSelectionModel } from './selection'
 import type {
     FieldValue,
     SelectionModel,
     TypeRef,
-} from '../models/types'
+} from '../../models/types'
 
-import { normalizeSelections } from './selection-normalization'
+import { normalizeSelections } from './selection'
 
 import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../kinds'
+} from '../../kinds'
 
 type OutputSignatureState = {
     inProgressObjects: WeakSet<object>;

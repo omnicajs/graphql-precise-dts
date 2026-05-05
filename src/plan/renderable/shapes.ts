@@ -2,19 +2,19 @@ import type {
     ObjectRenderOptions,
     PlannedFieldValue,
     PlannedSelectionModel,
-} from './planned-types'
+} from '../planned-types'
 
 import type {
     RenderableFieldValue,
     RenderableObjectShape,
     RenderableSelectionSet,
     RenderableUnionShape,
-} from './renderable-types'
+} from './types'
 
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../kinds'
+} from '../../kinds'
 
 type ResolvedTypenameSelection = {
     present: boolean;

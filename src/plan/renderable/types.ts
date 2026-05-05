@@ -1,7 +1,7 @@
-import type { TsType } from '../ts-type'
-import type { TypeRef } from '../models/types'
+import type { TsType } from '../../ts-type'
+import type { TypeRef } from '../../models/types'
 
-import { VALUE_MODEL_KIND } from '../kinds'
+import { VALUE_MODEL_KIND } from '../../kinds'
 
 type RenderableTypename = {
     typeNames: string[];

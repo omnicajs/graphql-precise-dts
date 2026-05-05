@@ -12,13 +12,13 @@ import type {
     RenderableFragmentModel,
     RenderableOperationModel,
     RenderableOutputAlias,
-} from '../plan/renderable-document-models'
+} from '../plan/renderable/document-models'
 
 import type {
     RenderableFieldValue,
     RenderableObjectShape,
     RenderableUnionShape,
-} from '../plan/renderable-types'
+} from '../plan/renderable/types'
 
 import { renderStringLiteralUnion } from './basic'
 import {

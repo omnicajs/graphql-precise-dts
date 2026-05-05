@@ -1,7 +1,7 @@
 import type { DocumentModelBundle } from './plan/document-model-bundles'
 import type { ModelContext } from './models/types'
 import type { PluginConfig } from './config'
-import type { RenderableOperationModel } from './plan/renderable-document-models'
+import type { RenderableOperationModel } from './plan/renderable/document-models'
 import type {
     PluginFunction,
     Types,

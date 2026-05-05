@@ -13,7 +13,7 @@ import {
     hasAliasedRootTypenameSelection,
     hasRootSpreadWithSameTypeNames,
     resolveTypenameSelection,
-} from '../../src/plan/renderable-shapes'
+} from '../../src/plan/renderable/shapes'
 import { renderStringLiteralUnion } from '../../src/render/basic'
 import { namedType } from '../fixtures/builders/declaration-render'
 
