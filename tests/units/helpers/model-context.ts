@@ -1,20 +1,21 @@
-import {
-    ConfigDirectivePolicies,
-    ConfigScalars,
-    DocumentFile,
-} from '../../../src/config'
+import type { ConfigDirectivePolicies } from '../../../src/directives/types'
 import type { FragmentDefinitionNode } from 'graphql'
 import type { ModelContext } from '../../../src/models/types'
-import type { Schema } from '../../../src/config'
+import type { CustomScalarMappings } from '../../../src/scalars/types'
+import type {
+    DocumentFile,
+    Schema,
+} from '../../../src/plugin-types'
 
 import { makeDocumentLocationMap } from '../../../src/lib/documents'
+import { makeStructuralDirectivePolicies } from '../../../src/directives/structural-policies'
 
 import { Kind } from 'graphql'
 
 type MakeTestModelContextArgs = {
     schema: Schema
     documents?: DocumentFile[];
-    customScalars?: ConfigScalars;
+    customScalars?: CustomScalarMappings;
     directivePolicies?: ConfigDirectivePolicies;
 }
 
@@ -37,12 +38,10 @@ const collectFragmentDefinitions = (
 export const makeTestModelContext = ({
     schema,
     documents = [],
-    customScalars = {},
     directivePolicies = {},
 }: MakeTestModelContextArgs): ModelContext => ({
     schema,
     fragmentDefinitions: collectFragmentDefinitions(documents),
     documentLocations: makeDocumentLocationMap(documents),
-    customScalars,
-    directivePolicies,
+    structuralDirectivePolicies: makeStructuralDirectivePolicies(directivePolicies),
 })

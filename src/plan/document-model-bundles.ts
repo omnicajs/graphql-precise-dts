@@ -1,16 +1,21 @@
 import type { CollectedDocumentModels } from '../models/types'
-import type { DocumentFile } from '../config'
-import type { DocumentModels } from './document-models-types'
-import type { FragmentModel } from '../models/types'
-import type { ImportMap } from './imports'
-import type { ModelContext } from '../models/types'
+import type { CustomScalarMappings } from '../scalars/types'
+import type { ConfigDirectivePolicies } from '../directives/types'
+import type { DocumentFile } from '../plugin-types'
+import type { DocumentModelImportMap } from './document-model-imports'
+import type {
+    FragmentModel,
+    ModelContext,
+} from '../models/types'
 import type { OperationDefinitionNode } from 'graphql'
+import type { RenderableDocumentModels } from './renderable-document-models'
 
 import { TypeInfo } from 'graphql'
 
-import { buildDocumentModels } from './document-models'
-import { collectImportsForDocumentModels } from './imports'
+import { collectDocumentModelImports } from './document-model-imports'
 import { makeOperationModel } from '../models/documents-builder'
+import { makePlannedDocumentModels } from './planned-document-models'
+import { prepareRenderableDocumentModels } from './renderable-document-models'
 import {
     visit,
     visitWithTypeInfo,
@@ -24,7 +29,7 @@ type CollectedDocumentModelBundle = {
 export type DocumentModelBundle = {
     location: string;
     imports: Map<string, string>;
-    models: DocumentModels;
+    models: RenderableDocumentModels;
 }
 
 type DocumentModelCollector = {
@@ -96,14 +101,18 @@ const collectDocumentModelBundle = (
 
 const prepareDocumentModelBundle = (
     { location, models }: CollectedDocumentModelBundle,
-    importMap: ImportMap
+    importMap: DocumentModelImportMap,
+    customScalars: CustomScalarMappings,
+    directivePolicies: ConfigDirectivePolicies
 ): DocumentModelBundle => {
-    const imports = collectImportsForDocumentModels(models, importMap)
+    const imports = collectDocumentModelImports(models, importMap)
 
     return {
         location,
         imports,
-        models: buildDocumentModels(models, [ ...imports.keys() ]),
+        models: prepareRenderableDocumentModels(
+            makePlannedDocumentModels(models, [ ...imports.keys() ], customScalars, directivePolicies)
+        ),
     }
 }
 
@@ -111,7 +120,9 @@ export const makeDocumentModelBundles = (
     documents: DocumentFile[],
     fragments:  Map<string, FragmentModel>,
     context: ModelContext,
-    importMap: ImportMap
+    importMap: DocumentModelImportMap,
+    customScalars: CustomScalarMappings,
+    directivePolicies: ConfigDirectivePolicies
 ): DocumentModelBundle[] => {
     return documents.flatMap(documentFile => {
         const documentModel = collectDocumentModelBundle(
@@ -120,6 +131,6 @@ export const makeDocumentModelBundles = (
             context
         )
 
-        return documentModel ? [ prepareDocumentModelBundle(documentModel, importMap) ] : []
+        return documentModel ? [ prepareDocumentModelBundle(documentModel, importMap, customScalars, directivePolicies) ] : []
     })
 }

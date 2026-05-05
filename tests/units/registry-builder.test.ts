@@ -6,10 +6,7 @@ import {
 
 import { buildModelRegistry } from '../../src/models/registry-builder'
 import { buildSchema } from 'graphql'
-import {
-    defineNamed,
-    defineString,
-} from '../../src'
+import { defineNamed } from '../../src'
 import { makeTestModelContext } from './helpers/model-context'
 import { parse } from 'graphql'
 
@@ -17,7 +14,7 @@ import {
     FRAGMENT_ROOT_KIND,
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/models/kinds'
+} from '../../src/kinds'
 
 describe('model builder', () => {
     test('collects registered enums and specified scalars', () => {
@@ -55,9 +52,9 @@ describe('model builder', () => {
             },
             makeTestModelContext({
                 schema,
-                customScalars: { String: defineNamed('DateIsoString') },
                 documents,
-            })
+            }),
+            { String: defineNamed('DateIsoString') }
         )
 
         expect(registry.schema.enums.get('UserStatus')).toEqual([
@@ -123,7 +120,7 @@ describe('model builder', () => {
             makeTestModelContext({
                 schema,
                 documents,
-            })
+            }), {}
         )
 
         expect(registry.documents.fragments.get('UserBase')).toEqual(expect.objectContaining({
@@ -136,7 +133,8 @@ describe('model builder', () => {
                     responseName: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'ID',
+                        usage: 'output',
                     },
                     directives: [],
                 })],
@@ -173,7 +171,8 @@ describe('model builder', () => {
                             responseName: 'bio',
                             value: {
                                 kind: VALUE_MODEL_KIND.SCALAR,
-                                typeTs: defineString(),
+                                name: 'String',
+                                usage: 'output',
                             },
                             directives: [],
                         })],
@@ -234,7 +233,7 @@ describe('model builder', () => {
             makeTestModelContext({
                 schema,
                 documents,
-            })
+            }), {}
         )
 
         const groupOwner = registry.documents.fragments.get('GroupOwner')
@@ -275,7 +274,8 @@ describe('model builder', () => {
                     name: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'ID',
+                        usage: 'output',
                     },
                 }),
                 expect.objectContaining({
@@ -299,7 +299,8 @@ describe('model builder', () => {
                     name: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'ID',
+                        usage: 'output',
                     },
                 }),
                 expect.objectContaining({
@@ -359,7 +360,7 @@ describe('model builder', () => {
             makeTestModelContext({
                 schema,
                 documents,
-            })
+            }), {}
         )
 
         const groupOwner = registry.documents.fragments.get('GroupOwner')
@@ -381,7 +382,8 @@ describe('model builder', () => {
                     name: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'ID',
+                        usage: 'output',
                     },
                 }),
                 expect.objectContaining({
@@ -397,7 +399,8 @@ describe('model builder', () => {
                     name: 'id',
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'ID',
+                        usage: 'output',
                     },
                 }),
                 expect.objectContaining({
@@ -446,7 +449,7 @@ describe('model builder', () => {
             makeTestModelContext({
                 schema,
                 documents,
-            })
+            }), {}
         )
 
         expect(registry.documents.fragments.get('UserCard')).toEqual(expect.objectContaining({
@@ -510,7 +513,7 @@ describe('model builder', () => {
                     clientOnly: { effect: 'exclude' },
                 },
                 documents,
-            })
+            }), {}
         )
 
         const policyUserCard = registry.documents.fragments.get('UserCard')
