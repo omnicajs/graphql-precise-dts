@@ -7,7 +7,11 @@ export type ConfigDirectivePolicies = Record<string, DirectivePolicy | Directive
 
 export type {
     DirectiveNodePolicies,
+    DirectivePoliciesByKind,
     DirectivePolicy,
+    GenerationDirectivePolicies,
+    GenerationDirectivePolicy,
+    NormalizedDirectivePolicies,
     StructuralDirectiveNodePolicies,
     StructuralDirectivePolicies,
     StructuralDirectivePolicy,

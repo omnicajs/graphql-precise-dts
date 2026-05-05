@@ -26,12 +26,17 @@ export type GenerationDirectivePolicy =
 
 export type DirectivePolicy = StructuralDirectivePolicy | GenerationDirectivePolicy
 
-export type StructuralDirectiveNodePolicies =
-    Partial<Record<ConstValues<typeof SELECTION_MODEL_KIND>, StructuralDirectivePolicy>>
+export type DirectivePoliciesByKind<TPolicy> =
+    Partial<Record<ConstValues<typeof SELECTION_MODEL_KIND>, TPolicy>>
 
-export type GenerationDirectiveNodePolicies =
-    Partial<Record<ConstValues<typeof SELECTION_MODEL_KIND>, GenerationDirectivePolicy>>
+export type StructuralDirectiveNodePolicies = DirectivePoliciesByKind<StructuralDirectivePolicy>
 
-export type DirectiveNodePolicies = Partial<Record<ConstValues<typeof SELECTION_MODEL_KIND>, DirectivePolicy>>
+export type GenerationDirectiveNodePolicies = DirectivePoliciesByKind<GenerationDirectivePolicy>
 
-export type StructuralDirectivePolicies = Record<string, StructuralDirectivePolicy | StructuralDirectiveNodePolicies>
+export type DirectiveNodePolicies = DirectivePoliciesByKind<DirectivePolicy>
+
+export type NormalizedDirectivePolicies = Record<string, DirectivePoliciesByKind<DirectivePolicy>>
+
+export type StructuralDirectivePolicies = Record<string, StructuralDirectiveNodePolicies>
+
+export type GenerationDirectivePolicies = Record<string, GenerationDirectiveNodePolicies>
