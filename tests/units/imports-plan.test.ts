@@ -5,14 +5,14 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
-import { collectImportsForDocumentModels } from '../../src/plan/imports'
+import { collectDocumentModelImports } from '../../src/plan/document-model-imports'
 import {
     declarationDefinitions,
     enumValue,
     field,
     fragment,
 } from '../fixtures/builders/declaration-render'
-import { makeImportMap } from '../../src/plan/imports'
+import { makeDocumentModelImportMap } from '../../src/plan/document-model-imports'
 import {
     objectValue,
     operation,
@@ -23,9 +23,9 @@ import {
     variableObjectValue,
 } from '../fixtures/builders/declaration-render'
 
-import { FRAGMENT_ROOT_KIND } from '../../src/models/kinds'
+import { FRAGMENT_ROOT_KIND } from '../../src/kinds'
 import { OperationTypeNode } from 'graphql'
-import { VALUE_MODEL_KIND } from '../../src/models/kinds'
+import { VALUE_MODEL_KIND } from '../../src/kinds'
 
 describe('imports plan', () => {
     test('collects fragment and enum import sources from GraphQL documents', () => {
@@ -45,7 +45,7 @@ describe('imports plan', () => {
             }
         `)
 
-        const importMap = makeImportMap(
+        const importMap = makeDocumentModelImportMap(
             schema,
             [{
                 location: 'fragments/user.graphql',
@@ -109,7 +109,7 @@ describe('imports plan', () => {
             ])
         )
 
-        const imports = collectImportsForDocumentModels(models, {
+        const imports = collectDocumentModelImports(models, {
             fragments: new Map([
                 [ 'SharedFields', './shared.graphql' ],
             ]),
@@ -143,7 +143,7 @@ describe('imports plan', () => {
             ])
         )
 
-        const imports = collectImportsForDocumentModels(models, {
+        const imports = collectDocumentModelImports(models, {
             fragments: new Map(),
             enums: new Map([
                 [ 'UserStatus', './schema' ],
@@ -165,7 +165,7 @@ describe('imports plan', () => {
             new Map()
         )
 
-        const imports = collectImportsForDocumentModels(models, {
+        const imports = collectDocumentModelImports(models, {
             fragments: new Map(),
             enums: new Map([
                 [ 'UserStatus', './schema' ],
@@ -194,7 +194,7 @@ describe('imports plan', () => {
             }
         `)
 
-        const importMap = makeImportMap(
+        const importMap = makeDocumentModelImportMap(
             schema,
             [{
                 location: 'broken.graphql',
@@ -246,7 +246,7 @@ describe('imports plan', () => {
             }
         `)
 
-        const importMap = makeImportMap(
+        const importMap = makeDocumentModelImportMap(
             schema,
             [{
                 location: 'queries/users.graphql',
@@ -300,7 +300,7 @@ describe('imports plan', () => {
             new Map()
         )
 
-        const imports = collectImportsForDocumentModels(models, {
+        const imports = collectDocumentModelImports(models, {
             fragments: new Map([
                 [ 'UserBase', './user-base.graphql' ],
             ]),

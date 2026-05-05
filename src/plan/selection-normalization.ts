@@ -7,17 +7,12 @@ import type {
 } from '../models/types'
 
 import {
-    isSameTsType,
-    renderTsType,
-} from '../ts-type'
-
-import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../models/kinds'
+} from '../kinds'
 
-export type FlatVisibleSelection = FieldSelectionModel | FragmentSpreadSelectionModel
+export type NormalizedSelectionModel = FieldSelectionModel | FragmentSpreadSelectionModel
 
 type FieldValueMergeContext = {
     existingSelection: FieldSelectionModel;
@@ -64,19 +59,22 @@ const mergeDiagnosticLocations = (...locations: Array<string | undefined>): stri
 
 const mergeConditionalFlag = <T extends boolean>(left: T, right: T): T => left && right
 
-const mergeDirectiveNames = <T extends string>(left: T[] = [], right: T[] = []): T[] => uniqueValues([ ...left, ...right ])
+const mergeDirectiveLists = <T extends string>(left: T[] = [], right: T[] = []): T[] => uniqueValues([ ...left, ...right ])
 
 const fieldValueMergers: FieldValueMergers = {
     [VALUE_MODEL_KIND.SCALAR]: (left, right, { existingSelection, duplicateSelection }) => {
-        if (!isSameTsType(left.typeTs, right.typeTs)) {
-            throw makeSelectionConflictError(
-                existingSelection,
-                duplicateSelection,
-                `different scalar result types "${renderTsType(left.typeTs)}" and "${renderTsType(right.typeTs)}" cannot be merged`
-            )
+        if (left.name === right.name && left.usage === right.usage) {
+            return left
         }
 
-        return left
+        const leftLabel = `${left.name}:${left.usage}`
+        const rightLabel = `${right.name}:${right.usage}`
+
+        throw makeSelectionConflictError(
+            existingSelection,
+            duplicateSelection,
+            `different scalar result definitions "${leftLabel}" and "${rightLabel}" cannot be merged`
+        )
     },
     [VALUE_MODEL_KIND.ENUM]: (left, right, { existingSelection, duplicateSelection }) => {
         if (left.name !== right.name) {
@@ -171,11 +169,13 @@ const mergeFragmentSpreads = (
         )
     }
 
+    const directiveNames = mergeDirectiveLists(existingSelection.directiveNames, duplicateSelection.directiveNames)
     return {
         ...existingSelection,
         diagnosticLocation: mergeDiagnosticLocations(existingSelection.diagnosticLocation, duplicateSelection.diagnosticLocation),
         conditional: mergeConditionalFlag(existingSelection.conditional, duplicateSelection.conditional),
-        directives: mergeDirectiveNames(existingSelection.directives, duplicateSelection.directives),
+        directives: mergeDirectiveLists(existingSelection.directives, duplicateSelection.directives),
+        ...(directiveNames.length ? { directiveNames } : {}),
     }
 }
 
@@ -201,23 +201,15 @@ const mergeFieldSelections = (
             duplicateSelection,
             `different field nullability or list structure cannot be merged`
         )
-    } else if (
-        existingSelection.overrideTypeTs
-            ? !duplicateSelection.overrideTypeTs || !isSameTsType(existingSelection.overrideTypeTs, duplicateSelection.overrideTypeTs)
-            : !!duplicateSelection.overrideTypeTs
-    ) {
-        throw makeSelectionConflictError(
-            existingSelection,
-            duplicateSelection,
-            `different override types cannot be merged`
-        )
     }
 
+    const directiveNames = mergeDirectiveLists(existingSelection.directiveNames, duplicateSelection.directiveNames)
     return {
         ...existingSelection,
         diagnosticLocation: mergeDiagnosticLocations(existingSelection.diagnosticLocation, duplicateSelection.diagnosticLocation),
         conditional: mergeConditionalFlag(existingSelection.conditional, duplicateSelection.conditional),
-        directives: mergeDirectiveNames(existingSelection.directives, duplicateSelection.directives),
+        directives: mergeDirectiveLists(existingSelection.directives, duplicateSelection.directives),
+        ...(directiveNames.length ? { directiveNames } : {}),
         value: mergeFieldValues(
             existingSelection,
             duplicateSelection
@@ -228,7 +220,7 @@ const mergeFieldSelections = (
 const flattenSelections = (
     selections: SelectionModel[],
     withinConditional = false
-): FlatVisibleSelection[] => selections.flatMap(selection => {
+): NormalizedSelectionModel[] => selections.flatMap(selection => {
     const conditional = withinConditional || selection.conditional
 
     if (selection.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT) {
@@ -243,8 +235,8 @@ const flattenSelections = (
 
 export const normalizeSelections = (
     selections: SelectionModel[]
-): FlatVisibleSelection[] => {
-    const normalizedSelections: FlatVisibleSelection[] = []
+): NormalizedSelectionModel[] => {
+    const normalizedSelections: NormalizedSelectionModel[] = []
     const fieldsByResponseName = new Map<string, number>()
     const spreadsByName = new Map<string, number>()
 

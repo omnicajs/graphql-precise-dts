@@ -1,18 +1,18 @@
+import type { FieldValue } from '../models/types'
+import type { NormalizedSelectionModel } from './selection-normalization'
+import type { ObjectRenderOptions } from './planned-types'
 import type {
-    FieldValue,
     SelectionModel,
     TypeRef,
 } from '../models/types'
-import type { ObjectRenderOptions } from './document-models-types'
 
-import { normalizeSelections } from '../render/selection-normalization'
-import { renderTsType } from '../ts-type'
+import { normalizeSelections } from './selection-normalization'
 
 import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../models/kinds'
+} from '../kinds'
 
 type OutputSignatureState = {
     inProgressObjects: WeakSet<object>;
@@ -42,7 +42,7 @@ const makeSelectionsShapeSignature = (
 ].filter(Boolean).join('|')
 
 const makeSelectionShapeSignature = (
-    selection: SelectionModel,
+    selection: NormalizedSelectionModel,
     state: OutputSignatureState
 ): string => {
     switch (selection.kind) {
@@ -54,7 +54,6 @@ const makeSelectionShapeSignature = (
                 selection.argumentsSignature,
                 selection.conditional ? 'conditional' : 'required',
                 makeTypeRefShapeSignature(selection.typeRef),
-                selection.overrideTypeTs ? `override:${renderTsType(selection.overrideTypeTs)}` : 'override:none',
                 makeFieldValueShapeSignature(selection.value, state),
             ].join(':')
         case SELECTION_MODEL_KIND.FRAGMENT_SPREAD:
@@ -63,13 +62,6 @@ const makeSelectionShapeSignature = (
                 selection.name,
                 selection.onType,
                 selection.conditional ? 'conditional' : 'required',
-            ].join(':')
-        case SELECTION_MODEL_KIND.INLINE_FRAGMENT:
-            return [
-                'inline',
-                selection.typeCondition ?? '',
-                selection.conditional ? 'conditional' : 'required',
-                makeSelectionsShapeSignature(selection.selections, {}, state),
             ].join(':')
     }
 }
@@ -80,7 +72,7 @@ const makeFieldValueShapeSignature = (
 ): string => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.SCALAR:
-            return `scalar:${renderTsType(value.typeTs)}`
+            return `scalar:${value.name}:${value.usage}`
         case VALUE_MODEL_KIND.TYPENAME:
             return `typename:${[ ...value.typeNames ].sort().join('|')}`
         case VALUE_MODEL_KIND.ENUM:

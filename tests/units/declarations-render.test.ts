@@ -6,7 +6,6 @@ import {
 } from 'vitest'
 
 import { arrayOf } from '../../src'
-import { buildDocumentModels } from '../../src/plan/document-models'
 import { declarationDefinitions } from '../fixtures/builders/declaration-render'
 import {
     defineBoolean,
@@ -21,11 +20,13 @@ import {
     fragment,
     namedType,
 } from '../fixtures/builders/declaration-render'
+import { makePlannedDocumentModels } from '../../src/plan/planned-document-models'
 import {
     operation,
     objectValue,
 } from '../fixtures/builders/declaration-render'
-import { renderDeclaration as renderPreparedDeclaration } from '../../src/render/declarations'
+import { prepareRenderableDocumentModels } from '../../src/plan/renderable-document-models'
+import { renderDeclaration as renderPlannedDeclaration } from '../../src/render/declarations'
 import { scalar } from '../fixtures/builders/declaration-render'
 import { typenameValue } from '../fixtures/builders/declaration-render'
 import { unionOf } from '../../src'
@@ -33,23 +34,31 @@ import {
     unionValue,
     variableField,
     variableObjectValue,
+    variableScalar,
 } from '../fixtures/builders/declaration-render'
 
-import { FRAGMENT_ROOT_KIND } from '../../src/models/kinds'
+import { FRAGMENT_ROOT_KIND } from '../../src/kinds'
 import { OperationTypeNode } from 'graphql'
 import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/models/kinds'
+} from '../../src/kinds'
 
 const renderDeclaration = (
     path: string,
     definitions: ReturnType<typeof declarationDefinitions>,
     importsMap: Map<string, string>
-): string => renderPreparedDeclaration(
+): string => renderPlannedDeclaration(
     path,
-    buildDocumentModels(definitions, [ ...importsMap.keys() ]),
+    prepareRenderableDocumentModels(
+        makePlannedDocumentModels(
+            definitions,
+            [ ...importsMap.keys() ],
+            definitions.customScalars,
+            definitions.directivePolicies
+        )
+    ),
     importsMap
 )
 
@@ -119,10 +128,7 @@ describe('declaration render', () => {
                                 ])),
                             ],
                             [
-                                variableField('id', {
-                                    kind: VALUE_MODEL_KIND.SCALAR,
-                                    typeTs: defineString(),
-                                }, false),
+                                variableField('id', variableScalar(defineString()), false),
                                 variableField('filter', variableObjectValue([
                                     variableField('status', {
                                         kind: VALUE_MODEL_KIND.ENUM,
@@ -174,27 +180,12 @@ describe('declaration render', () => {
                             [],
                             [
                                 variableField('input', variableObjectValue([
-                                    variableField('name', {
-                                        kind: VALUE_MODEL_KIND.SCALAR,
-                                        typeTs: defineString(),
-                                    }, false, false, false),
-                                    variableField('nickname', {
-                                        kind: VALUE_MODEL_KIND.SCALAR,
-                                        typeTs: defineString(),
-                                    }, true, false, true),
-                                    variableField('locale', {
-                                        kind: VALUE_MODEL_KIND.SCALAR,
-                                        typeTs: defineString(),
-                                    }, true, false, false),
-                                    variableField('token', {
-                                        kind: VALUE_MODEL_KIND.SCALAR,
-                                        typeTs: defineString(),
-                                    }, false, false, true),
+                                    variableField('name', variableScalar(defineString()), false, false, false),
+                                    variableField('nickname', variableScalar(defineString()), true, false, true),
+                                    variableField('locale', variableScalar(defineString()), true, false, false),
+                                    variableField('token', variableScalar(defineString()), false, false, true),
                                 ]), false, false, false),
-                                variableField('traceId', {
-                                    kind: VALUE_MODEL_KIND.SCALAR,
-                                    typeTs: defineString(),
-                                }, true, false, true),
+                                variableField('traceId', variableScalar(defineString()), true, false, true),
                             ],
                             'Mutation'
                         )],
@@ -239,10 +230,7 @@ describe('declaration render', () => {
 
         test('renders recursive input object variables through named aliases', () => {
             const treeInput = variableObjectValue([
-                variableField('value', {
-                    kind: VALUE_MODEL_KIND.SCALAR,
-                    typeTs: defineString(),
-                }),
+                variableField('value', variableScalar(defineString())),
                 variableField('children', variableObjectValue([], 'TreeInput', true), true, true),
             ], 'TreeInput')
 
@@ -412,7 +400,7 @@ describe('declaration render', () => {
             const definitions = declarationDefinitions(new Map([
                 ['OverrideUser', fragment([{
                     ...field('createdAt', scalar(defineString())),
-                    overrideTypeTs: defineNamed('Date'),
+                    directiveNames: [ 'opaque' ],
                     typeRef: {
                         kind: TYPE_REF_KIND.NON_NULL,
                         ofType: {
@@ -421,7 +409,12 @@ describe('declaration render', () => {
                         },
                     },
                 }], 'User')],
-            ]))
+            ]), new Map(), {
+                opaque: {
+                    effect: 'override-type',
+                    type: defineNamed('Date'),
+                },
+            })
 
             expect(renderDeclaration('./documents', definitions, new Map())).toContain([
                 '\texport type OverrideUser = {',
