@@ -2,19 +2,19 @@ import type { FragmentDefinitionNode } from 'graphql'
 import type {
     FragmentModel,
     FragmentRoot,
-} from './types'
+    OperationModel,
+} from './types/document'
 import type {
     GraphQLAbstractType,
     GraphQLInputType,
 } from 'graphql'
-import type { ModelContext } from './types'
+import type { ModelContext } from './types/context'
 import type { OperationDefinitionNode } from 'graphql'
-import type { OperationModel } from './types'
 import type { Schema } from '../plugin-types'
 import type { SelectionNode } from 'graphql'
 import type { TypeSelectionNode } from './selection'
 import type { VariableDefinitionNode } from 'graphql'
-import type { VariableField } from './types'
+import type { VariableField } from './types/value'
 
 import { TypeInfo } from 'graphql'
 

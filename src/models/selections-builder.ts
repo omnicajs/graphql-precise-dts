@@ -1,6 +1,6 @@
-import type { ModelContext } from './types'
+import type { ModelContext } from './types/context'
 import type { ResolvedStructuralDirectives } from '../directives/types'
-import type { SelectionModel } from './types'
+import type { SelectionModel } from './types/selection'
 import type { SelectionNode } from 'graphql'
 import type { StructuralDirectivePolicies } from '../directives/types'
 import type { TypeSelectionNode } from './selection'

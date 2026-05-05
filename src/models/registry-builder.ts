@@ -1,8 +1,7 @@
 import type { CustomScalarMappings } from '../scalars/types'
 import type {
-    EnumValueEntries,
     FragmentModel,
-} from './types'
+} from './types/document'
 import type {
     GraphQLInputType,
     GraphQLInputObjectType,
@@ -10,9 +9,12 @@ import type {
     GraphQLNamedType,
     GraphQLObjectType,
 } from 'graphql'
-import type { ModelContext } from './types'
+import type { ModelContext } from './types/context'
 import type { ModelRegistry } from './registry'
-import type { ScalarModelShape } from './types'
+import type {
+    EnumValueEntries,
+    ScalarModelShape,
+} from './types/type-ref'
 import type { Scalars } from '../scalars/types'
 import type { Schema } from '../plugin-types'
 

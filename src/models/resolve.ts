@@ -9,10 +9,10 @@ import type {
     GraphQLOutputType,
     GraphQLSchema,
 } from 'graphql'
-import type { SelectionModel } from './types'
+import type { SelectionModel } from './types/selection'
 import type { SelectionNode } from 'graphql'
 import type { StructuralDirectivePolicies } from '../directives/types'
-import type { TypeRef } from './types'
+import type { TypeRef } from './types/type-ref'
 import type { TypeSelectionNode } from './selection'
 
 import {
