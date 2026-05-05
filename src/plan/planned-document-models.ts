@@ -1,6 +1,6 @@
 import type { CollectedDocumentModels } from '../models/types'
 import type { CustomScalarMappings } from '../scalars/types'
-import type { ConfigDirectivePolicies } from '../directives/types'
+import type { GenerationDirectivePolicies } from '../directives/types'
 import type {
     FieldValue,
     FragmentModel,
@@ -169,7 +169,7 @@ const buildObjectFieldValue = (
     aliasName: string,
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: GenerationDirectivePolicies
 ): PlannedObjectFieldValue => {
     if (value.kind !== VALUE_MODEL_KIND.OBJECT) {
         throw new Error('Expected object field value')
@@ -216,7 +216,7 @@ const buildFieldValue = (
     aliasName: string,
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: GenerationDirectivePolicies
 ): PlannedFieldValue => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.SCALAR:
@@ -249,7 +249,7 @@ const buildSelection = (
     parentAliasName: string,
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: GenerationDirectivePolicies
 ): PlannedSelectionModel => {
     switch (selection.kind) {
         case SELECTION_MODEL_KIND.FIELD: {
@@ -386,7 +386,7 @@ const buildFragmentRoot = (
     root: FragmentRoot,
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: GenerationDirectivePolicies
 ): PlannedFragmentRoot => root.kind === FRAGMENT_ROOT_KIND.UNION
     ? {
         kind: FRAGMENT_ROOT_KIND.UNION,
@@ -415,7 +415,7 @@ const buildFragmentModel = (
     fragment: FragmentModel,
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: GenerationDirectivePolicies
 ): PlannedFragmentModel => ({
     ...fragment,
     root: buildFragmentRoot(fragmentName, fragment.root, state, customScalars, directivePolicies),
@@ -427,7 +427,7 @@ const buildOperationModel = (
     outputState: OutputBuildState,
     variableState: VariableBuildState,
     customScalars: CustomScalarMappings,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: GenerationDirectivePolicies
 ): PlannedOperationModel => {
     const operationTypeName = getOperationTypeName(operationName, operation.operationType)
 
@@ -446,7 +446,7 @@ export const makePlannedDocumentModels = (
     models: CollectedDocumentModels,
     reservedNames: string[] = [],
     customScalars: CustomScalarMappings = {},
-    directivePolicies: ConfigDirectivePolicies = {}
+    directivePolicies: GenerationDirectivePolicies = {}
 ): PlannedDocumentModels => {
     const outputBuildState: OutputBuildState = {
         occurrences: new Map(),

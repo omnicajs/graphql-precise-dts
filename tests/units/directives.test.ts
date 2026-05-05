@@ -11,6 +11,11 @@ import {
 import { isConditionalSelectionState } from '../../src/directives/resolve'
 import { parse } from 'graphql'
 import {
+    makeGenerationDirectivePolicies,
+    makeNormalizedDirectivePolicies,
+    makeStructuralDirectivePolicies,
+} from '../../src/directives/structural-policies'
+import {
     resolveGenerationSelectionDirectives,
     resolveStructuralSelectionDirectives,
     shouldForceNonNull,
@@ -34,6 +39,36 @@ const getSelectionDirectives = (source: string) => {
 }
 
 describe('directives', () => {
+    test('normalizes flat and scoped directive policies by selection kind', () => {
+        expect(makeNormalizedDirectivePolicies({
+            review: {
+                effect: 'warn',
+                message: 'Review this field',
+            },
+            mask: {
+                field: { effect: 'conditional' },
+            },
+        })).toEqual({
+            review: {
+                field: {
+                    effect: 'warn',
+                    message: 'Review this field',
+                },
+                fragmentSpread: {
+                    effect: 'warn',
+                    message: 'Review this field',
+                },
+                inlineFragment: {
+                    effect: 'warn',
+                    message: 'Review this field',
+                },
+            },
+            mask: {
+                field: { effect: 'conditional' },
+            },
+        })
+    })
+
     test('marks runtime include directives as conditional', () => {
         const directives = getSelectionDirectives(`
             fragment UserCard on User {
@@ -127,29 +162,7 @@ describe('directives', () => {
         `)
 
         const structural = resolveStructuralSelectionDirectives(directives, SELECTION_MODEL_KIND.FIELD, {
-            opaque: {
-                effect: 'override-type',
-                type: defineNamed('OpaqueId'),
-            },
-            review: {
-                effect: 'warn',
-                message: 'Review this field',
-            },
-            required: {
-                effect: 'nonnull',
-            },
-        })
-
-        expect(structural).toEqual({
-            directives: [],
-            forceNonNull: true,
-            state: SELECTION_STATE.INCLUDED,
-        })
-
-        const generation = resolveGenerationSelectionDirectives(
-            directives.map(directive => directive.name.value),
-            SELECTION_MODEL_KIND.FIELD,
-            {
+            ...makeStructuralDirectivePolicies({
                 opaque: {
                     effect: 'override-type',
                     type: defineNamed('OpaqueId'),
@@ -161,7 +174,31 @@ describe('directives', () => {
                 required: {
                     effect: 'nonnull',
                 },
-            }
+            }),
+        })
+
+        expect(structural).toEqual({
+            directives: [],
+            forceNonNull: true,
+            state: SELECTION_STATE.INCLUDED,
+        })
+
+        const generation = resolveGenerationSelectionDirectives(
+            directives.map(directive => directive.name.value),
+            SELECTION_MODEL_KIND.FIELD,
+            makeGenerationDirectivePolicies({
+                opaque: {
+                    effect: 'override-type',
+                    type: defineNamed('OpaqueId'),
+                },
+                review: {
+                    effect: 'warn',
+                    message: 'Review this field',
+                },
+                required: {
+                    effect: 'nonnull',
+                },
+            })
         )
 
         expect(generation).toEqual({
@@ -173,17 +210,17 @@ describe('directives', () => {
         expect(shouldForceNonNull(
             directives,
             SELECTION_MODEL_KIND.FIELD,
-            {
+            makeStructuralDirectivePolicies({
                 required: { effect: 'nonnull' },
-            }
+            })
         )).toBe(true)
 
         expect(shouldForceNonNull(
             directives,
             SELECTION_MODEL_KIND.INLINE_FRAGMENT,
-            {
+            makeStructuralDirectivePolicies({
                 required: { effect: 'nonnull' },
-            }
+            })
         )).toBe(true)
     })
 
@@ -197,11 +234,11 @@ describe('directives', () => {
         expect(resolveGenerationSelectionDirectives(
             directives.map(directive => directive.name.value),
             SELECTION_MODEL_KIND.FIELD,
-            {
+            makeGenerationDirectivePolicies({
                 review: {
                     effect: 'warn',
                 },
-            }
+            })
         )).toEqual({
             directives: [ 'review' ],
             warnings: [ 'Directive "@review" requires manual review' ],
@@ -218,12 +255,12 @@ describe('directives', () => {
         const resolved = resolveGenerationSelectionDirectives(
             directives.map(directive => directive.name.value),
             SELECTION_MODEL_KIND.FIELD,
-            {
+            makeGenerationDirectivePolicies({
                 opaque: {
                     effect: 'override-type',
                     type: defineNamed('UserId'),
                 },
-            }
+            })
         )
 
         expect(renderType(resolved.overrideType!)).toBe('UserId')

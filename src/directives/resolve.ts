@@ -1,14 +1,17 @@
-import type { ConditionalSelectionState } from './types'
-import type { ConstValues } from '../lib/types'
-import type { DirectiveNode } from 'graphql'
 import type {
-    ConfigDirectivePolicies,
-    DirectiveNodePolicies,
-    DirectivePolicy,
+    ConditionalSelectionState,
+    GenerationDirectivePolicies,
+    GenerationDirectivePolicy,
     ResolvedGenerationDirectives,
     ResolvedStructuralDirectives,
+    StructuralDirectivePolicies,
+    StructuralDirectivePolicy,
 } from './types'
+
+import type { ConstValues } from '../lib/types'
+
 import type {
+    DirectiveNode,
     SelectionNode,
     ValueNode,
 } from 'graphql'
@@ -39,25 +42,26 @@ const getDirectiveIfValue = (directive: DirectiveNode): boolean | undefined => {
     return getBooleanLiteral(ifArg?.value)
 }
 
-const isDirectiveNodePolicies = (
-    policy: DirectivePolicy | DirectiveNodePolicies
-): policy is DirectiveNodePolicies => typeof policy === 'object'
-    && policy !== null
-    && !('effect' in policy)
-
-const getDirectivePolicy = (
+const getStructuralDirectivePolicy = (
     directiveName: string,
     targetKind: ConstValues<typeof SELECTION_MODEL_KIND>,
-    directivePolicies: ConfigDirectivePolicies = {}
-): DirectivePolicy | undefined => {
+    directivePolicies: StructuralDirectivePolicies = {}
+): StructuralDirectivePolicy | undefined => {
     const policy = directivePolicies[directiveName]
     if (!policy) return
-    if (!isDirectiveNodePolicies(policy)) return policy
 
-    const scopedPolicy = policy[targetKind]
-    if (scopedPolicy) return
+    return policy[targetKind]
+}
 
-    return scopedPolicy
+const getGenerationDirectivePolicy = (
+    directiveName: string,
+    targetKind: ConstValues<typeof SELECTION_MODEL_KIND>,
+    directivePolicies: GenerationDirectivePolicies = {}
+): GenerationDirectivePolicy | undefined => {
+    const policy = directivePolicies[directiveName]
+    if (!policy) return
+
+    return policy[targetKind]
 }
 
 const markSelectionConditional = (
@@ -89,7 +93,7 @@ const resolveConditionalDirective = (
 
 const applyStructuralDirectivePolicy = (
     directive: DirectiveNode,
-    policy: DirectivePolicy,
+    policy: StructuralDirectivePolicy,
     resolved: ResolvedStructuralDirectives
 ): ConditionalSelectionState | undefined => {
     switch (policy.effect) {
@@ -110,7 +114,7 @@ const applyStructuralDirectivePolicy = (
 
 const applyGenerationDirectivePolicy = (
     directiveName: string,
-    policy: DirectivePolicy,
+    policy: GenerationDirectivePolicy,
     resolved: ResolvedGenerationDirectives
 ) => {
     switch (policy.effect) {
@@ -130,7 +134,7 @@ const applyGenerationDirectivePolicy = (
 export const resolveStructuralSelectionDirectives = (
     directives: DirectiveNode[] = [],
     targetKind: ConstValues<typeof SELECTION_MODEL_KIND>,
-    directivePolicies: ConfigDirectivePolicies = {}
+    directivePolicies: StructuralDirectivePolicies = {}
 ): ResolvedStructuralDirectives => {
     const resolved = {
         directives: [],
@@ -143,7 +147,7 @@ export const resolveStructuralSelectionDirectives = (
         if (conditionalState === SELECTION_STATE.EXCLUDED) return { ...resolved, state: SELECTION_STATE.EXCLUDED }
         if (conditionalState) continue
 
-        const policy = getDirectivePolicy(directive.name.value, targetKind, directivePolicies)
+        const policy = getStructuralDirectivePolicy(directive.name.value, targetKind, directivePolicies)
         if (!policy) continue
 
         const policyState = applyStructuralDirectivePolicy(directive, policy, resolved)
@@ -156,7 +160,7 @@ export const resolveStructuralSelectionDirectives = (
 export const resolveGenerationSelectionDirectives = (
     directiveNames: string[] = [],
     targetKind: ConstValues<typeof SELECTION_MODEL_KIND>,
-    directivePolicies: ConfigDirectivePolicies = {}
+    directivePolicies: GenerationDirectivePolicies = {}
 ): ResolvedGenerationDirectives => {
     const resolved = {
         directives: [],
@@ -164,7 +168,7 @@ export const resolveGenerationSelectionDirectives = (
     } satisfies ResolvedGenerationDirectives
 
     directiveNames.forEach(directiveName => {
-        const policy = getDirectivePolicy(directiveName, targetKind, directivePolicies)
+        const policy = getGenerationDirectivePolicy(directiveName, targetKind, directivePolicies)
         if (!policy) return
 
         applyGenerationDirectivePolicy(directiveName, policy, resolved)
@@ -176,7 +180,7 @@ export const resolveGenerationSelectionDirectives = (
 export const shouldForceNonNull = (
     directives: DirectiveNode[] = [],
     targetKind: ConstValues<typeof SELECTION_MODEL_KIND>,
-    directivePolicies: ConfigDirectivePolicies = {}
+    directivePolicies: StructuralDirectivePolicies = {}
 ): boolean => resolveStructuralSelectionDirectives(directives, targetKind, directivePolicies).forceNonNull
 
 const getDirectivePolicyTargetForSelection = (
@@ -194,7 +198,7 @@ const getDirectivePolicyTargetForSelection = (
 
 export const resolveStructuralSelectionDirectivesForNode = (
     selection: SelectionNode,
-    directivePolicies: ConfigDirectivePolicies = {}
+    directivePolicies: StructuralDirectivePolicies = {}
 ): ResolvedStructuralDirectives => resolveStructuralSelectionDirectives(
     selection.directives ? [ ...selection.directives ] : [],
     getDirectivePolicyTargetForSelection(selection),

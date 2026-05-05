@@ -14,6 +14,7 @@ import { join } from 'path'
 import { makeDocumentModelImportMap } from './plan/document-model-imports'
 import { makeDocumentLocationMap } from './lib/documents'
 import { makeDocumentModelBundles } from './plan/document-model-bundles'
+import { makeGenerationDirectivePolicies } from './directives/structural-policies'
 import { makeModuleSpecifier } from './path'
 import { makeStructuralDirectivePolicies } from './directives/structural-policies'
 import { mkdirSync } from 'fs'
@@ -52,6 +53,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     const importMap = makeDocumentModelImportMap(schema, documents, schemaModulePath, documentModuleSpecifier)
 
     const fragmentDefinitions = findFragmentDefinitions(documents)
+    const directivePolicies = config.directivePolicies ?? {}
 
     emitRepeatedSelectionWarnings(documents)
     emitMissingFragmentDefinitionWarnings(documents, fragmentDefinitions)
@@ -62,7 +64,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
             ? fragmentDefinitions
             : findFragmentDefinitions(fragmentDefinitions),
         documentLocations: makeDocumentLocationMap(documents),
-        structuralDirectivePolicies: makeStructuralDirectivePolicies(config.directivePolicies ?? {}),
+        structuralDirectivePolicies: makeStructuralDirectivePolicies(directivePolicies),
     } satisfies ModelContext
 
     const registry = buildModelRegistry(
@@ -83,7 +85,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         context,
         importMap,
         config.scalars ?? {},
-        config.directivePolicies ?? {}
+        makeGenerationDirectivePolicies(directivePolicies)
     )
 
     return {

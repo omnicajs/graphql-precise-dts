@@ -1,6 +1,6 @@
 import type { CollectedDocumentModels } from '../models/types'
 import type { CustomScalarMappings } from '../scalars/types'
-import type { ConfigDirectivePolicies } from '../directives/types'
+import type { GenerationDirectivePolicies } from '../directives/types'
 import type { DocumentFile } from '../plugin-types'
 import type { DocumentModelImportMap } from './document-model-imports'
 import type {
@@ -103,7 +103,7 @@ const prepareDocumentModelBundle = (
     { location, models }: CollectedDocumentModelBundle,
     importMap: DocumentModelImportMap,
     customScalars: CustomScalarMappings,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: GenerationDirectivePolicies
 ): DocumentModelBundle => {
     const imports = collectDocumentModelImports(models, importMap)
 
@@ -122,7 +122,7 @@ export const makeDocumentModelBundles = (
     context: ModelContext,
     importMap: DocumentModelImportMap,
     customScalars: CustomScalarMappings,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: GenerationDirectivePolicies
 ): DocumentModelBundle[] => {
     return documents.flatMap(documentFile => {
         const documentModel = collectDocumentModelBundle(

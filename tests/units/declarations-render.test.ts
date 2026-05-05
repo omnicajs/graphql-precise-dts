@@ -20,6 +20,7 @@ import {
     fragment,
     namedType,
 } from '../fixtures/builders/declaration-render'
+import { makeGenerationDirectivePolicies } from '../../src/directives/structural-policies'
 import { makePlannedDocumentModels } from '../../src/plan/planned-document-models'
 import {
     operation,
@@ -56,7 +57,7 @@ const renderDeclaration = (
             definitions,
             [ ...importsMap.keys() ],
             definitions.customScalars,
-            definitions.directivePolicies
+            makeGenerationDirectivePolicies(definitions.directivePolicies)
         )
     ),
     importsMap
