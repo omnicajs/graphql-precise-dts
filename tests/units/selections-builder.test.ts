@@ -21,7 +21,7 @@ import { parse } from 'graphql'
 import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
-} from '../../src/models/kinds'
+} from '../../src/kinds'
 
 describe('selections builder', () => {
     test('applies conditional, exclude and nonnull policies while building selection models', () => {
@@ -69,12 +69,8 @@ describe('selections builder', () => {
                 document,
             }],
             directivePolicies: {
-                required: {
-                    field: { effect: 'nonnull' },
-                },
-                clientOnly: {
-                    field: { effect: 'exclude' },
-                },
+                required: { effect: 'nonnull' },
+                clientOnly: { effect: 'exclude' },
             },
         })
 

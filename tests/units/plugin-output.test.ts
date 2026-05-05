@@ -304,10 +304,8 @@ describe('plugin directive handling', () => {
                     prefix: '~tests/',
                     directivePolicies: {
                         opaque: {
-                            field: {
-                                effect: 'override-type',
-                                type: defineNamed('OpaqueId'),
-                            },
+                            effect: 'override-type',
+                            type: defineNamed('OpaqueId'),
                         },
                     },
                 },
@@ -352,9 +350,7 @@ describe('plugin directive handling', () => {
                     prefix: '~tests/',
                     directivePolicies: {
                         required: {
-                            field: {
-                                effect: 'nonnull',
-                            },
+                            effect: 'nonnull',
                         },
                     },
                 },
@@ -435,10 +431,8 @@ describe('plugin directive handling', () => {
                     prefix: '~tests/',
                     directivePolicies: {
                         review: {
-                            field: {
-                                effect: 'warn',
-                                message: 'Directive "@review" needs manual verification',
-                            },
+                            effect: 'warn',
+                            message: 'Directive "@review" needs manual verification',
                         },
                     },
                 },
@@ -478,9 +472,7 @@ describe('plugin directive handling', () => {
                     prefix: '~tests/',
                     directivePolicies: {
                         mask: {
-                            field: {
-                                effect: 'conditional',
-                            },
+                            effect: 'conditional',
                         },
                     },
                 },

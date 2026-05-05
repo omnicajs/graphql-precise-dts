@@ -1,4 +1,3 @@
-import type { ConfigDirectivePolicies } from '../config'
 import type {
     FieldNode,
     FragmentDefinitionNode,
@@ -12,6 +11,7 @@ import type {
 } from 'graphql'
 import type { SelectionModel } from './types'
 import type { SelectionNode } from 'graphql'
+import type { StructuralDirectivePolicies } from '../directives/policy'
 import type { TypeRef } from './types'
 import type { TypeSelectionNode } from './selection'
 
@@ -28,19 +28,19 @@ import {
     isObjectType,
     isUnionType,
 } from 'graphql'
-import { resolveSelectionDirectives } from '../directives'
+import { resolveStructuralSelectionDirectivesForNode } from '../directives/resolve'
 import {
     visit,
     visitWithTypeInfo,
 } from 'graphql'
 
 import { Kind } from 'graphql'
-import { SELECTION_MODEL_KIND } from './kinds'
-import { SELECTION_STATE } from '../directives'
+import { SELECTION_MODEL_KIND } from '../kinds'
+import { SELECTION_STATE } from '../directives/kinds'
 import {
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from './kinds'
+} from '../kinds'
 
 import { GraphQLString } from 'graphql'
 
@@ -56,14 +56,13 @@ export const makeNonNullTypeRef = (typeRef: TypeRef): TypeRef => {
 export const shouldBuildTypeSelectionUnion = (
     abstractType: GraphQLNamedType | undefined,
     selections: SelectionNode[],
-    directivePolicies: ConfigDirectivePolicies = {}
+    directivePolicies: StructuralDirectivePolicies = {}
 ): abstractType is GraphQLAbstractType => {
     const hasTypeSpecificInlineFragments = selections.some(selection =>
         selection.kind === Kind.INLINE_FRAGMENT
         && !!selection.typeCondition
-        && resolveSelectionDirectives(
-            selection.directives ? [ ...selection.directives ] : [],
-            SELECTION_MODEL_KIND.INLINE_FRAGMENT,
+        && resolveStructuralSelectionDirectivesForNode(
+            selection,
             directivePolicies
         ).state !== SELECTION_STATE.EXCLUDED
     )
@@ -265,7 +264,7 @@ export const filterSelectionsForConcreteType = (
         : []
 })
 
-export const specializeTypeNameSelectionForConcreteType = (
+export const specializeTypenameSelections = (
     selections: SelectionModel[],
     typeName: string
 ): SelectionModel[] => selections.map(selection => {
