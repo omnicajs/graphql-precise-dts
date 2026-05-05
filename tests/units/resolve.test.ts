@@ -404,7 +404,6 @@ describe('type resolution for models', () => {
                 kind: VALUE_MODEL_KIND.TYPENAME,
                 typeNames: [ 'UserPayload', 'AdminPayload' ],
             },
-            directives: [],
         }, {
             kind: SELECTION_MODEL_KIND.FIELD,
             name: 'id',
@@ -423,7 +422,6 @@ describe('type resolution for models', () => {
                 name: 'String',
                 usage: 'output',
             },
-            directives: [],
         }] satisfies SelectionModel[]
 
         expect(specializeTypenameSelections(selections, 'UserPayload')).toEqual([{
@@ -443,7 +441,6 @@ describe('type resolution for models', () => {
                 kind: VALUE_MODEL_KIND.TYPENAME,
                 typeNames: [ 'UserPayload' ],
             },
-            directives: [],
         }, selections[1]])
     })
 })

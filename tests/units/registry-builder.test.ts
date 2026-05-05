@@ -136,7 +136,6 @@ describe('model builder', () => {
                         name: 'ID',
                         usage: 'output',
                     },
-                    directives: [],
                 })],
             },
         }))
@@ -149,7 +148,6 @@ describe('model builder', () => {
                     kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                     name: 'UserBase',
                     onType: 'User',
-                    directives: [],
                 }), expect.objectContaining({
                     kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'status',
@@ -158,7 +156,6 @@ describe('model builder', () => {
                         kind: VALUE_MODEL_KIND.ENUM,
                         name: 'UserStatus',
                     },
-                    directives: [],
                 }), expect.objectContaining({
                     kind: SELECTION_MODEL_KIND.FIELD,
                     name: 'profile',
@@ -174,10 +171,8 @@ describe('model builder', () => {
                                 name: 'String',
                                 usage: 'output',
                             },
-                            directives: [],
                         })],
                     }),
-                    directives: [],
                 })]),
             },
         }))
@@ -459,12 +454,12 @@ describe('model builder', () => {
                     expect.objectContaining({
                         kind: SELECTION_MODEL_KIND.FIELD,
                         name: 'name',
-                        directives: [ 'include' ],
+                        directiveNames: [ 'include' ],
                     }),
                     expect.objectContaining({
                         kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
                         name: 'UserBase',
-                        directives: [ 'skip' ],
+                        directiveNames: [ 'skip' ],
                     }),
                 ],
             },
@@ -526,12 +521,11 @@ describe('model builder', () => {
                 kind: SELECTION_MODEL_KIND.FIELD,
                 name: 'id',
                 conditional: true,
-                directives: [ 'mask' ],
+                directiveNames: [ 'mask' ],
             }),
             expect.objectContaining({
                 kind: SELECTION_MODEL_KIND.FIELD,
                 name: 'name',
-                directives: [],
             }),
         ])
     })

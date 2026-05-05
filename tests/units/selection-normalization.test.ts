@@ -35,7 +35,6 @@ describe('selection normalization', () => {
                     selections: [
                         field('id', scalar(defineString()), false),
                     ],
-                    directives: [],
                 },
             ], [ 'User' ]), false),
         ])
@@ -61,7 +60,6 @@ describe('selection normalization', () => {
                     selections: [
                         field('id', scalar(defineString()), false),
                     ],
-                    directives: [],
                 },
             ], [ 'User' ]), false),
         ])
@@ -117,14 +115,14 @@ describe('selection normalization', () => {
         ])).toThrow(/different field nullability or list structure cannot be merged/)
     })
 
-    test('merges diagnostic locations, conditional flags, directives and object field values', () => {
+    test('merges diagnostic locations, conditional flags, directive names and object field values', () => {
         const selections = normalizeSelections([
             {
                 ...field('profile', objectValue([
                     field('id', scalar(defineString()), false),
                 ], [ 'User' ]), false),
                 diagnosticLocation: 'group.graphql:4:5',
-                directives: [ 'include' ],
+                directiveNames: [ 'include' ],
                 conditional: true,
             },
             {
@@ -132,7 +130,7 @@ describe('selection normalization', () => {
                     field('name', scalar(defineString())),
                 ], [ 'User' ]), false),
                 diagnosticLocation: 'group.graphql:8:5',
-                directives: [ 'client' ],
+                directiveNames: [ 'client' ],
                 conditional: false,
             },
         ])
@@ -142,7 +140,7 @@ describe('selection normalization', () => {
             responseName: 'profile',
             diagnosticLocation: 'group.graphql:4:5, group.graphql:8:5',
             conditional: false,
-            directives: [ 'include', 'client' ],
+            directiveNames: [ 'include', 'client' ],
             value: {
                 kind: VALUE_MODEL_KIND.OBJECT,
                 typeNames: [ 'User' ],
@@ -231,7 +229,6 @@ describe('selection normalization', () => {
                 onType: 'User',
                 onTypeNames: [ 'User' ],
                 conditional: false,
-                directives: [],
             },
             {
                 kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
@@ -239,7 +236,7 @@ describe('selection normalization', () => {
                 onType: 'User',
                 onTypeNames: [ 'User' ],
                 conditional: false,
-                directives: [ 'include' ],
+                directiveNames: [ 'include' ],
             },
         ])
 
@@ -249,7 +246,7 @@ describe('selection normalization', () => {
             onType: 'User',
             onTypeNames: [ 'User' ],
             conditional: false,
-            directives: [ 'include' ],
+            directiveNames: [ 'include' ],
             diagnosticLocation: undefined,
         }])
     })
@@ -262,7 +259,7 @@ describe('selection normalization', () => {
                 onType: 'User',
                 onTypeNames: [ 'User', 'Admin' ],
                 conditional: true,
-                directives: [ 'include' ],
+                directiveNames: [ 'include' ],
                 diagnosticLocation: 'group.graphql:3:5',
             },
             {
@@ -271,7 +268,7 @@ describe('selection normalization', () => {
                 onType: 'User',
                 onTypeNames: [ 'User', 'Admin' ],
                 conditional: false,
-                directives: [ 'client' ],
+                directiveNames: [ 'client' ],
                 diagnosticLocation: 'group.graphql:7:5',
             },
         ])
@@ -282,7 +279,7 @@ describe('selection normalization', () => {
             onType: 'User',
             onTypeNames: [ 'User', 'Admin' ],
             conditional: false,
-            directives: [ 'include', 'client' ],
+            directiveNames: [ 'include', 'client' ],
             diagnosticLocation: 'group.graphql:3:5, group.graphql:7:5',
         }])
     })

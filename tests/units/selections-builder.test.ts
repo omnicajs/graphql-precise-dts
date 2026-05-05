@@ -97,13 +97,13 @@ describe('selections builder', () => {
             kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
             name: 'UserBase',
             conditional: true,
-            directives: [ 'include' ],
+            directiveNames: [ 'include' ],
         })
         expect(models[2]).toMatchObject({
             kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
             typeCondition: 'User',
             conditional: true,
-            directives: [ 'include' ],
+            directiveNames: [ 'include' ],
         })
     })
 

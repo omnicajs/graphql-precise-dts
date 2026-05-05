@@ -96,7 +96,6 @@ export type FieldSelectionModel = {
     typeRef: TypeRef;
     value: FieldValue;
     conditional: boolean;
-    directives?: string[];
     directiveNames?: string[];
 }
 
@@ -107,7 +106,6 @@ export type FragmentSpreadSelectionModel = {
     onType: string;
     onTypeNames?: string[];
     conditional: boolean;
-    directives?: string[];
     directiveNames?: string[];
 }
 export type FragmentInlineSelectionModel = {
@@ -116,7 +114,6 @@ export type FragmentInlineSelectionModel = {
     typeCondition?: string;
     selections: SelectionModel[];
     conditional: boolean;
-    directives?: string[];
     directiveNames?: string[];
 }
 

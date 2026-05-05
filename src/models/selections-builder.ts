@@ -78,7 +78,6 @@ const makeFieldSelectionModel = (
             diagnosticOwner
         ),
         conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
-        directives: selectionContext.resolvedDirectives.directives,
         ...(directiveNames.length ? { directiveNames } : {}),
     }
 }
@@ -100,7 +99,6 @@ const makeFragmentSpreadSelectionModel = (
         diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
         ...getFragmentTypeNames(spreadFragment, context.schema),
         conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
-        directives: selectionContext.resolvedDirectives.directives,
         ...(directiveNames.length ? { directiveNames } : {}),
     }
 }
@@ -124,7 +122,6 @@ const makeInlineFragmentSelectionModel = (
                 diagnosticOwner
             ),
             conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
-            directives: selectionContext.resolvedDirectives.directives,
             ...(directiveNames.length ? { directiveNames } : {}),
         }
     }

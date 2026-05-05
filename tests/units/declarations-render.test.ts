@@ -775,7 +775,6 @@ describe('declaration render', () => {
                         },
                     },
                     value: typenameValue('User'),
-                    directives: [],
                 }], 'User')],
             ]))
 
@@ -805,7 +804,6 @@ describe('declaration render', () => {
                             },
                         },
                         value: typenameValue('Profile'),
-                        directives: [],
                     }], [ 'Profile' ]), false),
                 ], 'User')],
             ]))
@@ -947,7 +945,7 @@ describe('declaration render', () => {
                                 onType: 'User',
                                 onTypeNames: [ 'UserPayload', 'AdminPayload' ],
                                 conditional: true,
-                                directives: [ 'include' ],
+                                directiveNames: [ 'include' ],
                             },
                             field('groups', scalar(defineNamed('GroupDetails')), false, true),
                         ],
@@ -1132,12 +1130,12 @@ describe('declaration render', () => {
                     {
                         ...field('nickname', scalar(defineString())),
                         conditional: true,
-                        directives: [ 'include' ],
+                        directiveNames: [ 'include' ],
                     },
                     {
                         ...field('email', scalar(defineString()), false),
                         conditional: true,
-                        directives: [ 'skip' ],
+                        directiveNames: [ 'skip' ],
                     },
                 ], 'User')],
             ]))
@@ -1176,7 +1174,7 @@ describe('declaration render', () => {
                         name: 'SharedFields',
                         onType: 'User',
                         conditional: true,
-                        directives: [ 'include' ],
+                        directiveNames: [ 'include' ],
                     },
                 ], 'User')],
             ]))
@@ -1197,7 +1195,7 @@ describe('declaration render', () => {
                         kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                         typeCondition: 'Admin',
                         conditional: true,
-                        directives: [ 'skip' ],
+                        directiveNames: [ 'skip' ],
                         selections: [
                             field('permissions', scalar(defineString()), false, true),
                             field('isOwner', scalar(defineBoolean()), false),
