@@ -1,6 +1,9 @@
 import type { OperationTypeNode } from 'graphql'
 import type { SelectionModel } from './selection'
-import type { UnionVariant, VariableField } from './value'
+import type {
+    UnionVariant,
+    VariableField,
+} from './value'
 
 import { FRAGMENT_ROOT_KIND } from '../../kinds'
 

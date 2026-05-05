@@ -1,8 +1,8 @@
+import type { TypeFieldNode } from '../../src/models/selection'
 import type {
     FieldNode,
     GraphQLInputType,
 } from 'graphql'
-import type { TypeFieldNode } from '../../src/models/selection'
 
 import {
     describe,
@@ -10,14 +10,19 @@ import {
     test,
 } from 'vitest'
 
-import { buildSchema } from 'graphql'
 import { getFragmentDefinition } from './helpers/graphql-document'
 import { getSelectionNode } from './helpers/graphql-selection'
 import { getTypeForDefinition } from '../../src/models/resolve'
-import { makeFieldValue } from '../../src/models/value-models-builder'
 import { makeTestModelContext } from './helpers/model-context'
-import { makeVariableValue } from '../../src/models/value-models-builder'
-import { parse } from 'graphql'
+import {
+    makeFieldValue,
+    makeVariableValue,
+} from '../../src/models/value-models-builder'
+
+import {
+    buildSchema,
+    parse,
+} from 'graphql'
 
 import {
     SELECTION_MODEL_KIND,

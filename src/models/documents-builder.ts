@@ -1,39 +1,41 @@
-import type { FragmentDefinitionNode } from 'graphql'
+import type { ModelContext } from './types/context'
+import type { Schema } from '../plugin-types'
+import type { TypeSelectionNode } from './selection'
+import type { VariableField } from './types/value'
+
 import type {
     FragmentModel,
     FragmentRoot,
     OperationModel,
 } from './types/document'
+
 import type {
+    FragmentDefinitionNode,
     GraphQLAbstractType,
     GraphQLInputType,
+    OperationDefinitionNode,
+    SelectionNode,
+    VariableDefinitionNode,
 } from 'graphql'
-import type { ModelContext } from './types/context'
-import type { OperationDefinitionNode } from 'graphql'
-import type { Schema } from '../plugin-types'
-import type { SelectionNode } from 'graphql'
-import type { TypeSelectionNode } from './selection'
-import type { VariableDefinitionNode } from 'graphql'
-import type { VariableField } from './types/value'
 
 import { TypeInfo } from 'graphql'
 
+import { isUndefined } from '../lib/predicates'
 import { capitalize } from '../lib/strings'
+import { makeSelectionModels } from './selections-builder'
+import { makeVariableValue } from './value-models-builder'
+
 import {
     filterSelectionsForConcreteType,
     getFragmentTypeNames,
     getTypeForDefinition,
-} from './resolve'
-import { isNullableType } from 'graphql'
-import { isUndefined } from '../lib/predicates'
-import { makeSelectionModels } from './selections-builder'
-import { makeTypeRefForVariable } from './resolve'
-import { makeVariableValue } from './value-models-builder'
-import {
+    makeTypeRefForVariable,
     shouldBuildTypeSelectionUnion,
     specializeTypenameSelections,
 } from './resolve'
+
 import {
+    isNullableType,
     visit,
     visitWithTypeInfo,
 } from 'graphql'

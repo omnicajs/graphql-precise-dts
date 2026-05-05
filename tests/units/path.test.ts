@@ -4,12 +4,14 @@ import {
     test,
 } from 'vitest'
 
-import { buildSchema } from 'graphql'
 import { join } from 'path'
 import { makeModuleSpecifier } from '../../src/path'
-import { parse } from 'graphql'
 import { plugin } from '../../src'
 import { withTempOutput } from './utils/temp-output'
+import {
+    buildSchema,
+    parse,
+} from 'graphql'
 
 describe('plugin module path resolution', () => {
     test('uses the scoped suffix when document location matches scope root', () => {

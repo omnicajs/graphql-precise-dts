@@ -1,15 +1,17 @@
 import type {
-    FieldNode,
-    GraphQLInputObjectType,
-    GraphQLObjectType,
-} from 'graphql'
-import type { SelectionModel } from '../../src/models/types'
-import type { SelectionNode } from 'graphql'
-import type {
     TypeFieldNode,
     TypeFragmentInlineNode,
     TypeSelectionNode,
 } from '../../src/models/selection'
+
+import type { SelectionModel } from '../../src/models/types'
+
+import type {
+    FieldNode,
+    GraphQLInputObjectType,
+    GraphQLObjectType,
+    SelectionNode,
+} from 'graphql'
 
 import {
     describe,
@@ -17,28 +19,32 @@ import {
     test,
 } from 'vitest'
 
-import { buildSchema } from 'graphql'
-import { filterSelectionsForConcreteType } from '../../src/models/resolve'
 import { getFragmentDefinition } from './helpers/graphql-document'
-import { getFragmentTypeNames } from '../../src/models/resolve'
-import { getNamedType } from 'graphql'
 import {
-    getSelectionNode,
-    getTypedSelection,
-} from './helpers/graphql-selection'
-import {
+    filterSelectionsForConcreteType,
+    getFragmentTypeNames,
     getTypeForDefinition,
     makeTypeRefForField,
     makeTypeRefForVariable,
     specializeTypenameSelections,
 } from '../../src/models/resolve'
 
-import { Kind } from 'graphql'
+import {
+    getSelectionNode,
+    getTypedSelection,
+} from './helpers/graphql-selection'
+
+import {
+    buildSchema,
+    getNamedType,
+} from 'graphql'
+
 import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
 } from '../../src/kinds'
+import { Kind } from 'graphql'
 
 describe('type resolution for models', () => {
     test('returns possible type names for interface and omits them for object fragments', () => {

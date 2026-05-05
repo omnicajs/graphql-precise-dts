@@ -1,14 +1,15 @@
-import type { CollectedDocumentModels } from '../models/types'
 import type { CustomScalarMappings } from '../scalars/types'
-import type { GenerationDirectivePolicies } from '../directives/types'
 import type { DocumentFile } from '../plugin-types'
 import type { DocumentModelImportMap } from './document-model-imports'
+import type { GenerationDirectivePolicies } from '../directives/types'
+import type { OperationDefinitionNode } from 'graphql'
+import type { RenderableDocumentModels } from './renderable-document-models'
+
 import type {
+    CollectedDocumentModels,
     FragmentModel,
     ModelContext,
 } from '../models/types'
-import type { OperationDefinitionNode } from 'graphql'
-import type { RenderableDocumentModels } from './renderable-document-models'
 
 import { TypeInfo } from 'graphql'
 

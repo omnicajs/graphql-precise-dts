@@ -4,28 +4,32 @@ import {
     test,
 } from 'vitest'
 
-import { buildSchema } from 'graphql'
-import { collectDocumentModelImports } from '../../src/plan/document-model-imports'
+import {
+    collectDocumentModelImports,
+    makeDocumentModelImportMap,
+} from '../../src/plan/document-model-imports'
+
 import {
     declarationDefinitions,
     enumValue,
     field,
     fragment,
-} from '../fixtures/builders/declaration-render'
-import { makeDocumentModelImportMap } from '../../src/plan/document-model-imports'
-import {
     objectValue,
     operation,
-} from '../fixtures/builders/declaration-render'
-import { parse } from 'graphql'
-import {
     variableField,
     variableObjectValue,
 } from '../fixtures/builders/declaration-render'
 
-import { FRAGMENT_ROOT_KIND } from '../../src/kinds'
+import {
+    buildSchema,
+    parse,
+} from 'graphql'
+
+import {
+    FRAGMENT_ROOT_KIND,
+    VALUE_MODEL_KIND,
+} from '../../src/kinds'
 import { OperationTypeNode } from 'graphql'
-import { VALUE_MODEL_KIND } from '../../src/kinds'
 
 describe('imports plan', () => {
     test('collects fragment and enum import sources from GraphQL documents', () => {

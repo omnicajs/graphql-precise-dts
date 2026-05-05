@@ -1,15 +1,18 @@
-import type { CollectedDocumentModels } from '../models/types'
-import type { CustomScalarMappings } from '../scalars/types'
 import type { GenerationDirectivePolicies } from '../directives/types'
 import type {
+    CollectedDocumentModels,
     FieldValue,
     FragmentModel,
     FragmentRoot,
+    OperationModel,
+    VariableField,
+    VariableValue,
 } from '../models/types'
+import type { CustomScalarMappings } from '../scalars/types'
 import type { NormalizedSelectionModel } from './selection-normalization'
-import type { ObjectRenderOptions } from './planned-types'
-import type { OperationModel } from '../models/types'
+
 import type {
+    ObjectRenderOptions,
     OutputBuildState,
     OutputObjectOccurrence,
     PlannedDocumentModels,
@@ -25,19 +28,18 @@ import type {
     PlannedVariableObjectValue,
     PlannedVariableValue,
 } from './planned-types'
-import type {
-    VariableField,
-    VariableValue,
-} from '../models/types'
 
 import { capitalize } from '../lib/strings'
-import { getOperationTypeName } from './naming'
 import { getScalarTsType } from '../scalars/builder'
-import { getVariableObjectAliasName } from './naming'
 import { makeOutputShapeSignature } from './output-shape-signature'
 import { normalizeSelections } from './selection-normalization'
 import { normalizeTsType } from '../ts-type'
 import { resolveGenerationSelectionDirectives } from '../directives/resolve'
+
+import {
+    getOperationTypeName,
+    getVariableObjectAliasName,
+} from './naming'
 
 import {
     FRAGMENT_ROOT_KIND,

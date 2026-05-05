@@ -1,37 +1,41 @@
-import type { CustomScalarMappings } from '../scalars/types'
-import type {
-    FragmentModel,
-} from './types/document'
-import type {
-    GraphQLInputType,
-    GraphQLInputObjectType,
-    GraphQLInterfaceType,
-    GraphQLNamedType,
-    GraphQLObjectType,
-} from 'graphql'
+import type { FragmentModel } from './types/document'
 import type { ModelContext } from './types/context'
 import type { ModelRegistry } from './registry'
+import type { Schema } from '../plugin-types'
+
+import type {
+    CustomScalarMappings,
+    Scalars,
+} from '../scalars/types'
+
 import type {
     EnumValueEntries,
     ScalarModelShape,
 } from './types/type-ref'
-import type { Scalars } from '../scalars/types'
-import type { Schema } from '../plugin-types'
 
-import { getNamedType } from 'graphql'
+import type {
+    GraphQLInputObjectType,
+    GraphQLInputType,
+    GraphQLInterfaceType,
+    GraphQLNamedType,
+    GraphQLObjectType,
+} from 'graphql'
+
+import { makeFragmentModel } from './documents-builder'
 import {
     getScalarPrimitiveShapeTs,
     getScalarTsShape,
+    isScalarPrimitiveKey,
 } from '../scalars/builder'
+
 import {
+    getNamedType,
     isEnumType,
     isInputObjectType,
     isInterfaceType,
     isObjectType,
+    isScalarType,
 } from 'graphql'
-import { isScalarPrimitiveKey } from '../scalars/builder'
-import { isScalarType } from 'graphql'
-import { makeFragmentModel } from './documents-builder'
 
 import { specifiedScalarTypes } from 'graphql'
 

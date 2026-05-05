@@ -5,46 +5,45 @@ import {
     vi,
 } from 'vitest'
 
-import { arrayOf } from '../../src'
-import { declarationDefinitions } from '../fixtures/builders/declaration-render'
+import { makeGenerationDirectivePolicies } from '../../src/directives/structural-policies'
+import { makePlannedDocumentModels } from '../../src/plan/planned-document-models'
+import { prepareRenderableDocumentModels } from '../../src/plan/renderable-document-models'
+import { renderDeclaration as renderPlannedDeclaration } from '../../src/render/declarations'
+
 import {
+    arrayOf,
     defineBoolean,
     defineNamed,
     defineNull,
     defineNumber,
     defineString,
+    unionOf,
 } from '../../src'
+
 import {
+    declarationDefinitions,
     enumValue,
     field,
     fragment,
     namedType,
-} from '../fixtures/builders/declaration-render'
-import { makeGenerationDirectivePolicies } from '../../src/directives/structural-policies'
-import { makePlannedDocumentModels } from '../../src/plan/planned-document-models'
-import {
-    operation,
     objectValue,
-} from '../fixtures/builders/declaration-render'
-import { prepareRenderableDocumentModels } from '../../src/plan/renderable-document-models'
-import { renderDeclaration as renderPlannedDeclaration } from '../../src/render/declarations'
-import { scalar } from '../fixtures/builders/declaration-render'
-import { typenameValue } from '../fixtures/builders/declaration-render'
-import { unionOf } from '../../src'
-import {
+    operation,
+    scalar,
+    typenameValue,
     unionValue,
     variableField,
     variableObjectValue,
     variableScalar,
 } from '../fixtures/builders/declaration-render'
 
-import { FRAGMENT_ROOT_KIND } from '../../src/kinds'
-import { OperationTypeNode } from 'graphql'
 import {
+    FRAGMENT_ROOT_KIND,
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
 } from '../../src/kinds'
+
+import { OperationTypeNode } from 'graphql'
 
 const renderDeclaration = (
     path: string,

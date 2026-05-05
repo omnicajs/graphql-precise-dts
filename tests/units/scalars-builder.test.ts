@@ -7,20 +7,21 @@ import {
 } from 'vitest'
 
 import {
-    defineNull,
     defineNamed,
+    defineNull,
     defineNumber,
     defineString,
+    renderType,
+    unionOf,
 } from '../../src'
+
 import {
     getScalarPrimitiveTypeTs,
     getScalarTsType,
     isScalarCustomKey,
     isScalarPrimitiveKey,
+    resolveCustomScalarTypeTs,
 } from '../../src/scalars/builder'
-import { renderType } from '../../src'
-import { resolveCustomScalarTypeTs } from '../../src/scalars/builder'
-import { unionOf } from '../../src'
 
 describe('converting graphQL scalars to TS types', () => {
     test('resolves built-in scalar artifacts types', () => {

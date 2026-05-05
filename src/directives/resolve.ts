@@ -1,3 +1,5 @@
+import type { ConstValues } from '../lib/types'
+
 import type {
     ConditionalSelectionState,
     GenerationDirectivePolicies,
@@ -8,8 +10,6 @@ import type {
     StructuralDirectivePolicy,
 } from './types'
 
-import type { ConstValues } from '../lib/types'
-
 import type {
     DirectiveNode,
     SelectionNode,
@@ -19,10 +19,10 @@ import type {
 import {
     CONDITIONAL_DIRECTIVE,
     DIRECTIVE_POLICY_EFFECT,
+    SELECTION_STATE,
 } from './kinds'
-import { Kind } from 'graphql'
 import { SELECTION_MODEL_KIND } from '../kinds'
-import { SELECTION_STATE } from './kinds'
+import { Kind } from 'graphql'
 
 const conditionalDirectives: ReadonlySet<string> = new Set(Object.values(CONDITIONAL_DIRECTIVE))
 

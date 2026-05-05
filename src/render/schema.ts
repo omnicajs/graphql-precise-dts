@@ -1,7 +1,9 @@
-import type { EnumValueEntries } from '../models/types'
 import type { ModelSchemaRegistry } from '../models/registry'
-import type { ScalarModelShape } from '../models/types'
 import type { Scalars } from '../scalars/types'
+import type {
+    EnumValueEntries,
+    ScalarModelShape,
+} from '../models/types'
 
 import { indent } from '../lib/strings'
 import { isScalarPrimitiveKey } from '../scalars/builder'

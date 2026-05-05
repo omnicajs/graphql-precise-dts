@@ -5,19 +5,19 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
+import { makeTestModelContext } from './helpers/model-context'
 import {
     defineNamed,
     defineString,
 } from '../../src'
 import {
-    getFragmentDefinition,
-    getOperationDefinition,
-} from './helpers/graphql-document'
-import {
     makeFragmentModel,
     makeOperationModel,
 } from '../../src/models/documents-builder'
-import { makeTestModelContext } from './helpers/model-context'
+import {
+    getFragmentDefinition,
+    getOperationDefinition,
+} from './helpers/graphql-document'
 
 import {
     FRAGMENT_ROOT_KIND,

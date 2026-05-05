@@ -1,17 +1,21 @@
-import type { CollectedDocumentModels } from '../models/types'
-import type { DocumentFile } from '../plugin-types'
-import type { FieldValue } from '../models/types'
-import type { FragmentDefinitionNode } from 'graphql'
-import type { FragmentModel } from '../models/types'
 import type {
-    GraphQLInputType,
-    GraphQLOutputType,
-} from 'graphql'
-import type { Schema } from '../plugin-types'
-import type {
+    CollectedDocumentModels,
+    FieldValue,
+    FragmentModel,
     SelectionModel,
     VariableValue,
 } from '../models/types'
+
+import type {
+    DocumentFile,
+    Schema,
+} from '../plugin-types'
+
+import type {
+    FragmentDefinitionNode,
+    GraphQLInputType,
+    GraphQLOutputType,
+} from 'graphql'
 
 import { TypeInfo } from 'graphql'
 
