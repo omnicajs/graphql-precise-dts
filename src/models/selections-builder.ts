@@ -1,68 +1,46 @@
-import type { ConfigDirectivePolicies } from '../config'
-import type { ConstValues } from '../lib/types'
 import type { ModelContext } from './types'
-import type { ResolvedSelectionDirectives } from '../directives'
+import type { ResolvedStructuralDirectives } from '../directives/types'
 import type { SelectionModel } from './types'
 import type { SelectionNode } from 'graphql'
+import type { StructuralDirectivePolicies } from '../directives/policy'
 import type { TypeSelectionNode } from './selection'
 
 import { formatNodeLocation } from '../lib/documents'
 import { getFragmentTypeNames } from './resolve'
-import { isConditionalSelectionState } from '../directives'
+import { isConditionalSelectionState } from '../directives/resolve'
 import { makeFieldValue } from './value-models-builder'
 import {
     makeNonNullTypeRef,
     makeTypeRefForField,
 } from './resolve'
+import { resolveStructuralSelectionDirectivesForNode } from '../directives/resolve'
 import { print } from 'graphql'
-import {
-    resolveSelectionDirectives,
-    shouldForceNonNull,
-} from '../directives'
 
 import { Kind } from 'graphql'
-import { SELECTION_MODEL_KIND } from './kinds'
-import { SELECTION_STATE } from '../directives'
+import { SELECTION_MODEL_KIND } from '../kinds'
+import { SELECTION_STATE } from '../directives/kinds'
 
 type ResolvedSelectionContext = {
     fieldType: TypeSelectionNode;
-    isConditional: boolean;
-    resolvedDirectives: ResolvedSelectionDirectives;
-}
-
-const emitDirectiveWarnings = (warnings: string[]) => warnings.forEach(message => console.warn(message))
-
-const getSelectionDefinitionKind = (
-    selection: SelectionNode
-): ConstValues<typeof SELECTION_MODEL_KIND> => {
-    return selection.kind === Kind.FIELD
-        ? SELECTION_MODEL_KIND.FIELD
-        : selection.kind === Kind.FRAGMENT_SPREAD
-            ? SELECTION_MODEL_KIND.FRAGMENT_SPREAD
-            : SELECTION_MODEL_KIND.INLINE_FRAGMENT
+    resolvedDirectives: ResolvedStructuralDirectives;
 }
 
 const resolveSelectionContext = (
     selection: SelectionNode,
     fieldType: TypeSelectionNode | undefined,
-    directivePolicies: ConfigDirectivePolicies
+    directivePolicies: StructuralDirectivePolicies
 ): ResolvedSelectionContext | undefined => {
-    const targetKind = getSelectionDefinitionKind(selection)
-    const resolvedDirectives = resolveSelectionDirectives(
-        selection.directives ? [ ...selection.directives ] : [],
-        targetKind,
+    const resolvedDirectives = resolveStructuralSelectionDirectivesForNode(
+        selection,
         directivePolicies
     )
 
     if (resolvedDirectives.state === SELECTION_STATE.EXCLUDED) return
 
-    emitDirectiveWarnings(resolvedDirectives.warnings)
-
     if (!fieldType) return
 
     return {
         fieldType,
-        isConditional: isConditionalSelectionState(resolvedDirectives.state),
         resolvedDirectives,
     }
 }
@@ -80,6 +58,7 @@ const makeFieldSelectionModel = (
     }
 
     const typeRef = makeTypeRefForField(selectionContext.fieldType.currentType)
+    const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
 
     return {
         kind: SELECTION_MODEL_KIND.FIELD,
@@ -89,11 +68,7 @@ const makeFieldSelectionModel = (
             ? selection.arguments.map(argument => print(argument)).sort().join(',')
             : '',
         diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
-        typeRef: shouldForceNonNull(
-            selection.directives ? [ ...selection.directives ] : [],
-            SELECTION_MODEL_KIND.FIELD,
-            context.directivePolicies
-        )
+        typeRef: selectionContext.resolvedDirectives.forceNonNull
             ? makeNonNullTypeRef(typeRef)
             : typeRef,
         value: makeFieldValue(
@@ -102,9 +77,9 @@ const makeFieldSelectionModel = (
             context,
             diagnosticOwner
         ),
-        conditional: selectionContext.isConditional,
-        overrideTypeTs: selectionContext.resolvedDirectives.overrideTypeTs,
+        conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
         directives: selectionContext.resolvedDirectives.directives,
+        ...(directiveNames.length ? { directiveNames } : {}),
     }
 }
 
@@ -117,14 +92,16 @@ const makeFragmentSpreadSelectionModel = (
 
     const spreadFragment = context.fragmentDefinitions.get(selection.name.value)
     if (!spreadFragment) return
+    const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
 
     return {
         kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
         name: selection.name.value,
         diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
         ...getFragmentTypeNames(spreadFragment, context.schema),
-        conditional: selectionContext.isConditional,
+        conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
         directives: selectionContext.resolvedDirectives.directives,
+        ...(directiveNames.length ? { directiveNames } : {}),
     }
 }
 
@@ -135,6 +112,7 @@ const makeInlineFragmentSelectionModel = (
     diagnosticOwner: string
 ): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT }> | undefined => {
     if (selectionContext.fieldType.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT && selectionContext.fieldType.selections) {
+        const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
         return {
             kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
             diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
@@ -145,8 +123,9 @@ const makeInlineFragmentSelectionModel = (
                 context,
                 diagnosticOwner
             ),
-            conditional: selectionContext.isConditional,
+            conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
             directives: selectionContext.resolvedDirectives.directives,
+            ...(directiveNames.length ? { directiveNames } : {}),
         }
     }
 }
@@ -160,7 +139,7 @@ export const makeSelectionModel = (
     const selectionContext = resolveSelectionContext(
         selection,
         typeSelection,
-        context.directivePolicies
+        context.structuralDirectivePolicies
     )
 
     if (!selectionContext) return

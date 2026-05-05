@@ -4,17 +4,20 @@ import {
     test,
 } from 'vitest'
 
-import { defineNamed } from '../../src'
-import { isConditionalSelectionState } from '../../src/directives'
-import { parse } from 'graphql'
-import { renderType } from '../../src'
 import {
-    resolveSelectionDirectives,
+    defineNamed,
+    renderType,
+} from '../../src'
+import { isConditionalSelectionState } from '../../src/directives/resolve'
+import { parse } from 'graphql'
+import {
+    resolveGenerationSelectionDirectives,
+    resolveStructuralSelectionDirectives,
     shouldForceNonNull,
-} from '../../src/directives'
+} from '../../src/directives/resolve'
 
-import { SELECTION_MODEL_KIND } from '../../src/models/kinds'
-import { SELECTION_STATE } from '../../src/directives'
+import { SELECTION_MODEL_KIND } from '../../src/kinds'
+import { SELECTION_STATE } from '../../src/directives/kinds'
 
 const getSelectionDirectives = (source: string) => {
     const document = parse(source)
@@ -38,15 +41,15 @@ describe('directives', () => {
             }
         `)
 
-        const resolved = resolveSelectionDirectives(
+        const resolved = resolveStructuralSelectionDirectives(
             directives,
             SELECTION_MODEL_KIND.FIELD
         )
 
         expect(resolved).toEqual({
             directives: [ 'include' ],
+            forceNonNull: false,
             state: SELECTION_STATE.CONDITIONAL,
-            warnings: [],
         })
         expect(isConditionalSelectionState(resolved.state)).toBe(true)
     })
@@ -58,13 +61,13 @@ describe('directives', () => {
             }
         `)
 
-        expect(resolveSelectionDirectives(
+        expect(resolveStructuralSelectionDirectives(
             directives,
             SELECTION_MODEL_KIND.FIELD
         )).toEqual({
             directives: [],
+            forceNonNull: false,
             state: SELECTION_STATE.EXCLUDED,
-            warnings: [],
         })
     })
 
@@ -80,22 +83,22 @@ describe('directives', () => {
             }
         `)
 
-        expect(resolveSelectionDirectives(
+        expect(resolveStructuralSelectionDirectives(
             includeDirectives,
             SELECTION_MODEL_KIND.FIELD
         )).toEqual({
             directives: [],
+            forceNonNull: false,
             state: SELECTION_STATE.INCLUDED,
-            warnings: [],
         })
 
-        expect(resolveSelectionDirectives(
+        expect(resolveStructuralSelectionDirectives(
             skipDirectives,
             SELECTION_MODEL_KIND.FIELD
         )).toEqual({
             directives: [],
+            forceNonNull: false,
             state: SELECTION_STATE.INCLUDED,
-            warnings: [],
         })
     })
 
@@ -106,13 +109,13 @@ describe('directives', () => {
             }
         `)
 
-        expect(resolveSelectionDirectives(
+        expect(resolveStructuralSelectionDirectives(
             directives,
             SELECTION_MODEL_KIND.FIELD
         )).toEqual({
             directives: [],
+            forceNonNull: false,
             state: SELECTION_STATE.EXCLUDED,
-            warnings: [],
         })
     })
 
@@ -123,30 +126,47 @@ describe('directives', () => {
             }
         `)
 
-        const resolved = resolveSelectionDirectives(directives, SELECTION_MODEL_KIND.FIELD, {
+        const structural = resolveStructuralSelectionDirectives(directives, SELECTION_MODEL_KIND.FIELD, {
             opaque: {
-                field: {
-                    effect: 'override-type',
-                    type: defineNamed('OpaqueId'),
-                },
+                effect: 'override-type',
+                type: defineNamed('OpaqueId'),
             },
             review: {
-                field: {
-                    effect: 'warn',
-                    message: 'Review this field',
-                },
+                effect: 'warn',
+                message: 'Review this field',
             },
             required: {
-                field: {
-                    effect: 'nonnull',
-                },
+                effect: 'nonnull',
             },
         })
 
-        expect(resolved).toEqual({
+        expect(structural).toEqual({
             directives: [],
-            overrideTypeTs: defineNamed('OpaqueId'),
+            forceNonNull: true,
             state: SELECTION_STATE.INCLUDED,
+        })
+
+        const generation = resolveGenerationSelectionDirectives(
+            directives.map(directive => directive.name.value),
+            SELECTION_MODEL_KIND.FIELD,
+            {
+                opaque: {
+                    effect: 'override-type',
+                    type: defineNamed('OpaqueId'),
+                },
+                review: {
+                    effect: 'warn',
+                    message: 'Review this field',
+                },
+                required: {
+                    effect: 'nonnull',
+                },
+            }
+        )
+
+        expect(generation).toEqual({
+            directives: [ 'opaque', 'review' ],
+            overrideType: defineNamed('OpaqueId'),
             warnings: [ 'Review this field' ],
         })
 
@@ -154,9 +174,7 @@ describe('directives', () => {
             directives,
             SELECTION_MODEL_KIND.FIELD,
             {
-                required: {
-                    field: { effect: 'nonnull' },
-                },
+                required: { effect: 'nonnull' },
             }
         )).toBe(true)
 
@@ -164,11 +182,9 @@ describe('directives', () => {
             directives,
             SELECTION_MODEL_KIND.INLINE_FRAGMENT,
             {
-                required: {
-                    field: { effect: 'nonnull' },
-                },
+                required: { effect: 'nonnull' },
             }
-        )).toBe(false)
+        )).toBe(true)
     })
 
     test('uses the default warning message when warn policy message is omitted', () => {
@@ -178,15 +194,16 @@ describe('directives', () => {
             }
         `)
 
-        expect(resolveSelectionDirectives(directives, SELECTION_MODEL_KIND.FIELD, {
-            review: {
-                field: {
+        expect(resolveGenerationSelectionDirectives(
+            directives.map(directive => directive.name.value),
+            SELECTION_MODEL_KIND.FIELD,
+            {
+                review: {
                     effect: 'warn',
                 },
-            },
-        })).toEqual({
-            directives: [],
-            state: SELECTION_STATE.INCLUDED,
+            }
+        )).toEqual({
+            directives: [ 'review' ],
             warnings: [ 'Directive "@review" requires manual review' ],
         })
     })
@@ -198,15 +215,17 @@ describe('directives', () => {
             }
         `)
 
-        const resolved = resolveSelectionDirectives(directives, SELECTION_MODEL_KIND.FIELD, {
-            opaque: {
-                field: {
+        const resolved = resolveGenerationSelectionDirectives(
+            directives.map(directive => directive.name.value),
+            SELECTION_MODEL_KIND.FIELD,
+            {
+                opaque: {
                     effect: 'override-type',
                     type: defineNamed('UserId'),
                 },
-            },
-        })
+            }
+        )
 
-        expect(renderType(resolved.overrideTypeTs!)).toBe('UserId')
+        expect(renderType(resolved.overrideType!)).toBe('UserId')
     })
 })

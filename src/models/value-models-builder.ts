@@ -1,4 +1,3 @@
-import type { ConfigScalars } from '../config'
 import type { FieldNode } from 'graphql'
 import type { FieldValue } from './types'
 import type {
@@ -8,8 +7,10 @@ import type {
 } from 'graphql'
 import type {
     ModelContext,
-    SelectionModel,
+    ScalarValue,
 } from './types'
+import type { ScalarUsage } from '../scalars/types'
+import type { SelectionModel } from './types'
 import type { SelectionNode } from 'graphql'
 import type {
     TypeFieldNode,
@@ -19,9 +20,8 @@ import type { VariableValue } from './types'
 
 import { GraphQLObjectType } from 'graphql'
 
-import { getNamedType } from 'graphql'
-import { getScalarTsType } from '../scalars/builder'
 import {
+    getNamedType,
     isEnumType,
     isInputObjectType,
     isInterfaceType,
@@ -39,21 +39,22 @@ import {
 import {
     makeTypeRefForVariable,
     shouldBuildTypeSelectionUnion,
-    specializeTypeNameSelectionForConcreteType,
+    specializeTypenameSelections,
 } from './resolve'
 
 import { Kind } from 'graphql'
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from './kinds'
+} from '../kinds'
 
-const makeScalarFieldValue = (
+const makeScalarValue = (
     typeName: string,
-    customScalars: ConfigScalars
-): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.SCALAR }> => ({
+    usage: ScalarUsage = 'output'
+): ScalarValue => ({
     kind: VALUE_MODEL_KIND.SCALAR,
-    typeTs: getScalarTsType(typeName, customScalars),
+    name: typeName,
+    usage,
 })
 
 const makeEnumFieldValue = (
@@ -73,7 +74,7 @@ const makeInterfaceUnionFieldValue = (
     kind: VALUE_MODEL_KIND.UNION,
     variants: context.schema.getPossibleTypes(interfaceType).map(possibleType => ({
         typeName: possibleType.name,
-        fields: specializeTypeNameSelectionForConcreteType(
+        fields: specializeTypenameSelections(
             makeSelectionModels(
                 filterSelectionsForConcreteType(context.schema, possibleType, [ ...selections ]),
                 typeSelections,
@@ -108,7 +109,7 @@ const makeInterfaceFieldValue = (
     if (selections && type.selections && shouldBuildTypeSelectionUnion(
         interfaceType,
         [ ...selections ],
-        context.directivePolicies
+        context.structuralDirectivePolicies
     )) {
         return makeInterfaceUnionFieldValue(type.selections, interfaceType, selections, context, diagnosticOwner)
     }
@@ -189,7 +190,7 @@ export const makeFieldValue = (
     const selections = field.selectionSet?.selections
 
     if (typeNameValue) return typeNameValue
-    if (isScalarType(namedType)) return makeScalarFieldValue(namedType.name, context.customScalars)
+    if (isScalarType(namedType)) return makeScalarValue(namedType.name)
     if (isEnumType(namedType)) return makeEnumFieldValue(namedType.name)
     if (isInterfaceType(namedType)) return makeInterfaceFieldValue(type, selections, context, diagnosticOwner)
     if (isObjectType(namedType)) {
@@ -201,16 +202,14 @@ export const makeFieldValue = (
 }
 
 export const makeVariableValue = (
-    type: GraphQLInputType,
-    customScalars: ConfigScalars
-): VariableValue => buildVariableValue(type, customScalars, {
+    type: GraphQLInputType
+): VariableValue => buildVariableValue(type, {
     inProgress: new Set(),
     cache: new Map(),
 })
 
 const buildVariableValue = (
     type: GraphQLInputType,
-    customScalars: ConfigScalars,
     state: {
         inProgress: Set<string>;
         cache: Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
@@ -219,10 +218,7 @@ const buildVariableValue = (
     const namedType = getNamedType(type)
 
     if (isScalarType(namedType)) {
-        return {
-            kind: VALUE_MODEL_KIND.SCALAR,
-            typeTs: getScalarTsType(namedType.name, customScalars, 'input'),
-        }
+        return makeScalarValue(namedType.name, 'input')
     }
 
     if (isEnumType(namedType)) {
@@ -230,7 +226,7 @@ const buildVariableValue = (
     }
 
     if (isInputObjectType(namedType)) {
-        return buildVariableObjectValue(namedType, customScalars, state)
+        return buildVariableObjectValue(namedType, state)
     }
 
     return { kind: VALUE_MODEL_KIND.UNKNOWN, reason: 'Unknown variable type' }
@@ -238,7 +234,6 @@ const buildVariableValue = (
 
 const buildVariableObjectValue = (
     namedType: GraphQLInputObjectType,
-    customScalars: ConfigScalars,
     state: {
         inProgress: Set<string>;
         cache: Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
@@ -265,7 +260,7 @@ const buildVariableObjectValue = (
             name: field.name,
             typeRef: makeTypeRefForVariable(field.type),
             optional: isNullableType(field.type) || !isUndefined(field.defaultValue),
-            value: buildVariableValue(field.type, customScalars, state),
+            value: buildVariableValue(field.type, state),
         })),
     }
 

@@ -18,7 +18,6 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
-import { defineString } from '../../src'
 import { filterSelectionsForConcreteType } from '../../src/models/resolve'
 import { getFragmentDefinition } from './helpers/graphql-document'
 import { getFragmentTypeNames } from '../../src/models/resolve'
@@ -31,7 +30,7 @@ import {
     getTypeForDefinition,
     makeTypeRefForField,
     makeTypeRefForVariable,
-    specializeTypeNameSelectionForConcreteType,
+    specializeTypenameSelections,
 } from '../../src/models/resolve'
 
 import { Kind } from 'graphql'
@@ -39,7 +38,7 @@ import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/models/kinds'
+} from '../../src/kinds'
 
 describe('type resolution for models', () => {
     test('returns possible type names for interface and omits them for object fragments', () => {
@@ -421,12 +420,13 @@ describe('type resolution for models', () => {
             },
             value: {
                 kind: VALUE_MODEL_KIND.SCALAR,
-                typeTs: defineString(),
+                name: 'String',
+                usage: 'output',
             },
             directives: [],
         }] satisfies SelectionModel[]
 
-        expect(specializeTypeNameSelectionForConcreteType(selections, 'UserPayload')).toEqual([{
+        expect(specializeTypenameSelections(selections, 'UserPayload')).toEqual([{
             kind: SELECTION_MODEL_KIND.FIELD,
             name: '__typename',
             responseName: '__typename',

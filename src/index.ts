@@ -1,8 +1,8 @@
 import type { DocumentModelBundle } from './plan/document-model-bundles'
-import type { DocumentOperationModel } from './plan/document-models-types'
 import type { ModelContext } from './models/types'
 import type { PluginConfig } from './config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import type { RenderableOperationModel } from './plan/renderable-document-models'
 import type { Types } from '@graphql-codegen/plugin-helpers'
 
 import { buildModelRegistry } from './models/registry-builder'
@@ -11,10 +11,11 @@ import { emitMissingFragmentDefinitionWarnings } from './lib/documents'
 import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
 import { findFragmentDefinitions } from './lib/documents'
 import { join } from 'path'
+import { makeDocumentModelImportMap } from './plan/document-model-imports'
 import { makeDocumentLocationMap } from './lib/documents'
 import { makeDocumentModelBundles } from './plan/document-model-bundles'
-import { makeImportMap } from './plan/imports'
 import { makeModuleSpecifier } from './path'
+import { makeStructuralDirectivePolicies } from './directives/structural-policies'
 import { mkdirSync } from 'fs'
 import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
@@ -23,9 +24,9 @@ import { writeFileSync } from 'fs'
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
 const EXACT_TYPE_DECLARATION = 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n'
 
-const haveVariables = (operations: DocumentOperationModel[]): boolean => operations.some(op => op.variables.length > 0)
+const haveVariables = (operations: RenderableOperationModel[]): boolean => operations.some(op => op.variables.length > 0)
 
-const getExactType = (operations: DocumentOperationModel[]): string[] => haveVariables(operations) ? [ EXACT_TYPE_DECLARATION ] : []
+const getExactType = (operations: RenderableOperationModel[]): string[] => haveVariables(operations) ? [ EXACT_TYPE_DECLARATION ] : []
 
 const makePrepend = (bundles: DocumentModelBundle[]): string[] => [
     ...getExactType(bundles.flatMap(({ models }) => [ ...models.operations.values() ])),
@@ -48,7 +49,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         config.scope
     )
 
-    const importMap = makeImportMap(schema, documents, schemaModulePath, documentModuleSpecifier)
+    const importMap = makeDocumentModelImportMap(schema, documents, schemaModulePath, documentModuleSpecifier)
 
     const fragmentDefinitions = findFragmentDefinitions(documents)
 
@@ -61,8 +62,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
             ? fragmentDefinitions
             : findFragmentDefinitions(fragmentDefinitions),
         documentLocations: makeDocumentLocationMap(documents),
-        customScalars: config.scalars ?? {},
-        directivePolicies: config.directivePolicies ?? {},
+        structuralDirectivePolicies: makeStructuralDirectivePolicies(config.directivePolicies ?? {}),
     } satisfies ModelContext
 
     const registry = buildModelRegistry(
@@ -70,13 +70,21 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
             fragments: [ ...importMap.fragments.keys() ],
             enums: [ ...importMap.enums.keys() ],
         },
-        context
+        context,
+        config.scalars ?? {}
     )
 
     mkdirSync(dirname(schemaOutputFile), { recursive: true })
     writeFileSync(schemaOutputFile, renderSchemaDeclaration(registry.schema))
 
-    const documentBundles = makeDocumentModelBundles(documents, registry.documents.fragments, context, importMap)
+    const documentBundles = makeDocumentModelBundles(
+        documents,
+        registry.documents.fragments,
+        context,
+        importMap,
+        config.scalars ?? {},
+        config.directivePolicies ?? {}
+    )
 
     return {
         prepend: makePrepend(documentBundles),
@@ -87,12 +95,13 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     }
 }
 
-export type { DirectivePolicy, PluginConfig } from './config'
+export type { DirectivePolicy } from './directives/types'
 export type {
     NamedObjectField,
     ObjectFieldConfig,
-    TsType,
 } from './ts-type'
+export type { PluginConfig } from './config'
+export type { TsType } from './ts-type'
 
 export {
     arrayOf,

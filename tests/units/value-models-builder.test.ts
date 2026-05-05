@@ -11,10 +11,6 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
-import {
-    defineNamed,
-    defineString,
-} from '../../src'
 import { getFragmentDefinition } from './helpers/graphql-document'
 import { getSelectionNode } from './helpers/graphql-selection'
 import { getTypeForDefinition } from '../../src/models/resolve'
@@ -26,7 +22,7 @@ import { parse } from 'graphql'
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/models/kinds'
+} from '../../src/kinds'
 
 describe('value models builder', () => {
     test('builds union field values for interface selections with distinct concrete branches', () => {
@@ -169,9 +165,7 @@ describe('value models builder', () => {
             makeTestModelContext({
                 schema,
                 directivePolicies: {
-                    clientOnly: {
-                        inlineFragment: { effect: 'exclude' },
-                    },
+                    clientOnly: { effect: 'exclude' },
                 },
             })
         )
@@ -208,7 +202,7 @@ describe('value models builder', () => {
         const inputType = schema.getType('UserFilter')
         expect(inputType).toBeDefined()
 
-        const value = makeVariableValue(inputType as GraphQLInputType, {})
+        const value = makeVariableValue(inputType as GraphQLInputType)
 
         expect(value).toEqual({
             kind: VALUE_MODEL_KIND.OBJECT,
@@ -238,7 +232,8 @@ describe('value models builder', () => {
                     optional: false,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'String',
+                        usage: 'input',
                     },
                 },
             ],
@@ -261,12 +256,7 @@ describe('value models builder', () => {
         const inputType = schema.getType('UserFilter')
         expect(inputType).toBeDefined()
 
-        const value = makeVariableValue(inputType as GraphQLInputType, {
-            DateTime: {
-                input: defineString(),
-                output: defineNamed('Date'),
-            },
-        })
+        const value = makeVariableValue(inputType as GraphQLInputType)
 
         expect(value).toEqual({
             kind: VALUE_MODEL_KIND.OBJECT,
@@ -283,7 +273,8 @@ describe('value models builder', () => {
                 optional: false,
                 value: {
                     kind: VALUE_MODEL_KIND.SCALAR,
-                    typeTs: defineString(),
+                    name: 'DateTime',
+                    usage: 'input',
                 },
             }],
         })
@@ -304,7 +295,7 @@ describe('value models builder', () => {
         const inputType = schema.getType('TreeInput')
         expect(inputType).toBeDefined()
 
-        const value = makeVariableValue(inputType as GraphQLInputType, {})
+        const value = makeVariableValue(inputType as GraphQLInputType)
 
         expect(value).toEqual({
             kind: VALUE_MODEL_KIND.OBJECT,
@@ -319,7 +310,8 @@ describe('value models builder', () => {
                     optional: true,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'String',
+                        usage: 'input',
                     },
                 },
                 {
