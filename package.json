@@ -26,7 +26,7 @@
         "release:major": "standard-version --release-as major",
         "test:types": "vitest --typecheck run tests/types",
         "test:units": "vitest run tests/units",
-        "tests": "yarn generate:test-fixtures && vitest --typecheck run",
+        "tests": "yarn generate:test-fixtures && yarn test:types && yarn test:units",
         "test:coverage": "vitest run --coverage",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix"

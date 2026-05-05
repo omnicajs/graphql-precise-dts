@@ -107,6 +107,19 @@ Nullable scalar output:
 {
   directivePolicies: {
     opaque: {
+      effect: 'override-type',
+      type: defineNamed('OpaqueId'),
+    },
+  },
+}
+```
+
+If the override must apply only to a specific selection kind, you can still scope it:
+
+```ts
+{
+  directivePolicies: {
+    opaque: {
       field: {
         effect: 'override-type',
         type: defineNamed('OpaqueId'),

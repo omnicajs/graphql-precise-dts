@@ -5,6 +5,15 @@ The plugin distinguishes between two classes of directives:
 - built-in `@include` and `@skip`;
 - custom directives, for which the user explicitly defines a policy via `directivePolicies`.
 
+Custom directives are processed in two stages:
+
+- structural stage:
+  - affects selection presence and nullability;
+  - supports `ignore`, `exclude`, `conditional`, `nonnull`;
+- generation stage:
+  - affects the rendered TypeScript output after model normalization;
+  - supports `ignore`, `override-type`, `warn`.
+
 The main principle is:
 
 - if a selection is guaranteed not to appear in the result, it is removed from the declaration;
@@ -130,24 +139,30 @@ import { defineNamed } from '@omnicajs/graphql-precise-dts'
 
 {
   directivePolicies: {
+    mask: { effect: 'conditional' },
+    clientOnly: { effect: 'exclude' },
+    opaque: { effect: 'override-type', type: defineNamed('OpaqueId') },
+    required: { effect: 'nonnull' },
+    review: { effect: 'warn', message: 'Manual review required' },
+  },
+}
+```
+
+Flat policies apply to every supported selection kind. If you need different behavior for `field`, `fragmentSpread`,
+and `inlineFragment`, use a scoped policy object instead:
+
+```ts
+{
+  directivePolicies: {
     mask: {
-      field: { effect: 'conditional' },
-    },
-    clientOnly: {
-      inlineFragment: { effect: 'exclude' },
-    },
-    opaque: {
-      field: { effect: 'override-type', type: defineNamed('OpaqueId') },
-    },
-    required: {
-      field: { effect: 'nonnull' },
-    },
-    review: {
-      field: { effect: 'warn', message: 'Manual review required' },
+      field: { effect: 'ignore' },
+      inlineFragment: { effect: 'conditional' },
     },
   },
 }
 ```
+
+When a scoped policy omits the current selection kind, the directive has no effect for that selection.
 
 Supported policies:
 
@@ -182,9 +197,7 @@ Config:
 ```ts
 {
   directivePolicies: {
-    mask: {
-      field: { effect: 'conditional' },
-    },
+    mask: { effect: 'conditional' },
   },
 }
 ```
@@ -212,9 +225,7 @@ Config:
 ```ts
 {
   directivePolicies: {
-    clientOnly: {
-      field: { effect: 'exclude' },
-    },
+    clientOnly: { effect: 'exclude' },
   },
 }
 ```
@@ -264,6 +275,9 @@ export type GroupOwner = {
   };
 }
 ```
+
+This is one of the cases where a scoped policy is still useful: the same directive can remain inert on fields
+and only remove inline fragments.
 
 Logic:
 

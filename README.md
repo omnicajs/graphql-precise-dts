@@ -10,6 +10,9 @@ The generated declarations:
 - generate `TypedDocumentNode` declarations for operations;
 - emit a sibling `schema.d.ts` file with enums and scalar mappings;
 - account for directives that can change the runtime response shape;
+- process directives in two stages:
+  - structural policies change whether selections are included, conditional, or forced non-null;
+  - generation policies can override rendered field types or emit warnings;
 - support documents that contain multiple fragments, multiple operations, or their combination in the same `.graphql` file.
 
 ## Repository status
@@ -255,10 +258,39 @@ Object-shaped custom types are declared through keyed field maps:
 
 Defines how custom directives affect the generated response shape.
 
-Policies can be defined:
+At plugin config level, policies can be defined in two forms:
 
-- directly for the directive name;
-- or per target kind: `field`, `fragmentSpread`, `inlineFragment`.
+- flat, for all supported target kinds:
+
+```ts
+{
+  directivePolicies: {
+    required: { effect: 'nonnull' },
+    opaque: { effect: 'override-type', type: defineNamed('OpaqueId') },
+  },
+}
+```
+
+- or scoped per target kind: `field`, `fragmentSpread`, `inlineFragment`:
+
+```ts
+{
+  directivePolicies: {
+    mask: {
+      field: { effect: 'conditional' },
+      inlineFragment: { effect: 'exclude' },
+    },
+  },
+}
+```
+
+Current pipeline behavior:
+
+- structural effects are `ignore`, `exclude`, `conditional`, `nonnull`;
+- generation effects are `ignore`, `override-type`, `warn`;
+- flat policies apply wherever the directive is encountered;
+- scoped policies apply only to the matching selection kind;
+- if a scoped policy does not define the current selection kind, the directive has no effect for that selection.
 
 Supported effects:
 
@@ -274,4 +306,4 @@ Supported effects:
 for generated `declare module` ids.
 - [Types](docs/TYPES.md) - structural `TsType` model, available helpers, supported operations, and config examples.
 - [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies,
-and current `__typename` behavior for conditional and excluded selections.
+current policy staging, and `__typename` behavior for conditional and excluded selections.
