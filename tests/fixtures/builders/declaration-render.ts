@@ -68,8 +68,7 @@ export const field = (
     responseName: string,
     value: FieldValue,
     nullable = true,
-    isList = false,
-    directives: string[] = []
+    isList = false
 ): FieldSelectionModel => ({
     kind: SELECTION_MODEL_KIND.FIELD,
     name: responseName,
@@ -78,7 +77,6 @@ export const field = (
     conditional: false,
     typeRef: isList ? listType(nullable) : namedType(nullable),
     value,
-    directives,
 })
 
 const makeFixtureScalarName = (typeTs: TsType, usage: 'input' | 'output'): string =>

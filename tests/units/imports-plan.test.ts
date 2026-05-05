@@ -284,7 +284,6 @@ describe('imports plan', () => {
                                     kind: 'fragmentSpread',
                                     name: 'UserBase',
                                     onType: 'User',
-                                    directives: [],
                                     conditional: false,
                                 },
                             ],
