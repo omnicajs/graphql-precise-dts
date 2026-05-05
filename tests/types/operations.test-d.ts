@@ -1,9 +1,24 @@
+import type { Permission } from '../fixtures/generated/schema'
 import type { ApolloClient } from '@apollo/client'
-
 import type { GroupDetails as GroupDetailsFragment } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'
 import type { UserDetails as UserDetailsFragment } from '~tests/fixtures/documents/fragments/UserDetails.graphql'
 import type { UserWithGroups as UserWithGroupsFragment } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
-
+import type {
+    AddGroupMutationPayload,
+    AddGroupMutationVariables,
+} from '~tests/fixtures/documents/mutations/addGroup.graphql'
+import type {
+    ChangeOwnerMutationPayload,
+    ChangeOwnerMutationVariables,
+} from '~tests/fixtures/documents/mutations/changeOwner.graphql'
+import type {
+    CreateUserMutationPayload,
+    CreateUserMutationVariables,
+} from '~tests/fixtures/documents/mutations/createUser.graphql'
+import type {
+    RemoveGroupMutationPayload,
+    RemoveGroupMutationVariables,
+} from '~tests/fixtures/documents/mutations/removeGroup.graphql'
 import type {
     GroupMembersQueryPayload,
     GroupMembersQueryVariables,
@@ -24,24 +39,6 @@ import type {
     UsersQueryPayload,
     UsersQueryVariables,
 } from '~tests/fixtures/documents/queries/users.graphql'
-
-import type {
-    AddGroupMutationPayload,
-    AddGroupMutationVariables,
-} from '~tests/fixtures/documents/mutations/addGroup.graphql'
-import type {
-    ChangeOwnerMutationPayload,
-    ChangeOwnerMutationVariables,
-} from '~tests/fixtures/documents/mutations/changeOwner.graphql'
-import type {
-    CreateUserMutationPayload,
-    CreateUserMutationVariables,
-} from '~tests/fixtures/documents/mutations/createUser.graphql'
-import type {
-    RemoveGroupMutationPayload,
-    RemoveGroupMutationVariables,
-} from '~tests/fixtures/documents/mutations/removeGroup.graphql'
-
 import type {
     OwnerGroupChangedSubscriptionPayload,
     OwnerGroupChangedSubscriptionVariables,
@@ -51,25 +48,21 @@ import type {
     UserCreatedSubscriptionVariables,
 } from '~tests/fixtures/documents/subscriptions/userCreated.graphql'
 
-import type { Permission } from '../fixtures/generated/schema'
-
 import {
     describe,
     expectTypeOf,
     test,
 } from 'vitest'
 
+import { addGroupMutation } from '~tests/fixtures/documents/mutations/addGroup.graphql'
+import { changeOwnerMutation } from '~tests/fixtures/documents/mutations/changeOwner.graphql'
+import { createUserMutation } from '~tests/fixtures/documents/mutations/createUser.graphql'
+import { removeGroupMutation } from '~tests/fixtures/documents/mutations/removeGroup.graphql'
 import { groupMembersQuery } from '~tests/fixtures/documents/queries/groupMembers.graphql'
 import { ownerGroupQuery } from '~tests/fixtures/documents/queries/ownerGroup.graphql'
 import { userQuery } from '~tests/fixtures/documents/queries/user.graphql'
 import { userGroupsQuery } from '~tests/fixtures/documents/queries/userGroups.graphql'
 import { usersQuery } from '~tests/fixtures/documents/queries/users.graphql'
-
-import { addGroupMutation } from '~tests/fixtures/documents/mutations/addGroup.graphql'
-import { changeOwnerMutation } from '~tests/fixtures/documents/mutations/changeOwner.graphql'
-import { createUserMutation } from '~tests/fixtures/documents/mutations/createUser.graphql'
-import { removeGroupMutation } from '~tests/fixtures/documents/mutations/removeGroup.graphql'
-
 import { ownerGroupChangedSubscription } from '~tests/fixtures/documents/subscriptions/ownerGroupChanged.graphql'
 import { userCreatedSubscription } from '~tests/fixtures/documents/subscriptions/userCreated.graphql'
 

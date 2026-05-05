@@ -1,24 +1,26 @@
+import type {
+    PlannedFieldSelectionModel,
+    PlannedFragmentSpreadSelectionModel,
+} from '../../src/plan/planned-types'
+
 import {
     describe,
     expect,
     test,
 } from 'vitest'
 
-import type {
-    PlannedFieldSelectionModel,
-    PlannedFragmentSpreadSelectionModel,
-} from '../../src/plan/planned-types'
 import {
     hasAliasedRootTypenameSelection,
     hasRootSpreadWithSameTypeNames,
+    resolveTypenameSelection,
 } from '../../src/plan/renderable-shapes'
+import { renderStringLiteralUnion } from '../../src/render/basic'
+import { namedType } from '../fixtures/builders/declaration-render'
+
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
 } from '../../src/kinds'
-import { namedType } from '../fixtures/builders/declaration-render'
-import { renderStringLiteralUnion } from '../../src/render/basic'
-import { resolveTypenameSelection } from '../../src/plan/renderable-shapes'
 
 const plannedTypenameField = (
     ...typeNames: string[]

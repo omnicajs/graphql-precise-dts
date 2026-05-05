@@ -1,5 +1,8 @@
 import { join } from 'path'
-import { mkdtempSync, rmSync } from 'fs'
+import {
+    mkdtempSync,
+    rmSync,
+} from 'fs'
 import { tmpdir } from 'os'
 
 export const withTempOutput = async <T>(

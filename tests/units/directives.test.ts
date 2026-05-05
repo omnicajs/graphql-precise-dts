@@ -4,25 +4,27 @@ import {
     test,
 } from 'vitest'
 
+import { parse } from 'graphql'
 import {
     defineNamed,
     renderType,
 } from '../../src'
-import { isConditionalSelectionState } from '../../src/directives/resolve'
-import { parse } from 'graphql'
+
 import {
-    makeGenerationDirectivePolicies,
-    makeNormalizedDirectivePolicies,
-    makeStructuralDirectivePolicies,
-} from '../../src/directives/structural-policies'
-import {
+    isConditionalSelectionState,
     resolveGenerationSelectionDirectives,
     resolveStructuralSelectionDirectives,
     shouldForceNonNull,
 } from '../../src/directives/resolve'
 
-import { SELECTION_MODEL_KIND } from '../../src/kinds'
+import {
+    makeGenerationDirectivePolicies,
+    makeNormalizedDirectivePolicies,
+    makeStructuralDirectivePolicies,
+} from '../../src/directives/structural-policies'
+
 import { SELECTION_STATE } from '../../src/directives/kinds'
+import { SELECTION_MODEL_KIND } from '../../src/kinds'
 
 const getSelectionDirectives = (source: string) => {
     const document = parse(source)

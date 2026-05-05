@@ -1,3 +1,5 @@
+import type { ConstValues } from '../lib/types'
+
 import type {
     ConfigDirectivePolicies,
     DirectiveNodePolicies,
@@ -9,7 +11,6 @@ import type {
     StructuralDirectivePolicies,
     StructuralDirectivePolicy,
 } from './types'
-import type { ConstValues } from '../lib/types'
 
 import { DIRECTIVE_POLICY_EFFECT } from './kinds'
 import { SELECTION_MODEL_KIND } from '../kinds'

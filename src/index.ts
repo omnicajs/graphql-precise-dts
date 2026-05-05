@@ -1,26 +1,38 @@
 import type { DocumentModelBundle } from './plan/document-model-bundles'
 import type { ModelContext } from './models/types'
 import type { PluginConfig } from './config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 import type { RenderableOperationModel } from './plan/renderable-document-models'
-import type { Types } from '@graphql-codegen/plugin-helpers'
+import type {
+    PluginFunction,
+    Types,
+} from '@graphql-codegen/plugin-helpers'
 
 import { buildModelRegistry } from './models/registry-builder'
-import { dirname } from 'path'
-import { emitMissingFragmentDefinitionWarnings } from './lib/documents'
 import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
-import { findFragmentDefinitions } from './lib/documents'
-import { join } from 'path'
-import { makeDocumentModelImportMap } from './plan/document-model-imports'
-import { makeDocumentLocationMap } from './lib/documents'
 import { makeDocumentModelBundles } from './plan/document-model-bundles'
-import { makeGenerationDirectivePolicies } from './directives/structural-policies'
+import { makeDocumentModelImportMap } from './plan/document-model-imports'
 import { makeModuleSpecifier } from './path'
-import { makeStructuralDirectivePolicies } from './directives/structural-policies'
-import { mkdirSync } from 'fs'
 import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
-import { writeFileSync } from 'fs'
+import {
+    makeGenerationDirectivePolicies,
+    makeStructuralDirectivePolicies,
+} from './directives/structural-policies'
+
+import {
+    emitMissingFragmentDefinitionWarnings,
+    findFragmentDefinitions,
+    makeDocumentLocationMap,
+} from './lib/documents'
+
+import {
+    mkdirSync,
+    writeFileSync,
+} from 'fs'
+import {
+    dirname,
+    join,
+} from 'path'
 
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
 const EXACT_TYPE_DECLARATION = 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n'

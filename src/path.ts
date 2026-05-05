@@ -1,5 +1,7 @@
-import { isAbsolute } from 'path'
-import { relative } from 'path'
+import {
+    isAbsolute,
+    relative,
+} from 'path'
 
 const DEFAULT_DOCUMENT_NAME = '*.graphql'
 

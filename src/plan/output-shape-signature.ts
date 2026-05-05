@@ -1,7 +1,7 @@
-import type { FieldValue } from '../models/types'
-import type { NormalizedSelectionModel } from './selection-normalization'
 import type { ObjectRenderOptions } from './planned-types'
+import type { NormalizedSelectionModel } from './selection-normalization'
 import type {
+    FieldValue,
     SelectionModel,
     TypeRef,
 } from '../models/types'

@@ -1,29 +1,40 @@
 import type { DocumentModelBundle } from '../plan/document-model-bundles'
+import type { TsType } from '../ts-type'
+import type { TypeRef } from '../models/types'
+
 import type {
     PlannedVariableField,
     PlannedVariableValue,
 } from '../plan/planned-types'
+
 import type {
     RenderableDocumentModels,
     RenderableFragmentModel,
     RenderableOperationModel,
     RenderableOutputAlias,
 } from '../plan/renderable-document-models'
+
 import type {
     RenderableFieldValue,
     RenderableObjectShape,
     RenderableUnionShape,
 } from '../plan/renderable-types'
-import type { TsType } from '../ts-type'
-import type { TypeRef } from '../models/types'
 
-import { getOperationTypeName } from '../plan/naming'
-import { getVariableObjectAliasName } from '../plan/naming'
-import { indent } from '../lib/strings'
-import { makeNullableTsType } from '../ts-type'
 import { renderStringLiteralUnion } from './basic'
-import { renderTsType } from '../ts-type'
-import { uncapitalize } from '../lib/strings'
+import {
+    indent,
+    uncapitalize,
+} from '../lib/strings'
+
+import {
+    getOperationTypeName,
+    getVariableObjectAliasName,
+} from '../plan/naming'
+
+import {
+    makeNullableTsType,
+    renderTsType,
+} from '../ts-type'
 
 import {
     FRAGMENT_ROOT_KIND,

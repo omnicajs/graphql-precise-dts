@@ -1,4 +1,7 @@
-import type { GraphQLOutputType, SelectionNode } from 'graphql'
+import type {
+    GraphQLOutputType,
+    SelectionNode,
+} from 'graphql'
 
 import { SELECTION_MODEL_KIND } from '../kinds'
 

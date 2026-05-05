@@ -1,6 +1,7 @@
-import type { ASTNode } from 'graphql'
 import type { DocumentFile } from '../plugin-types'
+
 import type {
+    ASTNode,
     DocumentNode,
     FragmentDefinitionNode,
     FragmentSpreadNode,

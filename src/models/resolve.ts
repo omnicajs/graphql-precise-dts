@@ -1,25 +1,27 @@
+import type { SelectionModel } from './types/selection'
+import type { StructuralDirectivePolicies } from '../directives/types'
+import type { TypeRef } from './types/type-ref'
+import type { TypeSelectionNode } from './selection'
+
 import type {
     FieldNode,
     FragmentDefinitionNode,
     GraphQLAbstractType,
-    OperationDefinitionNode,
     GraphQLInputType,
     GraphQLNamedType,
     GraphQLObjectType,
     GraphQLOutputType,
     GraphQLSchema,
+    OperationDefinitionNode,
+    SelectionNode,
 } from 'graphql'
-import type { SelectionModel } from './types/selection'
-import type { SelectionNode } from 'graphql'
-import type { StructuralDirectivePolicies } from '../directives/types'
-import type { TypeRef } from './types/type-ref'
-import type { TypeSelectionNode } from './selection'
 
 import {
     GraphQLNonNull,
     TypeInfo,
 } from 'graphql'
 
+import { resolveStructuralSelectionDirectivesForNode } from '../directives/resolve'
 import {
     getNamedType,
     isInterfaceType,
@@ -27,20 +29,17 @@ import {
     isNonNullType,
     isObjectType,
     isUnionType,
-} from 'graphql'
-import { resolveStructuralSelectionDirectivesForNode } from '../directives/resolve'
-import {
     visit,
     visitWithTypeInfo,
 } from 'graphql'
 
-import { Kind } from 'graphql'
-import { SELECTION_MODEL_KIND } from '../kinds'
 import { SELECTION_STATE } from '../directives/kinds'
 import {
+    SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
 } from '../kinds'
+import { Kind } from 'graphql'
 
 import { GraphQLString } from 'graphql'
 

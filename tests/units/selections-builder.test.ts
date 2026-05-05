@@ -4,19 +4,22 @@ import {
     test,
 } from 'vitest'
 
-import { buildSchema } from 'graphql'
-import {
-    getDocumentFragmentDefinition,
-    getFragmentDefinition,
-} from './helpers/graphql-document'
 import { getTypeForDefinition } from '../../src/models/resolve'
+import { makeTestModelContext } from './helpers/model-context'
 import {
     makeSelectionModel,
     makeSelectionModels,
     makeSelectionsForFields,
 } from '../../src/models/selections-builder'
-import { makeTestModelContext } from './helpers/model-context'
-import { parse } from 'graphql'
+
+import {
+    getDocumentFragmentDefinition,
+    getFragmentDefinition,
+} from './helpers/graphql-document'
+import {
+    buildSchema,
+    parse,
+} from 'graphql'
 
 import {
     SELECTION_MODEL_KIND,

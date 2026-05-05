@@ -1,8 +1,8 @@
+import type { TypeSelectionNode } from '../../../src/models/selection'
 import type {
     FragmentDefinitionNode,
     SelectionNode,
 } from 'graphql'
-import type { TypeSelectionNode } from '../../../src/models/selection'
 
 export const getSelectionNode = (fragment: FragmentDefinitionNode, index: number): SelectionNode => {
     const selection = fragment.selectionSet.selections[index]

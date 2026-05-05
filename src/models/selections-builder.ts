@@ -1,24 +1,30 @@
+import type {
+    ResolvedStructuralDirectives,
+    StructuralDirectivePolicies,
+} from '../directives/types'
 import type { ModelContext } from './types/context'
-import type { ResolvedStructuralDirectives } from '../directives/types'
 import type { SelectionModel } from './types/selection'
 import type { SelectionNode } from 'graphql'
-import type { StructuralDirectivePolicies } from '../directives/types'
 import type { TypeSelectionNode } from './selection'
 
 import { formatNodeLocation } from '../lib/documents'
-import { getFragmentTypeNames } from './resolve'
-import { isConditionalSelectionState } from '../directives/resolve'
 import { makeFieldValue } from './value-models-builder'
+import { print } from 'graphql'
+
 import {
+    isConditionalSelectionState,
+    resolveStructuralSelectionDirectivesForNode,
+} from '../directives/resolve'
+
+import {
+    getFragmentTypeNames,
     makeNonNullTypeRef,
     makeTypeRefForField,
 } from './resolve'
-import { resolveStructuralSelectionDirectivesForNode } from '../directives/resolve'
-import { print } from 'graphql'
 
-import { Kind } from 'graphql'
 import { SELECTION_MODEL_KIND } from '../kinds'
 import { SELECTION_STATE } from '../directives/kinds'
+import { Kind } from 'graphql'
 
 type ResolvedSelectionContext = {
     fieldType: TypeSelectionNode;

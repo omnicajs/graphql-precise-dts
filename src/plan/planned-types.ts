@@ -1,7 +1,9 @@
-import type { FieldValue } from '../models/types'
 import type { OperationTypeNode } from 'graphql'
 import type { TsType } from '../ts-type'
-import type { TypeRef } from '../models/types'
+import type {
+    FieldValue,
+    TypeRef,
+} from '../models/types'
 
 import {
     FRAGMENT_ROOT_KIND,

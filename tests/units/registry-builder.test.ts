@@ -5,10 +5,12 @@ import {
 } from 'vitest'
 
 import { buildModelRegistry } from '../../src/models/registry-builder'
-import { buildSchema } from 'graphql'
 import { defineNamed } from '../../src'
 import { makeTestModelContext } from './helpers/model-context'
-import { parse } from 'graphql'
+import {
+    buildSchema,
+    parse,
+} from 'graphql'
 
 import {
     FRAGMENT_ROOT_KIND,

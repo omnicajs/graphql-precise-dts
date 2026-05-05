@@ -1,7 +1,7 @@
 import type { ConfigDirectivePolicies } from '../../../src/directives/types'
+import type { CustomScalarMappings } from '../../../src/scalars/types'
 import type { FragmentDefinitionNode } from 'graphql'
 import type { ModelContext } from '../../../src/models/types'
-import type { CustomScalarMappings } from '../../../src/scalars/types'
 import type {
     DocumentFile,
     Schema,

@@ -5,18 +5,21 @@ import {
     vi,
 } from 'vitest'
 
-import { buildSchema } from 'graphql'
+import { join } from 'path'
+import { readFileSync } from 'fs'
+import { withTempOutput } from './utils/temp-output'
 import {
     defineNamed,
     defineNull,
     defineString,
+    plugin,
+    unionOf,
 } from '../../src'
-import { join } from 'path'
-import { parse } from 'graphql'
-import { plugin } from '../../src'
-import { readFileSync } from 'fs'
-import { withTempOutput } from './utils/temp-output'
-import { unionOf } from '../../src'
+
+import {
+    buildSchema,
+    parse,
+} from 'graphql'
 
 const schema = buildSchema(`
     type Query {

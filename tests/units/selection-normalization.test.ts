@@ -5,16 +5,16 @@ import {
 } from 'vitest'
 
 import { defineString } from '../../src'
-import { field } from '../fixtures/builders/declaration-render'
+import { normalizeSelections } from '../../src/plan/selection-normalization'
 import {
+    field,
     listType,
     namedType,
+    objectValue,
+    scalar,
+    typenameValue,
+    unionValue,
 } from '../fixtures/builders/declaration-render'
-import { normalizeSelections } from '../../src/plan/selection-normalization'
-import { objectValue } from '../fixtures/builders/declaration-render'
-import { scalar } from '../fixtures/builders/declaration-render'
-import { typenameValue } from '../fixtures/builders/declaration-render'
-import { unionValue } from '../fixtures/builders/declaration-render'
 
 import {
     SELECTION_MODEL_KIND,

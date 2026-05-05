@@ -1,6 +1,7 @@
-import type { DefinitionNode } from 'graphql'
 import type { DocumentFile } from '../plugin-types'
+
 import type {
+    DefinitionNode,
     SelectionNode,
     SelectionSetNode,
     Source,

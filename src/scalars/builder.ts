@@ -1,3 +1,4 @@
+import type { TsType } from '../ts-type'
 import type {
     CustomScalarMapping,
     CustomScalarMappings,
@@ -6,7 +7,6 @@ import type {
     ScalarShape,
     ScalarUsage,
 } from './types'
-import type { TsType } from '../ts-type'
 
 import { isUndefined } from '../lib/predicates'
 import {

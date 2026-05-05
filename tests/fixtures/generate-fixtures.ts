@@ -1,6 +1,8 @@
-import { defineString } from '../../src'
+import {
+    defineString,
+    plugin,
+} from '../../src'
 import { generate } from '@graphql-codegen/cli'
-import { plugin } from '../../src'
 
 const LOCAL_PLUGIN_NAME = 'graphql-precise-dts'
 const supportedPluginNames = new Set([

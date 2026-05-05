@@ -1,16 +1,15 @@
-import type { CollectedDocumentModels } from '../../../src/models/types'
 import type { ConfigDirectivePolicies } from '../../../src/directives/types'
 import type { CustomScalarMappings } from '../../../src/scalars/types'
+import type { OperationTypeNode } from 'graphql'
+import type { TsType } from '../../../src'
+
 import type {
+    CollectedDocumentModels,
     FieldSelectionModel,
     FieldValue,
     FragmentModel,
     OperationModel,
-} from '../../../src/models/types'
-import type { OperationTypeNode } from 'graphql'
-import type { SelectionModel } from '../../../src/models/types'
-import type { TsType } from '../../../src'
-import type {
+    SelectionModel,
     TypeRef,
     VariableField,
     VariableValue,

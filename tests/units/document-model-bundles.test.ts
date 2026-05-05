@@ -4,13 +4,13 @@ import {
     test,
 } from 'vitest'
 
+import { buildModelRegistry } from '../../src/models/registry-builder'
+import { makeDocumentModelBundles } from '../../src/plan/document-model-bundles'
+import { makeTestModelContext } from './helpers/model-context'
 import {
     buildSchema,
     parse,
 } from 'graphql'
-import { buildModelRegistry } from '../../src/models/registry-builder'
-import { makeDocumentModelBundles } from '../../src/plan/document-model-bundles'
-import { makeTestModelContext } from './helpers/model-context'
 
 describe('document model bundles', () => {
     test('builds document model bundles for documents with fragments and operations', () => {

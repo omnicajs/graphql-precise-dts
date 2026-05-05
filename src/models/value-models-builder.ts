@@ -1,20 +1,35 @@
-import type { FieldNode } from 'graphql'
 import type { ModelContext } from './types/context'
-import type { FieldValue, ScalarValue, VariableValue } from './types/value'
-import type {
-    GraphQLInputType,
-    GraphQLInputObjectType,
-    GraphQLInterfaceType,
-} from 'graphql'
 import type { ScalarUsage } from '../scalars/types'
 import type { SelectionModel } from './types/selection'
-import type { SelectionNode } from 'graphql'
+
 import type {
     TypeFieldNode,
     TypeSelectionNode,
 } from './selection'
 
+import type {
+    FieldValue,
+    ScalarValue,
+    VariableValue,
+} from './types/value'
+
+import type {
+    FieldNode,
+    GraphQLInputObjectType,
+    GraphQLInputType,
+    GraphQLInterfaceType,
+    SelectionNode,
+} from 'graphql'
+
 import { GraphQLObjectType } from 'graphql'
+
+import { isUndefined } from '../lib/predicates'
+import {
+    filterSelectionsForConcreteType,
+    makeTypeRefForVariable,
+    shouldBuildTypeSelectionUnion,
+    specializeTypenameSelections,
+} from './resolve'
 
 import {
     getNamedType,
@@ -24,25 +39,19 @@ import {
     isNullableType,
     isObjectType,
     isScalarType,
+    isUnionType,
 } from 'graphql'
-import { isUndefined } from '../lib/predicates'
-import { isUnionType } from 'graphql'
-import { filterSelectionsForConcreteType } from './resolve'
+
 import {
     makeSelectionModels,
     makeSelectionsForFields,
 } from './selections-builder'
-import {
-    makeTypeRefForVariable,
-    shouldBuildTypeSelectionUnion,
-    specializeTypenameSelections,
-} from './resolve'
 
-import { Kind } from 'graphql'
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
 } from '../kinds'
+import { Kind } from 'graphql'
 
 const makeScalarValue = (
     typeName: string,
