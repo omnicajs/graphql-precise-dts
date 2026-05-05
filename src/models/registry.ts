@@ -1,8 +1,10 @@
 import type {
     EnumValueEntries,
-    FragmentModel,
     ScalarModelShape,
-} from './types'
+} from './types/type-ref'
+import type {
+    FragmentModel,
+} from './types/document'
 
 export type ModelSchemaRegistry = {
     scalars: Map<string, ScalarModelShape>;

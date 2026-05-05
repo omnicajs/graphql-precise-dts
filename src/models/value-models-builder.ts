@@ -1,22 +1,18 @@
 import type { FieldNode } from 'graphql'
-import type { FieldValue } from './types'
+import type { ModelContext } from './types/context'
+import type { FieldValue, ScalarValue, VariableValue } from './types/value'
 import type {
     GraphQLInputType,
     GraphQLInputObjectType,
     GraphQLInterfaceType,
 } from 'graphql'
-import type {
-    ModelContext,
-    ScalarValue,
-} from './types'
 import type { ScalarUsage } from '../scalars/types'
-import type { SelectionModel } from './types'
+import type { SelectionModel } from './types/selection'
 import type { SelectionNode } from 'graphql'
 import type {
     TypeFieldNode,
     TypeSelectionNode,
 } from './selection'
-import type { VariableValue } from './types'
 
 import { GraphQLObjectType } from 'graphql'
 
