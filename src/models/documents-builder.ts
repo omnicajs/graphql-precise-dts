@@ -1,4 +1,3 @@
-import type { ConfigScalars } from '../config'
 import type { FragmentDefinitionNode } from 'graphql'
 import type {
     FragmentModel,
@@ -11,7 +10,7 @@ import type {
 import type { ModelContext } from './types'
 import type { OperationDefinitionNode } from 'graphql'
 import type { OperationModel } from './types'
-import type { Schema } from '../config'
+import type { Schema } from '../plugin-types'
 import type { SelectionNode } from 'graphql'
 import type { TypeSelectionNode } from './selection'
 import type { VariableDefinitionNode } from 'graphql'
@@ -23,8 +22,8 @@ import { capitalize } from '../lib/strings'
 import {
     filterSelectionsForConcreteType,
     getFragmentTypeNames,
+    getTypeForDefinition,
 } from './resolve'
-import { getTypeForDefinition } from './resolve'
 import { isNullableType } from 'graphql'
 import { isUndefined } from '../lib/predicates'
 import { makeSelectionModels } from './selections-builder'
@@ -32,14 +31,14 @@ import { makeTypeRefForVariable } from './resolve'
 import { makeVariableValue } from './value-models-builder'
 import {
     shouldBuildTypeSelectionUnion,
-    specializeTypeNameSelectionForConcreteType,
+    specializeTypenameSelections,
 } from './resolve'
 import {
     visit,
     visitWithTypeInfo,
 } from 'graphql'
 
-import { FRAGMENT_ROOT_KIND } from './kinds'
+import { FRAGMENT_ROOT_KIND } from '../kinds'
 import { OperationTypeNode } from 'graphql'
 
 const makeFragmentUnionRoot = (
@@ -52,7 +51,7 @@ const makeFragmentUnionRoot = (
     kind: FRAGMENT_ROOT_KIND.UNION,
     variants: context.schema.getPossibleTypes(fragmentType).map(type => ({
         typeName: type.name,
-        fields: specializeTypeNameSelectionForConcreteType(
+        fields: specializeTypenameSelections(
             makeSelectionModels(
                 filterSelectionsForConcreteType(context.schema, type, selections),
                 selectionTypes,
@@ -90,7 +89,7 @@ export const makeFragmentModel = (
 
     return {
         ...getFragmentTypeNames(graphqlDef, context.schema),
-        root: shouldBuildTypeSelectionUnion(fragmentType, selections)
+        root: shouldBuildTypeSelectionUnion(fragmentType, selections, context.structuralDirectivePolicies)
             ? makeFragmentUnionRoot(
                 fragmentType,
                 selections,
@@ -110,13 +109,12 @@ export const makeFragmentModel = (
 const makeOperationVariable = (
     variableName: string,
     type: GraphQLInputType,
-    customScalars: ConfigScalars,
     hasDefaultValue = false
 ): VariableField => ({
     name: variableName,
     typeRef: makeTypeRefForVariable(type),
     optional: isNullableType(type) || hasDefaultValue,
-    value: makeVariableValue(type, customScalars),
+    value: makeVariableValue(type),
 })
 
 const getRootTypeForOperation = (
@@ -167,7 +165,6 @@ export const makeOperationModel = (
                         makeOperationVariable(
                             variableDefinition.variable.name.value,
                             variableType,
-                            context.customScalars,
                             !isUndefined(variableDefinition.defaultValue)
                         ),
                     ] : []

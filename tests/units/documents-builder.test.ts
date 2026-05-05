@@ -6,7 +6,6 @@ import {
 
 import { buildSchema } from 'graphql'
 import {
-    defineBoolean,
     defineNamed,
     defineString,
 } from '../../src'
@@ -23,7 +22,7 @@ import { makeTestModelContext } from './helpers/model-context'
 import {
     FRAGMENT_ROOT_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/models/kinds'
+} from '../../src/kinds'
 
 describe('documents builder', () => {
     test('builds union fragment roots for abstract fragments with type-specific branches', () => {
@@ -96,7 +95,8 @@ describe('documents builder', () => {
                     optional: false,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'ID',
+                        usage: 'input',
                     },
                 }),
                 expect.objectContaining({
@@ -104,7 +104,8 @@ describe('documents builder', () => {
                     optional: true,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineBoolean(),
+                        name: 'Boolean',
+                        usage: 'input',
                     },
                 }),
             ],
@@ -148,7 +149,8 @@ describe('documents builder', () => {
                     optional: false,
                     value: {
                         kind: VALUE_MODEL_KIND.SCALAR,
-                        typeTs: defineString(),
+                        name: 'DateTime',
+                        usage: 'input',
                     },
                 }),
             ],

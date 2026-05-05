@@ -1,11 +1,9 @@
 import type {
-    ConfigScalars,
-    ConfigTsType,
-} from '../config'
-import type {
+    CustomScalarMapping,
+    CustomScalarMappings,
     ScalarPrimitiveMap,
-    ScalarShape,
     Scalars,
+    ScalarShape,
     ScalarUsage,
 } from './types'
 import type { TsType } from '../ts-type'
@@ -40,7 +38,7 @@ export const getScalarPrimitiveShapeTs = <TScalar extends keyof Scalars>(
     })
 
 export const resolveCustomScalarTypeTs = (
-    scalar: ConfigTsType | Partial<ScalarShape<ConfigTsType, ConfigTsType>>,
+    scalar: CustomScalarMapping,
     usage: ScalarUsage = 'output'
 ): TsType => {
     return typeof scalar === 'object' && scalar !== null && !('kind' in scalar)
@@ -54,13 +52,13 @@ export const resolveCustomScalarTypeTs = (
 export const isScalarPrimitiveKey = (key: string): key is keyof Scalars => {
     return key in scalarPrimitiveTypesMap
 }
-export const isScalarCustomKey = (key: string, listScalars: ConfigScalars): boolean => {
+export const isScalarCustomKey = (key: string, listScalars: CustomScalarMappings): boolean => {
     return Object.prototype.hasOwnProperty.call(listScalars, key)
 }
 
 export const getScalarTsType = (
     namedType: string,
-    customScalars: ConfigScalars = {},
+    customScalars: CustomScalarMappings = {},
     usage: ScalarUsage = 'output'
 ): TsType => {
     return isScalarCustomKey(namedType, customScalars)
@@ -72,7 +70,7 @@ export const getScalarTsType = (
 
 export const getScalarTsShape = (
     namedType: string,
-    customScalars: ConfigScalars = {}
+    customScalars: CustomScalarMappings = {}
 ): ScalarShape<string, string> => ({
     input: renderTsType(getScalarTsType(namedType, customScalars, 'input')),
     output: renderTsType(getScalarTsType(namedType, customScalars, 'output')),

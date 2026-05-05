@@ -1,4 +1,4 @@
-import type { ConfigScalars } from '../config'
+import type { CustomScalarMappings } from '../scalars/types'
 import type {
     EnumValueEntries,
     FragmentModel,
@@ -13,8 +13,8 @@ import type {
 import type { ModelContext } from './types'
 import type { ModelRegistry } from './registry'
 import type { ScalarModelShape } from './types'
-import type { Schema } from '../config'
 import type { Scalars } from '../scalars/types'
+import type { Schema } from '../plugin-types'
 
 import { getNamedType } from 'graphql'
 import {
@@ -51,7 +51,7 @@ const createModelRegistry = (): ModelRegistry => ({
 const registerCustomScalars = (
     scalars: Map<string, ScalarModelShape>,
     schema: Schema,
-    customScalars: ConfigScalars
+    customScalars: CustomScalarMappings
 ) => Object.keys(customScalars).forEach(scalarName => {
     const scalarType = schema.getType(scalarName)
 
@@ -151,12 +151,13 @@ const collectUsedPrimitiveScalars = (
 
 export const buildModelRegistry = (
     registeredNames: RegisteredNames,
-    context: ModelContext
+    context: ModelContext,
+    customScalars: CustomScalarMappings = {}
 ): ModelRegistry => {
     const registry = createModelRegistry()
     const usedPrimitiveScalars = collectUsedPrimitiveScalars(context.schema)
 
-    registerCustomScalars(registry.schema.scalars, context.schema, context.customScalars)
+    registerCustomScalars(registry.schema.scalars, context.schema, customScalars)
     registerPrimitiveScalars(registry.schema.scalars, usedPrimitiveScalars)
     registerEnums(registry.schema.enums, context.schema, registeredNames.enums)
     registerFragments(registry.documents.fragments, registeredNames.fragments, context)

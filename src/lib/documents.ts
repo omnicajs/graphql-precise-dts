@@ -1,5 +1,5 @@
 import type { ASTNode } from 'graphql'
-import type { DocumentFile } from '../config'
+import type { DocumentFile } from '../plugin-types'
 import type {
     DocumentNode,
     FragmentDefinitionNode,
