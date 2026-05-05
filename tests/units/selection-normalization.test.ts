@@ -4,16 +4,13 @@ import {
     test,
 } from 'vitest'
 
-import {
-    defineNamed,
-    defineString,
-} from '../../src'
+import { defineString } from '../../src'
 import { field } from '../fixtures/builders/declaration-render'
 import {
     listType,
     namedType,
 } from '../fixtures/builders/declaration-render'
-import { normalizeSelections } from '../../src/render/selection-normalization'
+import { normalizeSelections } from '../../src/plan/selection-normalization'
 import { objectValue } from '../fixtures/builders/declaration-render'
 import { scalar } from '../fixtures/builders/declaration-render'
 import { typenameValue } from '../fixtures/builders/declaration-render'
@@ -22,7 +19,7 @@ import { unionValue } from '../fixtures/builders/declaration-render'
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/models/kinds'
+} from '../../src/kinds'
 
 describe('selection normalization', () => {
     test('merges duplicate fields from the same level and nested inline fragments', () => {
@@ -118,19 +115,6 @@ describe('selection normalization', () => {
                 typeRef: namedType(false),
             },
         ])).toThrow(/different field nullability or list structure cannot be merged/)
-    })
-
-    test('throws when fields with the same response name have different override types', () => {
-        expect(() => normalizeSelections([
-            {
-                ...field('id', scalar(defineString()), false),
-                overrideTypeTs: defineNamed('OpaqueId'),
-            },
-            {
-                ...field('id', scalar(defineString()), false),
-                overrideTypeTs: defineNamed('RawId'),
-            },
-        ])).toThrow(/different override types cannot be merged/)
     })
 
     test('merges diagnostic locations, conditional flags, directives and object field values', () => {

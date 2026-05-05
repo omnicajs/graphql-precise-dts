@@ -1,55 +1,37 @@
-import type {
-    DocumentFieldValue,
-    DocumentFragmentModel,
-} from '../plan/document-models-types'
 import type { DocumentModelBundle } from '../plan/document-model-bundles'
 import type {
-    DocumentModels,
-    DocumentOperationModel,
-    DocumentSelectionModel,
-    DocumentVariableField,
-    DocumentVariableValue,
-} from '../plan/document-models-types'
+    PlannedVariableField,
+    PlannedVariableValue,
+} from '../plan/planned-types'
+import type {
+    RenderableDocumentModels,
+    RenderableFragmentModel,
+    RenderableOperationModel,
+    RenderableOutputAlias,
+} from '../plan/renderable-document-models'
+import type {
+    RenderableFieldValue,
+    RenderableObjectShape,
+    RenderableUnionShape,
+} from '../plan/renderable-types'
 import type { TsType } from '../ts-type'
 import type { TypeRef } from '../models/types'
 
-import { getOperationTypeName } from './operation-name'
-import { getVariableObjectAliasName } from '../plan/document-models'
-import {
-    hasAliasedRootTypenameSelection,
-    hasRootSpreadWithSameTypeNames,
-} from './typename'
+import { getOperationTypeName } from '../plan/naming'
+import { getVariableObjectAliasName } from '../plan/naming'
 import { indent } from '../lib/strings'
 import { makeNullableTsType } from '../ts-type'
-import { normalizeSelections } from './selection-normalization'
 import { renderStringLiteralUnion } from './basic'
 import { renderTsType } from '../ts-type'
-import { resolveTypenameSelection } from './typename'
 import { uncapitalize } from '../lib/strings'
 
 import {
     FRAGMENT_ROOT_KIND,
-    SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../models/kinds'
-
-type RenderedSelections = {
-    rows: string[];
-    spreads: string[];
-}
-
-type RenderedUnionVariant = RenderedSelections & {
-    typeName: string;
-    hasExplicitTypename: boolean;
-    hasRequiredExplicitTypename: boolean;
-}
+} from '../kinds'
 
 type RenderableTypeValue = string | TsType
-
-type NormalizedDocumentSelection = Extract<DocumentSelectionModel, {
-    kind: typeof SELECTION_MODEL_KIND.FIELD | typeof SELECTION_MODEL_KIND.FRAGMENT_SPREAD;
-}>
 
 const renderFieldRow = (
     name: string,
@@ -87,61 +69,6 @@ const renderNonNullTypeRef = (typeRef: TypeRef, value: RenderableTypeValue): str
     }
 }
 
-const renderFieldValue = (field: DocumentFieldValue): RenderableTypeValue => {
-    switch (field.kind) {
-        case VALUE_MODEL_KIND.SCALAR:
-            return field.typeTs
-        case VALUE_MODEL_KIND.TYPENAME:
-            return renderStringLiteralUnion(field.typeNames)
-        case VALUE_MODEL_KIND.ENUM:
-            return field.name
-        case VALUE_MODEL_KIND.OBJECT:
-            return field.renderAsReference && field.renderAliasName
-                ? field.renderAliasName
-                : renderObjectSelections(field.fields, field.typeNames ?? [], field.renderOptions)
-        case VALUE_MODEL_KIND.UNION:
-            return renderUnionVariants(field.variants)
-        default:
-            console.warn('Unknown type')
-            return 'unknown'
-    }
-}
-
-const renderSelections = (
-    selections: DocumentSelectionModel[],
-    withinConditional = false
-): RenderedSelections => (normalizeSelections(
-    (withinConditional
-        ? selections.map(selection => ({ ...selection, conditional: true }))
-        : selections) as never
-) as NormalizedDocumentSelection[]
-).reduce<RenderedSelections>((result, selection) => {
-    switch (selection.kind) {
-        case SELECTION_MODEL_KIND.FIELD:
-            if (selection.name === '__typename' && selection.responseName === '__typename') {
-                return result
-            }
-
-            result.rows.push(renderFieldRow(
-                selection.responseName,
-                renderNullableTypeRef(
-                    selection.typeRef,
-                    selection.overrideTypeTs ?? renderFieldValue(selection.value)
-                ),
-                selection.conditional
-            ))
-            return result
-        case SELECTION_MODEL_KIND.FRAGMENT_SPREAD:
-            result.spreads.push(selection.conditional ? `Partial<${selection.name}>` : selection.name)
-            return result
-        default:
-            return result
-    }
-}, {
-    rows: [],
-    spreads: [],
-})
-
 const renderTypenameRow = (
     typeNames: string[],
     required = false
@@ -156,97 +83,68 @@ const renderObjectType = (rows: string[], spreads: string[] = []): string => [
     ...spreads,
 ].join(' & ')
 
-const haveSameRenderedSelections = (
-    left: RenderedSelections,
-    right: RenderedSelections
-): boolean => left.rows.length === right.rows.length
-    && left.rows.every((row, index) => row === right.rows[index])
-    && left.spreads.length === right.spreads.length
-    && left.spreads.every((spread, index) => spread === right.spreads[index])
+const renderObjectShape = ({ typename, rows, spreads }: RenderableObjectShape): string => renderObjectType([
+    ...(typename ? [ renderTypenameRow(typename.typeNames, typename.required) ] : []),
+    ...rows.map(field => renderFieldRow(
+        field.name,
+        renderNullableTypeRef(
+            field.typeRef,
+            field.overrideTypeTs ?? renderFieldValue(field.value)
+        ),
+        field.conditional
+    )),
+], spreads.map(spread => spread.conditional ? `Partial<${spread.name}>` : spread.name))
 
-const renderUnionVariants = (
-    variants: Extract<DocumentFieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }>['variants']
-): string => {
-    const renderedVariants = variants.map((variant): RenderedUnionVariant => {
-        const renderedSelections = renderSelections(variant.fields)
-        const resolvedTypename = resolveTypenameSelection(variant.fields)
-
-        return {
-            ...renderedSelections,
-            typeName: variant.typeName,
-            hasExplicitTypename: resolvedTypename.present,
-            hasRequiredExplicitTypename: resolvedTypename.present && resolvedTypename.required,
-        }
-    })
-
-    if (renderedVariants.length < 1) return 'never'
-    const [ firstVariant ] = renderedVariants
-
-    const hasSameRenderedShape = renderedVariants.every(variant => haveSameRenderedSelections(firstVariant, variant))
-    const hasExplicitTypename = renderedVariants.some(variant => variant.hasExplicitTypename)
-
-    if (hasSameRenderedShape) {
-        const typeNames = renderedVariants.map(variant => variant.typeName)
-        const hasRequiredTypename = !hasExplicitTypename
-            || renderedVariants.every(variant => variant.hasRequiredExplicitTypename)
-
+const renderUnionShape = (shape: RenderableUnionShape): string => {
+    if (shape.kind === 'collapsed') {
         return renderObjectType([
-            renderTypenameRow(typeNames, hasRequiredTypename),
-            ...firstVariant.rows,
-        ], firstVariant.spreads)
+            renderTypenameRow(shape.typename.typeNames, shape.typename.required),
+            ...shape.rows.map(field => renderFieldRow(
+                field.name,
+                renderNullableTypeRef(
+                    field.typeRef,
+                    field.overrideTypeTs ?? renderFieldValue(field.value)
+                ),
+                field.conditional
+            )),
+        ], shape.spreads.map(spread => spread.conditional ? `Partial<${spread.name}>` : spread.name))
     }
 
-    return variants
-        .map(variant => renderObjectSelections(
-            variant.fields,
-            [ variant.typeName ],
-            { requiredFallbackTypename: !hasExplicitTypename }
-        )).join(' | ')
+    if (shape.variants.length < 1) return 'never'
+
+    return shape.variants.map(renderObjectShape).join(' | ')
 }
 
-const renderObjectSelections = (
-    fields: DocumentSelectionModel[],
-    typeNames: string[],
-    options?: {
-        requiredFallbackTypename?: boolean;
-        dedupeTypenameWithSpread?: boolean;
-        dedupeTypenameWithAlias?: boolean;
+const renderFieldValue = (field: RenderableFieldValue): RenderableTypeValue => {
+    switch (field.kind) {
+        case VALUE_MODEL_KIND.SCALAR:
+            return field.typeTs
+        case VALUE_MODEL_KIND.TYPENAME:
+            return renderStringLiteralUnion(field.typeNames)
+        case VALUE_MODEL_KIND.ENUM:
+            return field.name
+        case VALUE_MODEL_KIND.OBJECT:
+            return field.renderAsReference && field.renderAliasName
+                ? field.renderAliasName
+                : field.shape
+                    ? renderObjectShape(field.shape)
+                    : 'unknown'
+        case VALUE_MODEL_KIND.UNION:
+            return renderUnionShape(field.shape)
+        default:
+            console.warn('Unknown type')
+            return 'unknown'
     }
-): string => {
-    const fallbackTypeNames = typeNames.filter(Boolean)
-    const { rows, spreads } = renderSelections(fields)
-    const resolvedTypename = resolveTypenameSelection(fields, fallbackTypeNames)
-    const shouldOmitFallbackTypename = (
-        options?.dedupeTypenameWithSpread
-        && hasRootSpreadWithSameTypeNames(fields, fallbackTypeNames)
-    ) || (
-        options?.dedupeTypenameWithAlias
-        && hasAliasedRootTypenameSelection(fields)
-    )
-
-    return renderObjectType([
-        ...(resolvedTypename.present
-            ? [ renderTypenameRow(resolvedTypename.typeNames, resolvedTypename.required) ]
-            : fallbackTypeNames.length === 0 || shouldOmitFallbackTypename
-                ? []
-                : [ renderTypenameRow(fallbackTypeNames, options?.requiredFallbackTypename) ]),
-        ...rows,
-    ], spreads)
 }
 
 const renderFragmentRoot = (
-    fragment: DocumentFragmentModel
+    fragment: RenderableFragmentModel
 ): string => fragment.root.kind === FRAGMENT_ROOT_KIND.UNION
-    ? fragment.root.variants
-        .map(variant => renderObjectSelections(variant.fields, [ variant.typeName ]))
-        .join(' | ')
-    : renderObjectSelections(fragment.root.fields, fragment.onTypeNames ?? [ fragment.onType ], {
-        dedupeTypenameWithSpread: true,
-        dedupeTypenameWithAlias: (fragment.onTypeNames ?? [ fragment.onType ]).length === 1,
-    })
+    ? fragment.root.variants.map(renderObjectShape).join(' | ')
+    : renderObjectShape(fragment.root.shape)
 
 const renderVariableValue = (
-    value: DocumentVariableValue,
+    value: PlannedVariableValue,
     aliasedVariableObjectTypeNames: Set<string>
 ): RenderableTypeValue => {
     switch (value.kind) {
@@ -268,7 +166,7 @@ const renderVariableValue = (
     }
 }
 
-const renderVariableObject = (fields: DocumentVariableField[], aliasedVariableObjectTypeNames: Set<string>): string => {
+const renderVariableObject = (fields: PlannedVariableField[], aliasedVariableObjectTypeNames: Set<string>): string => {
     if (!fields.length) return '{ [key: string]: never }'
 
     return [
@@ -289,7 +187,7 @@ const renderVariableObject = (fields: DocumentVariableField[], aliasedVariableOb
 
 const renderOperationDeclaration = (
     operationName: string,
-    operation: DocumentOperationModel,
+    operation: RenderableOperationModel,
     aliasedVariableObjectTypeNames: Set<string>
 ): string => {
     const exportName = uncapitalize(operationName)
@@ -299,9 +197,7 @@ const renderOperationDeclaration = (
 
     return [
         `export type ${operationName}Variables = ${variablesType}`,
-        `export type ${operationName}Payload = ${renderObjectSelections(operation.result, [ operation.onType ], {
-            dedupeTypenameWithAlias: true,
-        })}`,
+        `export type ${operationName}Payload = ${renderObjectShape(operation.resultShape)}`,
         `export const ${exportName}: TypedDocumentNode<${operationName}Payload, ${operationName}Variables>`,
         `export default ${exportName}`,
     ].map(block => indent(block)).join('\n\n')
@@ -309,7 +205,7 @@ const renderOperationDeclaration = (
 
 export const renderDeclaration = (
     path: string,
-    models: DocumentModels,
+    models: RenderableDocumentModels,
     importsMap: Map<string, string>
 ): string => {
     if (!models.fragments.size && !models.operations.size) return ''
@@ -338,12 +234,8 @@ export const renderDeclaration = (
         )}`))
     })
 
-    models.outputAliases.forEach(({ aliasName, fields, typeNames, renderOptions }) => {
-        declarationRowsBlocks.push(indent(`export type ${aliasName} = ${renderObjectSelections(
-            fields,
-            typeNames,
-            renderOptions
-        )}`))
+    models.outputAliases.forEach(({ aliasName, shape }: RenderableOutputAlias) => {
+        declarationRowsBlocks.push(indent(`export type ${aliasName} = ${renderObjectShape(shape)}`))
     })
 
     for (const [ key, fragment ] of models.fragments.entries()) {

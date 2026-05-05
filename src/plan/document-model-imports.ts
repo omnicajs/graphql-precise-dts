@@ -1,5 +1,5 @@
 import type { CollectedDocumentModels } from '../models/types'
-import type { DocumentFile } from '../config'
+import type { DocumentFile } from '../plugin-types'
 import type { FieldValue } from '../models/types'
 import type { FragmentDefinitionNode } from 'graphql'
 import type { FragmentModel } from '../models/types'
@@ -7,7 +7,7 @@ import type {
     GraphQLInputType,
     GraphQLOutputType,
 } from 'graphql'
-import type { Schema } from '../config'
+import type { Schema } from '../plugin-types'
 import type {
     SelectionModel,
     VariableValue,
@@ -26,29 +26,29 @@ import {
     FRAGMENT_ROOT_KIND,
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../models/kinds'
+} from '../kinds'
 
-export type ImportMap = {
+export type DocumentModelImportMap = {
     fragments: Map<string, string>,
     enums: Map<string, string>,
 }
 
 type ImportMapCollector = {
-    imports: ImportMap
+    imports: DocumentModelImportMap
     addEnum(typeNode: GraphQLInputType | GraphQLOutputType): void
     addFragment(name: string, location?: string): void
 }
 
 type DocumentImportCollector = {
     imports: Map<string, string>
-    importMap: ImportMap
+    importMap: DocumentModelImportMap
 }
 
 const createImportMapCollector = (
     schemaModulePath: string,
     moduleLocation: (location?: string) => string
 ): ImportMapCollector => {
-    const imports: ImportMap = {
+    const imports: DocumentModelImportMap = {
         fragments: new Map<string, string>(),
         enums: new Map<string, string>(),
     }
@@ -91,12 +91,12 @@ const createImportMapVisitor = (
     },
 })
 
-export const makeImportMap = (
+export const makeDocumentModelImportMap = (
     schema: Schema,
     documents: DocumentFile[],
     schemaModulePath: string,
     moduleLocation: (location: string | undefined) => string
-): ImportMap => {
+): DocumentModelImportMap => {
     const collector = createImportMapCollector(schemaModulePath, moduleLocation)
 
     documents.forEach(documentFile => {
@@ -190,9 +190,9 @@ const visitFragmentImports = (
     visitSelectionModels(collector, fragment.root.fields)
 }
 
-export const collectImportsForDocumentModels = (
+export const collectDocumentModelImports = (
     { fragments, operations }: CollectedDocumentModels,
-    importMap: ImportMap
+    importMap: DocumentModelImportMap
 ): Map<string, string> => {
     const collector: DocumentImportCollector = {
         imports: new Map<string, string>(),

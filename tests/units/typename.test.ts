@@ -4,20 +4,54 @@ import {
     test,
 } from 'vitest'
 
-import { field } from '../fixtures/builders/declaration-render'
-import { renderStringLiteralUnion } from '../../src/render/basic'
+import type {
+    PlannedFieldSelectionModel,
+    PlannedFragmentSpreadSelectionModel,
+} from '../../src/plan/planned-types'
 import {
     hasAliasedRootTypenameSelection,
     hasRootSpreadWithSameTypeNames,
-    resolveTypenameSelection,
-} from '../../src/render/typename'
-import { typenameValue } from '../fixtures/builders/declaration-render'
+} from '../../src/plan/renderable-shapes'
+import {
+    SELECTION_MODEL_KIND,
+    VALUE_MODEL_KIND,
+} from '../../src/kinds'
+import { namedType } from '../fixtures/builders/declaration-render'
+import { renderStringLiteralUnion } from '../../src/render/basic'
+import { resolveTypenameSelection } from '../../src/plan/renderable-shapes'
 
-describe('typename render helpers', () => {
+const plannedTypenameField = (
+    ...typeNames: string[]
+): PlannedFieldSelectionModel => ({
+    kind: SELECTION_MODEL_KIND.FIELD,
+    name: '__typename',
+    responseName: '__typename',
+    argumentsSignature: '',
+    conditional: false,
+    typeRef: namedType(false),
+    value: {
+        kind: VALUE_MODEL_KIND.TYPENAME,
+        typeNames,
+    },
+})
+
+const plannedFragmentSpread = (
+    typeNames: string[],
+    conditional = false,
+    name = 'UserDetails'
+): PlannedFragmentSpreadSelectionModel => ({
+    kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+    name,
+    onType: 'User',
+    onTypeNames: typeNames,
+    conditional,
+})
+
+describe('declaration shape helpers', () => {
     test('resolves conditional explicit typename as optional with fallback type names', () => {
         expect(resolveTypenameSelection([
             {
-                ...field('__typename', typenameValue('UserPayload'), false),
+                ...plannedTypenameField('UserPayload'),
                 conditional: true,
                 directives: [ 'include' ],
             },
@@ -28,32 +62,58 @@ describe('typename render helpers', () => {
         })
     })
 
-    test('detects matching root spreads and ignores conditional ones', () => {
-        expect(hasRootSpreadWithSameTypeNames([{
-            kind: 'fragmentSpread',
-            name: 'UserDetails',
-            onType: 'User',
-            onTypeNames: [ 'UserPayload', 'AdminPayload' ],
-            conditional: false,
-        }], [ 'UserPayload', 'AdminPayload' ])).toBe(true)
+    test('resolves mixed explicit typename selections against fallback type names', () => {
+        expect(resolveTypenameSelection([
+            plannedTypenameField('UserPayload'),
+            {
+                ...plannedTypenameField('AdminPayload'),
+                conditional: true,
+                directives: [ 'include' ],
+            },
+        ], [ 'UserPayload', 'AdminPayload' ])).toEqual({
+            present: true,
+            required: false,
+            typeNames: [ 'UserPayload', 'AdminPayload' ],
+        })
 
-        expect(hasRootSpreadWithSameTypeNames([{
-            kind: 'fragmentSpread',
-            name: 'UserDetails',
-            onType: 'User',
-            onTypeNames: [ 'UserPayload', 'AdminPayload' ],
-            conditional: true,
-        }], [ 'UserPayload', 'AdminPayload' ])).toBe(false)
+        expect(resolveTypenameSelection([
+            plannedTypenameField('UserPayload'),
+            plannedTypenameField('AdminPayload'),
+        ], [ 'UserPayload', 'AdminPayload' ])).toEqual({
+            present: true,
+            required: true,
+            typeNames: [ 'UserPayload', 'AdminPayload' ],
+        })
+    })
+
+    test('detects matching root spreads only when every spread is non-conditional and matches the same type names', () => {
+        expect(hasRootSpreadWithSameTypeNames([
+            plannedFragmentSpread([ 'UserPayload', 'AdminPayload' ]),
+        ], [ 'UserPayload', 'AdminPayload' ])).toBe(true)
+
+        expect(hasRootSpreadWithSameTypeNames([
+            plannedFragmentSpread([ 'UserPayload', 'AdminPayload' ], true),
+        ], [ 'UserPayload', 'AdminPayload' ])).toBe(false)
+
+        expect(hasRootSpreadWithSameTypeNames([
+            plannedFragmentSpread([ 'UserPayload', 'AdminPayload' ]),
+            plannedFragmentSpread([ 'UserPayload', 'AdminPayload' ], false, 'OwnerDetails'),
+        ], [ 'UserPayload', 'AdminPayload' ])).toBe(true)
+
+        expect(hasRootSpreadWithSameTypeNames([
+            plannedFragmentSpread([ 'UserPayload', 'AdminPayload' ]),
+            plannedFragmentSpread([ 'UserPayload' ], false, 'OwnerDetails'),
+        ], [ 'UserPayload', 'AdminPayload' ])).toBe(false)
     })
 
     test('detects non-conditional aliased typename selections in the current selection set', () => {
         expect(hasAliasedRootTypenameSelection([{
-            ...field('__typename', typenameValue('UserPayload'), false),
+            ...plannedTypenameField('UserPayload'),
             responseName: 'kind',
         }])).toBe(true)
 
         expect(hasAliasedRootTypenameSelection([{
-            ...field('__typename', typenameValue('UserPayload'), false),
+            ...plannedTypenameField('UserPayload'),
             responseName: 'kind',
             conditional: true,
             directives: [ 'include' ],

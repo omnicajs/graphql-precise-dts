@@ -1,6 +1,6 @@
 import type { GraphQLOutputType, SelectionNode } from 'graphql'
 
-import { SELECTION_MODEL_KIND } from './kinds'
+import { SELECTION_MODEL_KIND } from '../kinds'
 
 export type TypeSelectionNode = TypeFieldNode | TypeFragmentSpreadNode | TypeFragmentInlineNode
 

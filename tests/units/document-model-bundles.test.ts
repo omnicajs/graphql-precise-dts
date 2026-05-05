@@ -55,7 +55,7 @@ describe('document model bundles', () => {
             enums: new Map<string, string>(),
         }
 
-        const bundles = makeDocumentModelBundles(documents, fragments, context, importMap)
+        const bundles = makeDocumentModelBundles(documents, fragments, context, importMap, {}, {})
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: 'user.graphql' })
@@ -117,7 +117,7 @@ describe('document model bundles', () => {
             enums: new Map<string, string>(),
         }
 
-        const bundles = makeDocumentModelBundles(documents, fragments, context, importMap)
+        const bundles = makeDocumentModelBundles(documents, fragments, context, importMap, {}, {})
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: 'user.graphql' })
