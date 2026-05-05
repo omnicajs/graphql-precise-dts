@@ -2,7 +2,7 @@ import type { ModelContext } from './types'
 import type { ResolvedStructuralDirectives } from '../directives/types'
 import type { SelectionModel } from './types'
 import type { SelectionNode } from 'graphql'
-import type { StructuralDirectivePolicies } from '../directives/policy'
+import type { StructuralDirectivePolicies } from '../directives/types'
 import type { TypeSelectionNode } from './selection'
 
 import { formatNodeLocation } from '../lib/documents'

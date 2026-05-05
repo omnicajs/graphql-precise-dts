@@ -4,7 +4,7 @@ import type {
     StructuralDirectiveNodePolicies,
     StructuralDirectivePolicies,
     StructuralDirectivePolicy,
-} from './policy'
+} from './types'
 
 import { DIRECTIVE_POLICY_EFFECT } from './kinds'
 

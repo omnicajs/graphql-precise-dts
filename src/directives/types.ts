@@ -1,11 +1,13 @@
-export type { ConfigDirectivePolicies } from './config-types'
+import type {
+    DirectiveNodePolicies,
+    DirectivePolicy,
+} from './policy'
+
+export type ConfigDirectivePolicies = Record<string, DirectivePolicy | DirectiveNodePolicies>
 
 export type {
     DirectiveNodePolicies,
-    DirectiveOverrideType,
     DirectivePolicy,
-    GenerationDirectiveNodePolicies,
-    GenerationDirectivePolicy,
     StructuralDirectiveNodePolicies,
     StructuralDirectivePolicies,
     StructuralDirectivePolicy,
