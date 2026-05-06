@@ -3,39 +3,33 @@ import type { TsType } from '../ts-type'
 import type { TypeRef } from '../models/types'
 
 import type {
-    PlannedVariableField,
-    PlannedVariableValue,
-} from '../plan/planned/types'
-
-import type {
     RenderableDocumentModels,
     RenderableFragmentModel,
     RenderableOperationModel,
     RenderableOutputAlias,
-} from '../plan/renderable/document-models'
+    RenderableVariableAlias,
+} from '../plan/renderable/types'
 
 import type {
     RenderableFieldValue,
     RenderableObjectShape,
     RenderableUnionShape,
+    RenderableVariableField,
+    RenderableVariableValue,
 } from '../plan/renderable/types'
 
+import { getOperationTypeName } from '../plan/naming'
 import { renderStringLiteralUnion } from './basic'
+import {
+    makeNullableTsType,
+    renderTsType,
+} from '../ts-type'
 import {
     indent,
     uncapitalize,
 } from '../lib/strings'
 
-import {
-    getOperationTypeName,
-    getVariableObjectAliasName,
-} from '../plan/naming'
-
-import {
-    makeNullableTsType,
-    renderTsType,
-} from '../ts-type'
-
+import { RENDER_STRATEGY } from '../plan/renderable/kinds'
 import {
     FRAGMENT_ROOT_KIND,
     TYPE_REF_KIND,
@@ -135,11 +129,9 @@ const renderFieldValue = (field: RenderableFieldValue): RenderableTypeValue => {
         case VALUE_MODEL_KIND.ENUM:
             return field.name
         case VALUE_MODEL_KIND.OBJECT:
-            return field.renderAsReference && field.renderAliasName
-                ? field.renderAliasName
-                : field.shape
-                    ? renderObjectShape(field.shape)
-                    : 'unknown'
+            return field.renderStrategy === RENDER_STRATEGY.REFERENCE
+                ? field.referenceName
+                : renderObjectShape(field.shape)
         case VALUE_MODEL_KIND.UNION:
             return renderUnionShape(field.shape)
         default:
@@ -155,8 +147,7 @@ const renderFragmentRoot = (
     : renderObjectShape(fragment.root.shape)
 
 const renderVariableValue = (
-    value: PlannedVariableValue,
-    aliasedVariableObjectTypeNames: Set<string>
+    value: RenderableVariableValue
 ): RenderableTypeValue => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.SCALAR:
@@ -164,20 +155,16 @@ const renderVariableValue = (
         case VALUE_MODEL_KIND.ENUM:
             return value.name
         case VALUE_MODEL_KIND.OBJECT:
-            if (value.renderAsReference && value.renderAliasName) {
-                return value.renderAliasName
-            }
-            if (value.typeName && aliasedVariableObjectTypeNames.has(value.typeName)) {
-                return getVariableObjectAliasName(value.typeName)
-            }
-            return renderVariableObject(value.fields, aliasedVariableObjectTypeNames)
+            return value.renderStrategy === RENDER_STRATEGY.REFERENCE
+                ? value.referenceName
+                : renderVariableObject(value.fields)
         default:
             console.warn('Unknown variable type')
             return 'unknown'
     }
 }
 
-const renderVariableObject = (fields: PlannedVariableField[], aliasedVariableObjectTypeNames: Set<string>): string => {
+const renderVariableObject = (fields: RenderableVariableField[]): string => {
     if (!fields.length) return '{ [key: string]: never }'
 
     return [
@@ -187,7 +174,7 @@ const renderVariableObject = (fields: PlannedVariableField[], aliasedVariableObj
                 field.name,
                 renderNullableTypeRef(
                     field.typeRef,
-                    renderVariableValue(field.value, aliasedVariableObjectTypeNames)
+                    renderVariableValue(field.value)
                 ),
                 field.optional
             )}`)
@@ -198,13 +185,12 @@ const renderVariableObject = (fields: PlannedVariableField[], aliasedVariableObj
 
 const renderOperationDeclaration = (
     operationName: string,
-    operation: RenderableOperationModel,
-    aliasedVariableObjectTypeNames: Set<string>
+    operation: RenderableOperationModel
 ): string => {
     const exportName = uncapitalize(operationName)
     const variablesType = operation.variables.length > 0
-        ? `Exact<${renderVariableObject(operation.variables, aliasedVariableObjectTypeNames)}>`
-        : renderVariableObject(operation.variables, aliasedVariableObjectTypeNames)
+        ? `Exact<${renderVariableObject(operation.variables)}>`
+        : renderVariableObject(operation.variables)
 
     return [
         `export type ${operationName}Variables = ${variablesType}`,
@@ -236,13 +222,8 @@ export const renderDeclaration = (
         declarationRowsBlocks.push(typesBlock.join('\n'))
     }
 
-    const aliasedVariableObjectTypeNames = new Set(models.variableAliases.map(alias => alias.typeName))
-
-    models.variableAliases.forEach(({ aliasName, fields }) => {
-        declarationRowsBlocks.push(indent(`export type ${aliasName} = ${renderVariableObject(
-            fields,
-            aliasedVariableObjectTypeNames
-        )}`))
+    models.variableAliases.forEach(({ aliasName, fields }: RenderableVariableAlias) => {
+        declarationRowsBlocks.push(indent(`export type ${aliasName} = ${renderVariableObject(fields)}`))
     })
 
     models.outputAliases.forEach(({ aliasName, shape }: RenderableOutputAlias) => {
@@ -257,8 +238,7 @@ export const renderDeclaration = (
         declarationRowsBlocks.push(
             renderOperationDeclaration(
                 getOperationTypeName(key, operation.operationType),
-                operation,
-                aliasedVariableObjectTypeNames
+                operation
             )
         )
     }
