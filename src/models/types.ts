@@ -7,22 +7,13 @@ export type {
 } from './types/type-ref'
 
 export type {
-    EnumValue,
     FieldValue,
-    ObjectFieldValue,
-    ScalarValue,
-    TypeNameValue,
-    UnionFieldValue,
-    UnionVariant,
-    UnknownValue,
     VariableField,
-    VariableObjectValue,
     VariableValue,
 } from './types/value'
 
 export type {
     FieldSelectionModel,
-    FragmentInlineSelectionModel,
     FragmentSpreadSelectionModel,
     SelectionModel,
 } from './types/selection'
