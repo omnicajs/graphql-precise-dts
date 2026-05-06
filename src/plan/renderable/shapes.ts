@@ -1,3 +1,4 @@
+import type { RenderableFieldValue } from './value-types'
 import type {
     ObjectRenderOptions,
     PlannedFieldValue,
@@ -5,12 +6,12 @@ import type {
 } from '../planned/types'
 
 import type {
-    RenderableFieldValue,
     RenderableObjectShape,
     RenderableSelectionSet,
     RenderableUnionShape,
-} from './types'
+} from './shape-types'
 
+import { RENDER_STRATEGY } from './kinds'
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
@@ -73,16 +74,17 @@ const collectAliasedTypenameSelections = (
 const prepareFieldValue = (value: PlannedFieldValue): RenderableFieldValue => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.OBJECT:
-            return {
-                kind: VALUE_MODEL_KIND.OBJECT,
-                renderAliasName: value.renderAliasName,
-                renderAsReference: value.renderAsReference,
-                ...(value.renderAsReference && value.renderAliasName
-                    ? {}
-                    : {
-                        shape: prepareObjectShape(value.fields, value.typeNames ?? [], value.renderOptions),
-                    }),
-            }
+            return value.renderAsReference && value.renderAliasName
+                ? {
+                    kind: VALUE_MODEL_KIND.OBJECT,
+                    renderStrategy: RENDER_STRATEGY.REFERENCE,
+                    referenceName: value.renderAliasName,
+                }
+                : {
+                    kind: VALUE_MODEL_KIND.OBJECT,
+                    renderStrategy: RENDER_STRATEGY.INLINE,
+                    shape: prepareObjectShape(value.fields, value.typeNames ?? [], value.renderOptions),
+                }
         case VALUE_MODEL_KIND.UNION:
             return {
                 kind: VALUE_MODEL_KIND.UNION,

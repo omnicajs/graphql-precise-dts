@@ -3,7 +3,7 @@ import type { DocumentFile } from '../plugin-types'
 import type { DocumentModelImportMap } from './document-model-imports'
 import type { GenerationDirectivePolicies } from '../directives/types'
 import type { OperationDefinitionNode } from 'graphql'
-import type { RenderableDocumentModels } from './renderable/document-models'
+import type { RenderableDocumentModels } from './renderable/types'
 
 import type {
     CollectedDocumentModels,
@@ -16,7 +16,7 @@ import { TypeInfo } from 'graphql'
 import { collectDocumentModelImports } from './document-model-imports'
 import { makeOperationModel } from '../models/documents-builder'
 import { makePlannedDocumentModels } from './planned'
-import { prepareRenderableDocumentModels } from './renderable/document-models'
+import { prepareRenderableDocumentModels } from './renderable/prepare-models'
 import {
     visit,
     visitWithTypeInfo,
