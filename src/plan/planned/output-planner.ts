@@ -1,6 +1,7 @@
 import type { CustomScalarMappings } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
 import type { NormalizedSelectionModel } from './normalize/selection'
+import type { WarningReporter } from '../warnings'
 
 import type {
     FieldValue,
@@ -18,7 +19,6 @@ import type {
     PlannedObjectFieldValue,
     PlannedOutputAlias,
     PlannedSelectionModel,
-    PlannedWarningReporter,
 } from './types'
 
 import { resolveGenerationSelectionDirectives } from '../../directives/resolve'
@@ -78,7 +78,7 @@ const buildObjectFieldValue = (
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
     directivePolicies: GenerationDirectivePolicies,
-    reportWarning: PlannedWarningReporter
+    reportWarning: WarningReporter
 ): PlannedObjectFieldValue => {
     if (value.kind !== VALUE_MODEL_KIND.OBJECT) {
         throw new Error('Expected object field value')
@@ -126,7 +126,7 @@ const buildFieldValue = (
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
     directivePolicies: GenerationDirectivePolicies,
-    reportWarning: PlannedWarningReporter
+    reportWarning: WarningReporter
 ): PlannedFieldValue => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.SCALAR:
@@ -161,7 +161,7 @@ export const buildSelection = (
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
     directivePolicies: GenerationDirectivePolicies,
-    reportWarning: PlannedWarningReporter
+    reportWarning: WarningReporter
 ): PlannedSelectionModel => {
     switch (selection.kind) {
         case SELECTION_MODEL_KIND.FIELD: {
@@ -249,7 +249,7 @@ const buildFragmentRoot = (
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
     directivePolicies: GenerationDirectivePolicies,
-    reportWarning: PlannedWarningReporter
+    reportWarning: WarningReporter
 ): PlannedFragmentRoot => root.kind === FRAGMENT_ROOT_KIND.UNION
     ? {
         kind: FRAGMENT_ROOT_KIND.UNION,
@@ -280,7 +280,7 @@ export const buildFragmentModel = (
     state: OutputBuildState,
     customScalars: CustomScalarMappings,
     directivePolicies: GenerationDirectivePolicies,
-    reportWarning: PlannedWarningReporter
+    reportWarning: WarningReporter
 ): PlannedFragmentModel => ({
     ...fragment,
     root: buildFragmentRoot(fragmentName, fragment.root, state, customScalars, directivePolicies, reportWarning),

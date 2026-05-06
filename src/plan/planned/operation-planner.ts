@@ -1,12 +1,9 @@
 import type { CustomScalarMappings } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
 import type { OperationModel } from '../../models/types'
-import type {
-    OutputBuildState,
-    PlannedOperationModel,
-    PlannedWarningReporter,
-} from './types'
+import type { OutputBuildState, PlannedOperationModel } from './types'
 import type { VariableBuildState } from './variable-planner'
+import type { WarningReporter } from '../warnings'
 
 import { buildSelection } from './output-planner'
 import { buildVariableField } from './variable-planner'
@@ -20,7 +17,7 @@ export const buildOperationModel = (
     variableState: VariableBuildState,
     customScalars: CustomScalarMappings,
     directivePolicies: GenerationDirectivePolicies,
-    reportWarning: PlannedWarningReporter
+    reportWarning: WarningReporter
 ): PlannedOperationModel => {
     const operationTypeName = getOperationTypeName(operationName, operation.operationType)
 

@@ -1,10 +1,8 @@
 import type { CustomScalarMappings } from '../../scalars/types'
 import type { CollectedDocumentModels } from '../../models/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
-import type {
-    PlannedDocumentModels,
-    PlannedWarningReporter,
-} from './types'
+import type { PlannedDocumentModels } from './types'
+import type { WarningReporter } from '../warnings'
 
 import { buildOperationModel } from './operation-planner'
 import { getOperationTypeName } from '../naming'
@@ -24,7 +22,7 @@ export const makePlannedDocumentModels = (
     reservedNames: string[] = [],
     customScalars: CustomScalarMappings = {},
     directivePolicies: GenerationDirectivePolicies = {},
-    reportWarning: PlannedWarningReporter = message => console.warn(message)
+    reportWarning: WarningReporter = message => console.warn(message)
 ): PlannedDocumentModels => {
     const outputBuildState = createOutputBuildState()
     const variableBuildState = createVariableBuildState()
