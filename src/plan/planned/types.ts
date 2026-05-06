@@ -17,8 +17,6 @@ export type ObjectRenderOptions = {
     dedupeTypenameWithAlias?: boolean;
 }
 
-export type PlannedWarningReporter = (message: string) => void
-
 export type PlannedScalarValue = {
     kind: typeof VALUE_MODEL_KIND.SCALAR;
     typeTs: TsType;

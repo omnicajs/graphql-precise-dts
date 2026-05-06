@@ -1323,7 +1323,19 @@ describe('declaration render', () => {
                 ], 'BrokenFragment')],
             ]))
 
-            const result = renderDeclaration('./documents', definitions, new Map())
+            const importsMap = new Map<string, string>()
+            const result = renderPlannedDeclaration(
+                './documents',
+                prepareRenderableDocumentModels(
+                    makePlannedDocumentModels(
+                        definitions,
+                        [ ...importsMap.keys() ],
+                        definitions.customScalars,
+                        makeGenerationDirectivePolicies(definitions.directivePolicies)
+                    )
+                ),
+                importsMap
+            )
 
             expect(result).toContain('\t\tmystery: unknown | null;')
             expect(warn).toHaveBeenCalledTimes(1)

@@ -134,8 +134,7 @@ const renderFieldValue = (field: RenderableFieldValue): RenderableTypeValue => {
                 : renderObjectShape(field.shape)
         case VALUE_MODEL_KIND.UNION:
             return renderUnionShape(field.shape)
-        default:
-            console.warn('Unknown type')
+        case VALUE_MODEL_KIND.UNKNOWN:
             return 'unknown'
     }
 }
@@ -158,8 +157,7 @@ const renderVariableValue = (
             return value.renderStrategy === RENDER_STRATEGY.REFERENCE
                 ? value.referenceName
                 : renderVariableObject(value.fields)
-        default:
-            console.warn('Unknown variable type')
+        case VALUE_MODEL_KIND.UNKNOWN:
             return 'unknown'
     }
 }

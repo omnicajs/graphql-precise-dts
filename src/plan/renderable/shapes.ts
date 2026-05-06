@@ -1,4 +1,5 @@
 import type { RenderableFieldValue } from './value-types'
+import type { WarningReporter } from '../warnings'
 import type {
     ObjectRenderOptions,
     PlannedFieldValue,
@@ -71,7 +72,10 @@ const collectAliasedTypenameSelections = (
     return []
 })
 
-const prepareFieldValue = (value: PlannedFieldValue): RenderableFieldValue => {
+const prepareFieldValue = (
+    value: PlannedFieldValue,
+    reportWarning: WarningReporter
+): RenderableFieldValue => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.OBJECT:
             return value.renderAsReference && value.renderAliasName
@@ -83,20 +87,28 @@ const prepareFieldValue = (value: PlannedFieldValue): RenderableFieldValue => {
                 : {
                     kind: VALUE_MODEL_KIND.OBJECT,
                     renderStrategy: RENDER_STRATEGY.INLINE,
-                    shape: prepareObjectShape(value.fields, value.typeNames ?? [], value.renderOptions),
+                    shape: prepareObjectShape(
+                        value.fields,
+                        value.typeNames ?? [],
+                        value.renderOptions, reportWarning
+                    ),
                 }
         case VALUE_MODEL_KIND.UNION:
             return {
                 kind: VALUE_MODEL_KIND.UNION,
-                shape: prepareUnionShape(value.variants),
+                shape: prepareUnionShape(value.variants, reportWarning),
             }
+        case VALUE_MODEL_KIND.UNKNOWN:
+            reportWarning('Unknown type')
+            return value
         default:
             return value
     }
 }
 
 const prepareSelectionSet = (
-    selections: PlannedSelectionModel[]
+    selections: PlannedSelectionModel[],
+    reportWarning: WarningReporter
 ) : RenderableSelectionSet => selections.reduce<RenderableSelectionSet>((result, selection) => {
     switch (selection.kind) {
         case SELECTION_MODEL_KIND.FIELD:
@@ -108,7 +120,7 @@ const prepareSelectionSet = (
                 name: selection.responseName,
                 typeRef: selection.typeRef,
                 conditional: selection.conditional,
-                value: prepareFieldValue(selection.value),
+                value: prepareFieldValue(selection.value, reportWarning),
                 overrideTypeTs: selection.overrideTypeTs,
             })
             return result
@@ -188,10 +200,11 @@ export const hasSameRenderableSelectionSet = (
 export const prepareObjectShape = (
     fields: PlannedSelectionModel[],
     typeNames: string[],
-    options: ObjectRenderOptions = {}
+    options: ObjectRenderOptions = {},
+    reportWarning: WarningReporter = message => console.warn(message)
 ): RenderableObjectShape => {
     const fallbackTypeNames = typeNames.filter(Boolean)
-    const preparedSelections = prepareSelectionSet(fields)
+    const preparedSelections = prepareSelectionSet(fields, reportWarning)
     const resolvedTypename = resolveTypenameSelection(fields, fallbackTypeNames)
     const shouldOmitFallbackTypename = (
         options.dedupeTypenameWithSpread
@@ -222,10 +235,11 @@ export const prepareObjectShape = (
 }
 
 export const prepareUnionShape = (
-    variants: Extract<PlannedFieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }>['variants']
+    variants: Extract<PlannedFieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }>['variants'],
+    reportWarning: WarningReporter = message => console.warn(message)
 ): RenderableUnionShape => {
     const preparedVariants = variants.map((variant): RenderableVariantSelectionSet => {
-        const selections = prepareSelectionSet(variant.fields)
+        const selections = prepareSelectionSet(variant.fields, reportWarning)
         const resolvedTypename = resolveTypenameSelection(variant.fields)
 
         return {
