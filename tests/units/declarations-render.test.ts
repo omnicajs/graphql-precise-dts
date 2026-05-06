@@ -6,7 +6,7 @@ import {
 } from 'vitest'
 
 import { makeGenerationDirectivePolicies } from '../../src/directives/structural-policies'
-import { makePlannedDocumentModels } from '../../src/plan/planned-document-models'
+import { makePlannedDocumentModels } from '../../src/plan/planned'
 import { prepareRenderableDocumentModels } from '../../src/plan/renderable/document-models'
 import { renderDeclaration as renderPlannedDeclaration } from '../../src/render/declarations'
 

@@ -2,7 +2,7 @@ import type {
     ObjectRenderOptions,
     PlannedFieldValue,
     PlannedSelectionModel,
-} from '../planned-types'
+} from '../planned/types'
 
 import type {
     RenderableFieldValue,

@@ -1,21 +1,23 @@
 import type { OperationTypeNode } from 'graphql'
-import type { TsType } from '../ts-type'
+import type { TsType } from '../../ts-type'
 import type {
     FieldValue,
     TypeRef,
-} from '../models/types'
+} from '../../models/types'
 
 import {
     FRAGMENT_ROOT_KIND,
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../kinds'
+} from '../../kinds'
 
 export type ObjectRenderOptions = {
     requiredFallbackTypename?: boolean;
     dedupeTypenameWithSpread?: boolean;
     dedupeTypenameWithAlias?: boolean;
 }
+
+export type PlannedWarningReporter = (message: string) => void
 
 export type PlannedScalarValue = {
     kind: typeof VALUE_MODEL_KIND.SCALAR;

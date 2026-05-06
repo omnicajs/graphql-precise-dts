@@ -1,7 +1,7 @@
 import type {
     PlannedFieldSelectionModel,
     PlannedFragmentSpreadSelectionModel,
-} from '../../src/plan/planned-types'
+} from '../../src/plan/planned/types'
 
 import {
     describe,

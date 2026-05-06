@@ -15,7 +15,7 @@ import { TypeInfo } from 'graphql'
 
 import { collectDocumentModelImports } from './document-model-imports'
 import { makeOperationModel } from '../models/documents-builder'
-import { makePlannedDocumentModels } from './planned-document-models'
+import { makePlannedDocumentModels } from './planned'
 import { prepareRenderableDocumentModels } from './renderable/document-models'
 import {
     visit,

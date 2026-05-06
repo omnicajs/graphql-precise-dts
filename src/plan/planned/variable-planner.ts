@@ -1,0 +1,145 @@
+import type { CustomScalarMappings } from '../../scalars/types'
+
+import type {
+    OperationModel,
+    VariableField,
+    VariableValue,
+} from '../../models/types'
+
+import type {
+    PlannedVariableAlias,
+    PlannedVariableField,
+    PlannedVariableObjectValue,
+    PlannedVariableValue,
+} from './types'
+
+import { buildScalarValue } from './shared'
+import { getVariableObjectAliasName } from '../naming'
+
+import { VALUE_MODEL_KIND } from '../../kinds'
+
+export type VariableBuildState = {
+    cache: Map<string, PlannedVariableObjectValue>;
+    inProgress: Set<string>;
+}
+
+export const createVariableBuildState = (): VariableBuildState => ({
+    cache: new Map(),
+    inProgress: new Set(),
+})
+
+const buildVariableValue = (
+    value: VariableValue,
+    state: VariableBuildState,
+    customScalars: CustomScalarMappings
+): PlannedVariableValue => {
+    if (value.kind === VALUE_MODEL_KIND.SCALAR) {
+        return buildScalarValue(value, customScalars)
+    }
+
+    if (value.kind !== VALUE_MODEL_KIND.OBJECT) return value
+
+    if (value.typeName && value.isRecursiveReference) {
+        return {
+            kind: VALUE_MODEL_KIND.OBJECT,
+            typeName: value.typeName,
+            fields: [],
+            renderAliasName: getVariableObjectAliasName(value.typeName),
+            renderAsReference: true,
+        }
+    }
+
+    if (value.typeName) {
+        const cached = state.cache.get(value.typeName)
+        if (cached) return cached
+
+        if (state.inProgress.has(value.typeName)) {
+            return {
+                kind: VALUE_MODEL_KIND.OBJECT,
+                typeName: value.typeName,
+                fields: [],
+                renderAliasName: getVariableObjectAliasName(value.typeName),
+                renderAsReference: true,
+            }
+        }
+    }
+
+    const node: PlannedVariableObjectValue = {
+        kind: VALUE_MODEL_KIND.OBJECT,
+        typeName: value.typeName,
+        fields: [],
+    }
+
+    if (value.typeName) {
+        state.inProgress.add(value.typeName)
+        state.cache.set(value.typeName, node)
+    }
+
+    node.fields = value.fields.map(field => buildVariableField(field, state, customScalars))
+
+    if (value.typeName) {
+        state.inProgress.delete(value.typeName)
+    }
+
+    return node
+}
+
+export const buildVariableField = (
+    field: VariableField,
+    state: VariableBuildState,
+    customScalars: CustomScalarMappings
+): PlannedVariableField => ({
+    ...field,
+    value: buildVariableValue(field.value, state, customScalars),
+})
+
+const collectVariableDefinitionsFromValue = (
+    value: VariableValue,
+    requiredTypeNames: Set<string>,
+    definitions: Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>
+) => {
+    if (value.kind !== VALUE_MODEL_KIND.OBJECT) return
+
+    if (value.typeName) {
+        if (value.isRecursiveReference) {
+            requiredTypeNames.add(value.typeName)
+            return
+        }
+
+        definitions.set(value.typeName, value)
+    }
+
+    value.fields.forEach(field => collectVariableDefinitionsFromValue(field.value, requiredTypeNames, definitions))
+}
+
+const collectVariableDefinitions = (operations: Map<string, OperationModel>) => {
+    const requiredTypeNames = new Set<string>()
+    const definitions = new Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>()
+
+    operations.forEach(operation => {
+        operation.variables.forEach(variable => collectVariableDefinitionsFromValue(variable.value, requiredTypeNames, definitions))
+    })
+
+    return { requiredTypeNames, definitions }
+}
+
+export const buildVariableAliases = (
+    operations: Map<string, OperationModel>,
+    state: VariableBuildState,
+    customScalars: CustomScalarMappings
+): PlannedVariableAlias[] => {
+    const { requiredTypeNames, definitions } = collectVariableDefinitions(operations)
+
+    return [ ...requiredTypeNames ].flatMap(typeName => {
+        const definition = definitions.get(typeName)
+        const preparedDefinition = definition ? buildVariableValue(definition, state, customScalars) : undefined
+
+        return preparedDefinition && preparedDefinition.kind === VALUE_MODEL_KIND.OBJECT
+            ? [{
+                typeName,
+                aliasName: getVariableObjectAliasName(typeName),
+                fields: preparedDefinition.fields,
+            }]
+            : []
+    })
+}
