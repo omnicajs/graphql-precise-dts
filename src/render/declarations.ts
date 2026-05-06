@@ -5,7 +5,7 @@ import type { TypeRef } from '../models/types'
 import type {
     PlannedVariableField,
     PlannedVariableValue,
-} from '../plan/planned-types'
+} from '../plan/planned/types'
 
 import type {
     RenderableDocumentModels,

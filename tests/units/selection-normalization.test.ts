@@ -5,7 +5,7 @@ import {
 } from 'vitest'
 
 import { defineString } from '../../src'
-import { normalizeSelections } from '../../src/plan/normalize/selection'
+import { normalizeSelections } from '../../src/plan/planned/normalize/selection'
 import {
     field,
     listType,

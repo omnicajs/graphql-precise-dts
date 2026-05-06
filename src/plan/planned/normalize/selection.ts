@@ -4,13 +4,13 @@ import type {
     FragmentSpreadSelectionModel,
     SelectionModel,
     TypeRef,
-} from '../../models/types'
+} from '../../../models/types'
 
 import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../../kinds'
+} from '../../../kinds'
 
 export type NormalizedSelectionModel = FieldSelectionModel | FragmentSpreadSelectionModel
 

@@ -4,7 +4,7 @@ import type {
     PlannedOperationModel,
     PlannedOutputAlias,
     PlannedVariableAlias,
-} from '../planned-types'
+} from '../planned/types'
 
 import type { RenderableObjectShape } from './types'
 
