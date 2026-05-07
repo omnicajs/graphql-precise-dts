@@ -1,4 +1,4 @@
-import type { CustomScalarMappings } from '../../scalars/types'
+import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { CollectedDocumentModels } from '../../models/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
 import type { PlannedDocumentModels } from './types'
@@ -21,7 +21,7 @@ import {
 export const makePlannedDocumentModels = (
     models: CollectedDocumentModels,
     occupiedTypeNames: string[] = [],
-    customScalars: CustomScalarMappings = {},
+    customScalars: CustomScalarMappingRecord = {},
     directivePolicies: GenerationDirectivePolicies = {},
     reportWarning: WarningReporter = message => console.warn(message)
 ): PlannedDocumentModels => {

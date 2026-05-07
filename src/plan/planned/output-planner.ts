@@ -1,4 +1,4 @@
-import type { CustomScalarMappings } from '../../scalars/types'
+import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
 import type { NameAllocator } from './name-allocator'
 import type { NormalizedSelectionModel } from './normalize/selection'
@@ -77,7 +77,7 @@ const buildObjectFieldValue = (
     value: FieldValue,
     aliasName: string,
     state: OutputBuildState,
-    customScalars: CustomScalarMappings,
+    customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedObjectFieldValue => {
@@ -125,7 +125,7 @@ const buildFieldValue = (
     value: FieldValue,
     aliasName: string,
     state: OutputBuildState,
-    customScalars: CustomScalarMappings,
+    customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedFieldValue => {
@@ -160,7 +160,7 @@ export const buildSelection = (
     selection: NormalizedSelectionModel,
     parentAliasName: string,
     state: OutputBuildState,
-    customScalars: CustomScalarMappings,
+    customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedSelectionModel => {
@@ -235,7 +235,7 @@ const buildFragmentRoot = (
     fragmentName: string,
     root: FragmentRoot,
     state: OutputBuildState,
-    customScalars: CustomScalarMappings,
+    customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedFragmentRoot => root.kind === FRAGMENT_ROOT_KIND.UNION
@@ -266,7 +266,7 @@ export const buildFragmentModel = (
     fragmentName: string,
     fragment: FragmentModel,
     state: OutputBuildState,
-    customScalars: CustomScalarMappings,
+    customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedFragmentModel => ({

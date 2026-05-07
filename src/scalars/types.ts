@@ -5,7 +5,7 @@ export type ScalarUsage = 'input' | 'output'
 export type ScalarShape<TInput, TOutput = TInput> = { input: TInput; output: TOutput }
 
 export type CustomScalarMapping = TsType | Partial<ScalarShape<TsType, TsType>>
-export type CustomScalarMappings = Record<string, CustomScalarMapping>
+export type CustomScalarMappingRecord = Record<string, CustomScalarMapping>
 
 export type Scalars = {
     ID: ScalarShape<string>;

@@ -1,5 +1,5 @@
 import type { ConfigDirectivePolicies } from '../../../src/directives/types'
-import type { CustomScalarMappings } from '../../../src/scalars/types'
+import type { CustomScalarMappingRecord } from '../../../src/scalars/types'
 import type { OperationTypeNode } from 'graphql'
 import type { TsType } from '../../../src'
 
@@ -30,7 +30,7 @@ const baseNamedType = (): Extract<TypeRef, { kind: typeof TYPE_REF_KIND.NAMED }>
 })
 
 type FixtureScalarCollectionState = {
-    customScalars: CustomScalarMappings;
+    customScalars: CustomScalarMappingRecord;
     visitedFieldObjects: WeakSet<Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
     visitedVariableObjects: WeakSet<Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
 }
@@ -40,7 +40,7 @@ type FixtureScalarCarrier = {
 }
 
 type DeclarationDefinitions = CollectedDocumentModels & {
-    customScalars: CustomScalarMappings;
+    customScalars: CustomScalarMappingRecord;
     directivePolicies: ConfigDirectivePolicies;
 }
 
