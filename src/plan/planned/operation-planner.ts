@@ -1,4 +1,4 @@
-import type { CustomScalarMappings } from '../../scalars/types'
+import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
 import type { OperationModel } from '../../models/types'
 import type { OutputBuildState, PlannedOperationModel } from './types'
@@ -15,7 +15,7 @@ export const buildOperationModel = (
     operation: OperationModel,
     outputState: OutputBuildState,
     variableState: VariableBuildState,
-    customScalars: CustomScalarMappings,
+    customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedOperationModel => {

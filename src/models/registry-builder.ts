@@ -4,7 +4,7 @@ import type { ModelRegistry } from './registry'
 import type { Schema } from '../plugin-types'
 
 import type {
-    CustomScalarMappings,
+    CustomScalarMappingRecord,
     Scalars,
 } from '../scalars/types'
 
@@ -57,7 +57,7 @@ const createModelRegistry = (): ModelRegistry => ({
 const registerCustomScalars = (
     scalars: Map<string, ScalarModelShape>,
     schema: Schema,
-    customScalars: CustomScalarMappings
+    customScalars: CustomScalarMappingRecord
 ) => Object.keys(customScalars).forEach(scalarName => {
     const scalarType = schema.getType(scalarName)
 
@@ -158,7 +158,7 @@ const collectUsedPrimitiveScalars = (
 export const buildModelRegistry = (
     registeredNames: RegisteredNames,
     context: ModelContext,
-    customScalars: CustomScalarMappings = {}
+    customScalars: CustomScalarMappingRecord = {}
 ): ModelRegistry => {
     const registry = createModelRegistry()
     const usedPrimitiveScalars = collectUsedPrimitiveScalars(context.schema)

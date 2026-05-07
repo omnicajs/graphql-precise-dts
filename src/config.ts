@@ -1,5 +1,5 @@
 import type { ConfigDirectivePolicies } from './directives/types'
-import type { CustomScalarMappings } from './scalars/types'
+import type { CustomScalarMappingRecord } from './scalars/types'
 
 export interface PluginConfig {
     prefix?: string;
@@ -9,4 +9,4 @@ export interface PluginConfig {
     directivePolicies?: ConfigDirectivePolicies;
 }
 
-export type ConfigScalars = CustomScalarMappings
+export type ConfigScalars = CustomScalarMappingRecord

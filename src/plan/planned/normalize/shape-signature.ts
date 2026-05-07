@@ -66,6 +66,32 @@ const makeSelectionShapeSignature = (
     }
 }
 
+const buildObjectShapeSignature = (
+    value: Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>,
+    state: OutputSignatureState
+): string => {
+    if (state.inProgressObjects.has(value)) {
+        return `recursive-object:${[ ...(value.typeNames ?? []) ].sort().join('|') || 'anonymous'}`
+    }
+
+    state.inProgressObjects.add(value)
+    const signature = [
+        `object:${[ ...(value.typeNames ?? []) ].sort().join('|')}`,
+        makeSelectionsShapeSignature(
+            value.fields,
+            {
+                dedupeTypenameWithSpread: true,
+                dedupeTypenameWithAlias: (value.typeNames?.length ?? 0) === 1,
+            },
+            state
+        ),
+    ].join(':')
+
+    state.inProgressObjects.delete(value)
+
+    return signature
+}
+
 const makeFieldValueShapeSignature = (
     value: FieldValue,
     state: OutputSignatureState
@@ -78,24 +104,7 @@ const makeFieldValueShapeSignature = (
         case VALUE_MODEL_KIND.ENUM:
             return `enum:${value.name}`
         case VALUE_MODEL_KIND.OBJECT: {
-            if (state.inProgressObjects.has(value)) {
-                return `recursive-object:${[ ...(value.typeNames ?? []) ].sort().join('|') || 'anonymous'}`
-            }
-
-            state.inProgressObjects.add(value)
-            const signature = [
-                `object:${[ ...(value.typeNames ?? []) ].sort().join('|')}`,
-                makeSelectionsShapeSignature(
-                    value.fields,
-                    {
-                        dedupeTypenameWithSpread: true,
-                        dedupeTypenameWithAlias: (value.typeNames?.length ?? 0) === 1,
-                    },
-                    state
-                ),
-            ].join(':')
-            state.inProgressObjects.delete(value)
-            return signature
+            return buildObjectShapeSignature(value, state)
         }
         case VALUE_MODEL_KIND.UNION:
             return `union:${value.variants

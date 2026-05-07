@@ -1,4 +1,4 @@
-import type { CustomScalarMappings } from '../../scalars/types'
+import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { NameAllocator } from './name-allocator'
 
 import type {
@@ -52,7 +52,7 @@ const getAllocatedVariableAliasName = (
 const buildVariableValue = (
     value: VariableValue,
     state: VariableBuildState,
-    customScalars: CustomScalarMappings
+    customScalars: CustomScalarMappingRecord
 ): PlannedVariableValue => {
     if (value.kind === VALUE_MODEL_KIND.SCALAR) {
         return buildScalarValue(value, customScalars)
@@ -108,7 +108,7 @@ const buildVariableValue = (
 export const buildVariableField = (
     field: VariableField,
     state: VariableBuildState,
-    customScalars: CustomScalarMappings
+    customScalars: CustomScalarMappingRecord
 ): PlannedVariableField => ({
     ...field,
     value: buildVariableValue(field.value, state, customScalars),
@@ -147,7 +147,7 @@ const collectVariableDefinitions = (operations: Map<string, OperationModel>) => 
 export const buildVariableAliases = (
     operations: Map<string, OperationModel>,
     state: VariableBuildState,
-    customScalars: CustomScalarMappings
+    customScalars: CustomScalarMappingRecord
 ): PlannedVariableAlias[] => {
     const { requiredTypeNames, definitions } = collectVariableDefinitions(operations)
 

@@ -1,4 +1,4 @@
-import type { CustomScalarMappings } from '../scalars/types'
+import type { CustomScalarMappingRecord } from '../scalars/types'
 import type { DocumentFile } from '../plugin-types'
 import type { DocumentModelImportMap } from './document-model-imports'
 import type { GenerationDirectivePolicies } from '../directives/types'
@@ -203,7 +203,7 @@ const collectDocumentModelBundle = (
 const prepareDocumentModelBundle = (
     { location, models }: CollectedDocumentModelBundle,
     importMap: DocumentModelImportMap,
-    customScalars: CustomScalarMappings,
+    customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies
 ): DocumentModelBundle => {
     const imports = collectDocumentModelImports(models, importMap)
@@ -225,7 +225,7 @@ export const makeDocumentModelBundles = (
     fragments:  Map<string, FragmentModel>,
     context: ModelContext,
     importMap: DocumentModelImportMap,
-    customScalars: CustomScalarMappings,
+    customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies
 ): DocumentModelBundle[] => {
     return documents.flatMap(documentFile => {
