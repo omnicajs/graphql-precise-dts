@@ -1,5 +1,6 @@
 import type { CustomScalarMappings } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
+import type { NameAllocator } from './name-allocator'
 import type { NormalizedSelectionModel } from './normalize/selection'
 import type { WarningReporter } from '../warnings'
 
@@ -201,29 +202,16 @@ export const buildSelection = (
     }
 }
 
-const makeUniqueAliasName = (baseName: string, reservedNames: Set<string>): string => {
-    let aliasName = baseName
-    let index = 2
-
-    while (reservedNames.has(aliasName)) {
-        aliasName = `${baseName}${index}`
-        index++
-    }
-
-    reservedNames.add(aliasName)
-    return aliasName
-}
-
 export const buildOutputAliases = (
     occurrences: Map<string, OutputObjectOccurrence>,
-    reservedNames: Set<string>
+    nameAllocator: NameAllocator
 ): PlannedOutputAlias[] => {
     const outputAliases: PlannedOutputAlias[] = []
 
     occurrences.forEach(occurrence => {
         if (!occurrence.recursive && occurrence.count < 2) return
 
-        const aliasName = makeUniqueAliasName(occurrence.suggestedAliasName, reservedNames)
+        const aliasName = nameAllocator.allocate(occurrence.suggestedAliasName)
         const representativeNode = occurrence.nodes[0]
         if (!representativeNode) return
 

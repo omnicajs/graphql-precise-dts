@@ -263,6 +263,53 @@ describe('declaration render', () => {
             ].join('\n'))
         })
 
+        test('avoids collisions between variable aliases and fragment exports', () => {
+            const treeInput = variableObjectValue([
+                variableField('value', variableScalar(defineString())),
+                variableField('children', variableObjectValue([], 'TreeInput', true), true, true),
+            ], 'TreeInput')
+
+            const result = renderDeclaration(
+                './documents',
+                declarationDefinitions(
+                    new Map([
+                        ['TreeInput', fragment([
+                            field('id', scalar(defineString()), false),
+                        ], 'User')],
+                    ]),
+                    new Map([
+                        ['CreateTree', operation(
+                            OperationTypeNode.MUTATION,
+                            [],
+                            [ variableField('input', treeInput, false, false, false) ],
+                            'Mutation'
+                        )],
+                    ])
+                ),
+                new Map()
+            )
+
+            expect(result).toContain([
+                '\texport type TreeInput = {',
+                `\t\t__typename?: 'User';`,
+                '\t\tid: string;',
+                '\t}',
+            ].join('\n'))
+
+            expect(result).toContain([
+                '\texport type TreeInput2 = {',
+                '\t\tvalue?: string | null;',
+                '\t\tchildren?: Array<TreeInput2> | null;',
+                '\t}',
+            ].join('\n'))
+
+            expect(result).toContain([
+                '\texport type CreateTreeMutationVariables = Exact<{',
+                '\t\tinput: TreeInput2;',
+                '\t}>',
+            ].join('\n'))
+        })
+
         test('renders multiple fragments in declaration artifacts', () => {
             const definitions = declarationDefinitions(new Map([
                 ['UserCard', fragment([
@@ -582,6 +629,48 @@ describe('declaration render', () => {
             expect(result).toContain(`\t\tleft: TreeFragmentTree;`)
             expect(result).toContain(`\t\tright: TreeFragmentTree;`)
             expect(result.match(/export type TreeFragmentTree =/g)).toHaveLength(1)
+        })
+
+        test('avoids collisions between output aliases and operation payload exports', () => {
+            const payloadShape = objectValue([
+                field('value', scalar(defineString())),
+            ], [ 'Payload' ])
+
+            const result = renderDeclaration(
+                './documents',
+                declarationDefinitions(
+                    new Map(),
+                    new Map([
+                        ['GetUser', operation(
+                            OperationTypeNode.QUERY,
+                            [
+                                field('payload', payloadShape, false),
+                                field('legacyPayload', objectValue([
+                                    field('value', scalar(defineString())),
+                                ], [ 'Payload' ]), false),
+                            ]
+                        )],
+                    ])
+                ),
+                new Map()
+            )
+
+            expect(result).toContain([
+                '\texport type GetUserQueryPayload2 = {',
+                `\t\t__typename?: 'Payload';`,
+                '\t\tvalue: string | null;',
+                '\t}',
+            ].join('\n'))
+
+            expect(result).toContain([
+                '\texport type GetUserQueryPayload = {',
+                `\t\t__typename?: 'Query';`,
+                '\t\tpayload: GetUserQueryPayload2;',
+                '\t\tlegacyPayload: GetUserQueryPayload2;',
+                '\t}',
+            ].join('\n'))
+
+            expect(result.match(/export type GetUserQueryPayload =/g)).toHaveLength(1)
         })
 
         test('renders lists of object fields', () => {

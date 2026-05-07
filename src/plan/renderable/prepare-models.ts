@@ -21,7 +21,6 @@ import type {
 } from './model-types'
 
 import { prepareObjectShape } from './shapes'
-import { getVariableObjectAliasName } from '../naming'
 
 import { RENDER_STRATEGY } from './kinds'
 import {
@@ -31,7 +30,7 @@ import {
 
 const prepareRenderableVariableValue = (
     value: PlannedVariableValue,
-    aliasedVariableObjectTypeNames: Set<string>,
+    variableAliasNamesByTypeName: Map<string, string>,
     reportWarning: WarningReporter
 ): RenderableVariableValue => {
     switch (value.kind) {
@@ -48,11 +47,14 @@ const prepareRenderableVariableValue = (
                     renderStrategy: RENDER_STRATEGY.REFERENCE,
                     referenceName: value.renderAliasName,
                 }
-            } else if (value.typeName && aliasedVariableObjectTypeNames.has(value.typeName)) {
-                return {
-                    kind: value.kind,
-                    renderStrategy: RENDER_STRATEGY.REFERENCE,
-                    referenceName: getVariableObjectAliasName(value.typeName),
+            } else if (value.typeName) {
+                const aliasName = variableAliasNamesByTypeName.get(value.typeName)
+                if (aliasName) {
+                    return {
+                        kind: value.kind,
+                        renderStrategy: RENDER_STRATEGY.REFERENCE,
+                        referenceName: aliasName,
+                    }
                 }
             }
 
@@ -60,7 +62,7 @@ const prepareRenderableVariableValue = (
                 kind: value.kind,
                 renderStrategy: RENDER_STRATEGY.INLINE,
                 fields: value.fields.map(field =>
-                    prepareRenderableVariableField(field, aliasedVariableObjectTypeNames, reportWarning)
+                    prepareRenderableVariableField(field, variableAliasNamesByTypeName, reportWarning)
                 ),
             }
     }
@@ -68,20 +70,20 @@ const prepareRenderableVariableValue = (
 
 const prepareRenderableVariableField = (
     field: PlannedVariableField,
-    aliasedVariableObjectTypeNames: Set<string>,
+    variableAliasNamesByTypeName: Map<string, string>,
     reportWarning: WarningReporter
 ): RenderableVariableField => ({
     ...field,
-    value: prepareRenderableVariableValue(field.value, aliasedVariableObjectTypeNames, reportWarning),
+    value: prepareRenderableVariableValue(field.value, variableAliasNamesByTypeName, reportWarning),
 })
 
 const prepareRenderableVariableAlias = (
     alias: PlannedVariableAlias,
-    aliasedVariableObjectTypeNames: Set<string>,
+    variableAliasNamesByTypeName: Map<string, string>,
     reportWarning: WarningReporter
 ): RenderableVariableAlias => ({
     ...alias,
-    fields: alias.fields.map(field => prepareRenderableVariableField(field, aliasedVariableObjectTypeNames, reportWarning)),
+    fields: alias.fields.map(field => prepareRenderableVariableField(field, variableAliasNamesByTypeName, reportWarning)),
 })
 
 const prepareRenderableFragmentModel = (
@@ -107,12 +109,12 @@ const prepareRenderableFragmentModel = (
 
 const prepareRenderableOperationModel = (
     operation: PlannedOperationModel,
-    aliasedVariableObjectTypeNames: Set<string>,
+    variableAliasNamesByTypeName: Map<string, string>,
     reportWarning: WarningReporter
 ): RenderableOperationModel => ({
     ...operation,
     variables: operation.variables.map(field =>
-        prepareRenderableVariableField(field, aliasedVariableObjectTypeNames, reportWarning)
+        prepareRenderableVariableField(field, variableAliasNamesByTypeName, reportWarning)
     ),
     resultShape: prepareObjectShape(operation.result, [ operation.onType ], {
         dedupeTypenameWithAlias: true,
@@ -131,7 +133,9 @@ export const prepareRenderableDocumentModels = (
     models: PlannedDocumentModels,
     reportWarning: WarningReporter = message => console.warn(message)
 ): RenderableDocumentModels => {
-    const aliasedVariableObjectTypeNames = new Set(models.variableAliases.map(alias => alias.typeName))
+    const variableAliasNamesByTypeName = new Map(
+        models.variableAliases.map(alias => [ alias.typeName, alias.aliasName ])
+    )
 
     return {
         fragments: new Map(
@@ -143,11 +147,11 @@ export const prepareRenderableDocumentModels = (
         operations: new Map(
             [ ...models.operations.entries() ].map(([ name, operation ]) => [
                 name,
-                prepareRenderableOperationModel(operation, aliasedVariableObjectTypeNames, reportWarning),
+                prepareRenderableOperationModel(operation, variableAliasNamesByTypeName, reportWarning),
             ])
         ),
         variableAliases: models.variableAliases.map(alias =>
-            prepareRenderableVariableAlias(alias, aliasedVariableObjectTypeNames, reportWarning)
+            prepareRenderableVariableAlias(alias, variableAliasNamesByTypeName, reportWarning)
         ),
         outputAliases: models.outputAliases.map(alias => prepareRenderableOutputAlias(alias, reportWarning)),
     }

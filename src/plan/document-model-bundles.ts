@@ -14,9 +14,11 @@ import type {
 import { TypeInfo } from 'graphql'
 
 import { collectDocumentModelImports } from './document-model-imports'
+import { getOperationTypeName } from './naming'
 import { makeOperationModel } from '../models/documents-builder'
 import { makePlannedDocumentModels } from './planned'
 import { prepareRenderableDocumentModels } from './renderable/prepare-models'
+import { uncapitalize } from '../lib/strings'
 import {
     visit,
     visitWithTypeInfo,
@@ -37,6 +39,104 @@ type DocumentModelCollector = {
     models: CollectedDocumentModels;
     addFragment(name: string): void;
     addOperation(node: OperationDefinitionNode): void;
+}
+
+const EXPORT_NAME_SOURCE_KIND = {
+    IMPORT: 'import',
+    FRAGMENT: 'fragment',
+    VARIABLE_ALIAS: 'variableAlias',
+    OUTPUT_ALIAS: 'outputAlias',
+    OPERATION_PAYLOAD: 'operationPayload',
+    OPERATION_VARIABLES: 'operationVariables',
+    OPERATION_VALUE: 'operationValue',
+} as const
+
+type ExportNameSource = {
+    kind: typeof EXPORT_NAME_SOURCE_KIND[keyof typeof EXPORT_NAME_SOURCE_KIND];
+    name: string;
+}
+
+const describeExportNameSource = (source: ExportNameSource): string => {
+    switch (source.kind) {
+        case EXPORT_NAME_SOURCE_KIND.IMPORT:
+            return `imported type "${source.name}"`
+        case EXPORT_NAME_SOURCE_KIND.FRAGMENT:
+            return `fragment "${source.name}"`
+        case EXPORT_NAME_SOURCE_KIND.VARIABLE_ALIAS:
+            return `generated variable alias "${source.name}"`
+        case EXPORT_NAME_SOURCE_KIND.OUTPUT_ALIAS:
+            return `generated output alias "${source.name}"`
+        case EXPORT_NAME_SOURCE_KIND.OPERATION_PAYLOAD:
+            return `generated payload type "${source.name}"`
+        case EXPORT_NAME_SOURCE_KIND.OPERATION_VARIABLES:
+            return `generated variables type "${source.name}"`
+        case EXPORT_NAME_SOURCE_KIND.OPERATION_VALUE:
+            return `generated document export "${source.name}"`
+    }
+}
+
+const assertUniqueExportName = (
+    usedNames: Map<string, ExportNameSource>,
+    source: ExportNameSource,
+    location: string
+) => {
+    const existingSource = usedNames.get(source.name)
+    if (existingSource) {
+        throw new Error(
+            `Name collision detected in generated declaration exports for "${location}": `
+            + `"${source.name}" is used both by ${describeExportNameSource(existingSource)} `
+            + `and by ${describeExportNameSource(source)}.`
+        )
+    }
+
+    usedNames.set(source.name, source)
+}
+
+const validateDocumentBundleExportNames = (
+    location: string,
+    importMap: DocumentModelImportMap,
+    imports: Map<string, string>,
+    models: RenderableDocumentModels
+) => {
+    const usedTypeNames = new Map<string, ExportNameSource>()
+    const usedValueNames = new Map<string, ExportNameSource>()
+
+    imports.forEach((_, name) => {
+        if (models.fragments.has(name) && !importMap.enums.has(name)) return
+        assertUniqueExportName(usedTypeNames, { kind: EXPORT_NAME_SOURCE_KIND.IMPORT, name }, location)
+    })
+
+    models.variableAliases.forEach(({ aliasName }) => {
+        assertUniqueExportName(usedTypeNames, { kind: EXPORT_NAME_SOURCE_KIND.VARIABLE_ALIAS, name: aliasName }, location)
+    })
+
+    models.outputAliases.forEach(({ aliasName }) => {
+        assertUniqueExportName(usedTypeNames, { kind: EXPORT_NAME_SOURCE_KIND.OUTPUT_ALIAS, name: aliasName }, location)
+    })
+
+    models.fragments.forEach((_, name) => {
+        assertUniqueExportName(usedTypeNames, { kind: EXPORT_NAME_SOURCE_KIND.FRAGMENT, name }, location)
+    })
+
+    models.operations.forEach((operation, key) => {
+        const operationTypeName = getOperationTypeName(key, operation.operationType)
+
+        assertUniqueExportName(
+            usedTypeNames,
+            { kind: EXPORT_NAME_SOURCE_KIND.OPERATION_VARIABLES, name: `${operationTypeName}Variables` },
+            location
+        )
+        assertUniqueExportName(
+            usedTypeNames,
+            { kind: EXPORT_NAME_SOURCE_KIND.OPERATION_PAYLOAD, name: `${operationTypeName}Payload` },
+            location
+        )
+        assertUniqueExportName(
+            usedValueNames,
+            { kind: EXPORT_NAME_SOURCE_KIND.OPERATION_VALUE, name: uncapitalize(operationTypeName) },
+            location
+        )
+    })
 }
 
 const createDocumentModelCollector = (
@@ -107,13 +207,16 @@ const prepareDocumentModelBundle = (
     directivePolicies: GenerationDirectivePolicies
 ): DocumentModelBundle => {
     const imports = collectDocumentModelImports(models, importMap)
+    const renderableModels = prepareRenderableDocumentModels(
+        makePlannedDocumentModels(models, [ ...imports.keys() ], customScalars, directivePolicies)
+    )
+
+    validateDocumentBundleExportNames(location, importMap, imports, renderableModels)
 
     return {
         location,
         imports,
-        models: prepareRenderableDocumentModels(
-            makePlannedDocumentModels(models, [ ...imports.keys() ], customScalars, directivePolicies)
-        ),
+        models: renderableModels,
     }
 }
 

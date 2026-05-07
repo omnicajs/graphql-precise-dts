@@ -1,4 +1,5 @@
 import type { CustomScalarMappings } from '../../scalars/types'
+import type { NameAllocator } from './name-allocator'
 
 import type {
     OperationModel,
@@ -14,19 +15,39 @@ import type {
 } from './types'
 
 import { buildScalarValue } from './shared'
-import { getVariableObjectAliasName } from '../naming'
 
 import { VALUE_MODEL_KIND } from '../../kinds'
 
 export type VariableBuildState = {
     cache: Map<string, PlannedVariableObjectValue>;
     inProgress: Set<string>;
+    aliasNames: Map<string, string>;
+    nameAllocator: NameAllocator;
 }
 
-export const createVariableBuildState = (): VariableBuildState => ({
+export const createVariableBuildState = (nameAllocator: NameAllocator): VariableBuildState => ({
     cache: new Map(),
     inProgress: new Set(),
+    aliasNames: new Map(),
+    nameAllocator,
 })
+
+const getVariableObjectAliasName = (typeName: string): string => {
+    return typeName.endsWith('Input') ? typeName : `${typeName}Input`
+}
+
+const getAllocatedVariableAliasName = (
+    typeName: string,
+    state: VariableBuildState
+): string => {
+    const cachedAliasName = state.aliasNames.get(typeName)
+    if (cachedAliasName) return cachedAliasName
+
+    const aliasName = state.nameAllocator.allocate(getVariableObjectAliasName(typeName))
+    state.aliasNames.set(typeName, aliasName)
+
+    return aliasName
+}
 
 const buildVariableValue = (
     value: VariableValue,
@@ -44,7 +65,7 @@ const buildVariableValue = (
             kind: VALUE_MODEL_KIND.OBJECT,
             typeName: value.typeName,
             fields: [],
-            renderAliasName: getVariableObjectAliasName(value.typeName),
+            renderAliasName: getAllocatedVariableAliasName(value.typeName, state),
             renderAsReference: true,
         }
     }
@@ -58,7 +79,7 @@ const buildVariableValue = (
                 kind: VALUE_MODEL_KIND.OBJECT,
                 typeName: value.typeName,
                 fields: [],
-                renderAliasName: getVariableObjectAliasName(value.typeName),
+                renderAliasName: getAllocatedVariableAliasName(value.typeName, state),
                 renderAsReference: true,
             }
         }
@@ -137,7 +158,7 @@ export const buildVariableAliases = (
         return preparedDefinition && preparedDefinition.kind === VALUE_MODEL_KIND.OBJECT
             ? [{
                 typeName,
-                aliasName: getVariableObjectAliasName(typeName),
+                aliasName: getAllocatedVariableAliasName(typeName, state),
                 fields: preparedDefinition.fields,
             }]
             : []
