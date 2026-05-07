@@ -104,6 +104,33 @@ When repeated or recursive input/output object shapes appear in generated types,
 named `type` declarations and render their usage sites as references to those aliases. This keeps recursive
 structures representable and reduces duplication in the emitted declarations.
 
+Generated export names share the same declaration namespace inside each emitted `declare module '...'` block.
+Before rendering a document bundle, the plugin validates that:
+
+- imported enum and fragment type names do not collide with generated fragment exports, operation payload/variables types,
+or generated aliases;
+- generated variable and output aliases are renamed with numeric suffixes such as `TreeInput2` when their preferred names
+are already occupied;
+- operation document value exports such as `getUserQuery` remain unique within the same document bundle.
+
+If two different declarations still resolve to the same exported name after normalization, generation fails with a
+name-collision diagnostic that identifies both sources.
+
+Collision checks are split by TypeScript namespace:
+
+- type namespace:
+  - imported type names;
+  - fragment exports;
+  - generated variable aliases;
+  - generated output aliases;
+  - operation `...Variables` exports;
+  - operation `...Payload` exports.
+- value namespace:
+  - operation document exports such as `getUserQuery`.
+
+Type exports are validated only against other type exports. Value exports are validated only against other value
+exports. This matches TypeScript namespace rules for `type` and `const` declarations.
+
 If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation
 declarations into the same `declare module '...'` block.
 

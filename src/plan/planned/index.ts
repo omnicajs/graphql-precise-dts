@@ -5,6 +5,7 @@ import type { PlannedDocumentModels } from './types'
 import type { WarningReporter } from '../warnings'
 
 import { buildOperationModel } from './operation-planner'
+import { createNameAllocator } from './name-allocator'
 import { getOperationTypeName } from '../naming'
 import {
     buildVariableAliases,
@@ -19,20 +20,26 @@ import {
 
 export const makePlannedDocumentModels = (
     models: CollectedDocumentModels,
-    reservedNames: string[] = [],
+    occupiedTypeNames: string[] = [],
     customScalars: CustomScalarMappings = {},
     directivePolicies: GenerationDirectivePolicies = {},
     reportWarning: WarningReporter = message => console.warn(message)
 ): PlannedDocumentModels => {
-    const outputBuildState = createOutputBuildState()
-    const variableBuildState = createVariableBuildState()
-
-    const reservedAliasNames = new Set([
-        ...reservedNames,
+    const nameAllocator = createNameAllocator([
+        ...occupiedTypeNames,
         ...models.fragments.keys(),
-        ...[ ...models.operations.entries() ]
-            .map(([ key, operation ]) => getOperationTypeName(key, operation.operationType)),
+        ...[ ...models.operations.entries() ].flatMap(([ key, operation ]) => {
+            const operationTypeName = getOperationTypeName(key, operation.operationType)
+            return [
+                operationTypeName,
+                `${operationTypeName}Variables`,
+                `${operationTypeName}Payload`,
+            ]
+        }),
     ])
+
+    const outputBuildState = createOutputBuildState()
+    const variableBuildState = createVariableBuildState(nameAllocator)
 
     return {
         fragments: new Map(
@@ -56,6 +63,6 @@ export const makePlannedDocumentModels = (
             ])
         ),
         variableAliases: buildVariableAliases(models.operations, variableBuildState, customScalars),
-        outputAliases: buildOutputAliases(outputBuildState.occurrences, reservedAliasNames),
+        outputAliases: buildOutputAliases(outputBuildState.occurrences, nameAllocator),
     }
 }
