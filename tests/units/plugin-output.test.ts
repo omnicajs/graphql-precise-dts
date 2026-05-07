@@ -169,6 +169,52 @@ describe('plugin directive handling', () => {
         })
     })
 
+    test('keeps nested fields optional when only one repeated parent selection is conditional', async () => {
+        const conditionalSchema = buildSchema(`
+            type User {
+                id: ID!
+                name: String!
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                conditionalSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        query UserQuery($withId: Boolean!) {
+                            user {
+                                name
+                            }
+
+                            user @include(if: $withId) {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `\texport type UserQueryQueryPayload = {`,
+                `\t\t__typename?: 'Query';`,
+                `\t\tuser: {`,
+                `\t\t\t__typename?: 'User';`,
+                `\t\t\tname: string;`,
+                `\t\t\tid?: string;`,
+                `\t\t};`,
+                `\t}`,
+            ].join('\n'))
+        })
+    })
+
     test('fails when fields with the same response name target different source fields', async () => {
         await withTempOutput(async outputInfo => {
             expect(() => plugin(
