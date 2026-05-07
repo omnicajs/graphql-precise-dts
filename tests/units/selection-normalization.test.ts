@@ -152,6 +152,38 @@ describe('selection normalization', () => {
         })])
     })
 
+    test('propagates parent conditional flags to nested object selections before merge', () => {
+        const selections = normalizeSelections([
+            field('user', objectValue([
+                field('name', scalar(defineString()), false),
+            ], [ 'User' ]), false),
+            {
+                ...field('user', objectValue([
+                    field('id', scalar(defineString()), false),
+                ], [ 'User' ]), false),
+                conditional: true,
+            },
+        ])
+
+        expect(selections).toMatchObject([{
+            responseName: 'user',
+            conditional: false,
+            value: {
+                kind: VALUE_MODEL_KIND.OBJECT,
+                fields: [
+                    {
+                        responseName: 'name',
+                        conditional: false,
+                    },
+                    {
+                        responseName: 'id',
+                        conditional: true,
+                    },
+                ],
+            },
+        }])
+    })
+
     test('merges typename values by combining unique type names', () => {
         const selections = normalizeSelections([
             {
@@ -219,6 +251,49 @@ describe('selection normalization', () => {
                 ],
             },
         })])
+    })
+
+    test('propagates parent conditional flags to nested union variant selections before merge', () => {
+        const selections = normalizeSelections([
+            field('search', unionValue([
+                {
+                    typeName: 'User',
+                    fields: [ field('name', scalar(defineString()), false) ],
+                },
+            ]), false),
+            {
+                ...field('search', unionValue([
+                    {
+                        typeName: 'User',
+                        fields: [ field('id', scalar(defineString()), false) ],
+                    },
+                ]), false),
+                conditional: true,
+            },
+        ])
+
+        expect(selections).toMatchObject([{
+            responseName: 'search',
+            conditional: false,
+            value: {
+                kind: VALUE_MODEL_KIND.UNION,
+                variants: [
+                    {
+                        typeName: 'User',
+                        fields: [
+                            {
+                                responseName: 'name',
+                                conditional: false,
+                            },
+                            {
+                                responseName: 'id',
+                                conditional: true,
+                            },
+                        ],
+                    },
+                ],
+            },
+        }])
     })
 
     test('deduplicates repeated fragment spreads on the same level', () => {

@@ -1301,6 +1301,33 @@ describe('declaration render', () => {
             ].join('\n'))
         })
 
+        test('keeps nested object fields optional when only one repeated parent selection is conditional', () => {
+            const definitions = declarationDefinitions(new Map([
+                ['ConditionalNestedUser', fragment([
+                    field('user', objectValue([
+                        field('name', scalar(defineString()), false),
+                    ], [ 'User' ]), false),
+                    {
+                        ...field('user', objectValue([
+                            field('id', scalar(defineString()), false),
+                        ], [ 'User' ]), false),
+                        conditional: true,
+                        directiveNames: [ 'include' ],
+                    },
+                ], 'Query')],
+            ]))
+
+            expect(renderDeclaration('./documents', definitions, new Map())).toContain([
+                '\texport type ConditionalNestedUser = {',
+                `\t\t__typename?: 'Query';`,
+                '\t\tuser: {',
+                `\t\t\t__typename?: 'User';`,
+                '\t\t\tname: string;',
+                '\t\t\tid?: string;',
+                '\t\t};',
+            ].join('\n'))
+        })
+
         test('renders nested fragment spreads inside object fields', () => {
             const definitions = declarationDefinitions(new Map([
                 ['NestedSpreadContainer', fragment([

@@ -61,6 +61,54 @@ const mergeConditionalFlag = <T extends boolean>(left: T, right: T): T => left &
 
 const mergeDirectiveLists = <T extends string>(left: T[] = [], right: T[] = []): T[] => uniqueValues([ ...left, ...right ])
 
+const applyParentConditionalToSelections = (
+    selections: SelectionModel[],
+    parentConditional: boolean
+): SelectionModel[] => !parentConditional
+    ? selections
+    : selections.map(selection => ({
+        ...selection,
+        conditional: true,
+    }))
+
+const mergeUnionFieldValues = (
+    left: Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }>,
+    right: Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }>,
+    context: FieldValueMergeContext
+): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }> => {
+    const { existingSelection, duplicateSelection } = context
+    const variants = new Map(left.variants.map(variant => [
+        variant.typeName, {
+            ...variant,
+            fields: applyParentConditionalToSelections(variant.fields, existingSelection.conditional),
+        },
+    ]))
+
+    right.variants.forEach(variant => {
+        const existingVariant = variants.get(variant.typeName)
+        if (!existingVariant) {
+            variants.set(variant.typeName, {
+                ...variant,
+                fields: applyParentConditionalToSelections(variant.fields, duplicateSelection.conditional),
+            })
+            return
+        }
+
+        variants.set(variant.typeName, {
+            typeName: variant.typeName,
+            fields: normalizeSelections([
+                ...existingVariant.fields,
+                ...applyParentConditionalToSelections(variant.fields, duplicateSelection.conditional),
+            ]),
+        })
+    })
+
+    return {
+        kind: VALUE_MODEL_KIND.UNION,
+        variants: [ ...variants.values() ],
+    }
+}
+
 const fieldValueMergers: FieldValueMergers = {
     [VALUE_MODEL_KIND.SCALAR]: (left, right, { existingSelection, duplicateSelection }) => {
         if (left.name === right.name && left.usage === right.usage) {
@@ -91,33 +139,15 @@ const fieldValueMergers: FieldValueMergers = {
         kind: VALUE_MODEL_KIND.TYPENAME,
         typeNames: uniqueValues([ ...left.typeNames, ...right.typeNames ]),
     }),
-    [VALUE_MODEL_KIND.OBJECT]: (left, right) => ({
+    [VALUE_MODEL_KIND.OBJECT]: (left, right, { existingSelection, duplicateSelection }) => ({
         kind: VALUE_MODEL_KIND.OBJECT,
-        fields: normalizeSelections([ ...left.fields, ...right.fields ]),
+        fields: normalizeSelections([
+            ...applyParentConditionalToSelections(left.fields, existingSelection.conditional),
+            ...applyParentConditionalToSelections(right.fields, duplicateSelection.conditional),
+        ]),
         typeNames: uniqueValues([ ...(left.typeNames ?? []), ...(right.typeNames ?? []) ]),
     }),
-    [VALUE_MODEL_KIND.UNION]: (left, right) => {
-        const variants = new Map(left.variants.map(variant => [ variant.typeName, variant ]))
-
-        right.variants.forEach(variant => {
-            const existingVariant = variants.get(variant.typeName)
-
-            if (!existingVariant) {
-                variants.set(variant.typeName, variant)
-                return
-            }
-
-            variants.set(variant.typeName, {
-                typeName: variant.typeName,
-                fields: normalizeSelections([ ...existingVariant.fields, ...variant.fields ]),
-            })
-        })
-
-        return {
-            kind: VALUE_MODEL_KIND.UNION,
-            variants: [ ...variants.values() ],
-        }
-    },
+    [VALUE_MODEL_KIND.UNION]: (left, right, context) => mergeUnionFieldValues(left, right, context),
     [VALUE_MODEL_KIND.UNKNOWN]: (left, right, { existingSelection, duplicateSelection }) => {
         if (left.reason !== right.reason) {
             throw makeSelectionConflictError(
