@@ -4,9 +4,9 @@ import {
     test,
 } from 'vitest'
 
-import { buildModelRegistry } from '../../src/models/registry-builder'
-import { makeDocumentModelBundles } from '../../src/plan/document-model-bundles'
-import { makeTestModelContext } from './helpers/model-context'
+import { buildModelRegistry } from '../../../src/models/registry-builder'
+import { makeDocumentModelBundles } from '../../../src/plan/document-model-bundles'
+import { makeTestModelContext } from '../helpers/model-context'
 import {
     buildSchema,
     parse,

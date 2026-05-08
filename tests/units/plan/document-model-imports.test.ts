@@ -7,7 +7,7 @@ import {
 import {
     collectDocumentModelImports,
     makeDocumentModelImportMap,
-} from '../../src/plan/document-model-imports'
+} from '../../../src/plan/document-model-imports'
 
 import {
     declarationDefinitions,
@@ -18,7 +18,7 @@ import {
     operation,
     variableField,
     variableObjectValue,
-} from '../fixtures/builders/declaration-render'
+} from '../../fixtures/builders/declaration-render'
 
 import {
     buildSchema,
@@ -28,7 +28,7 @@ import {
 import {
     FRAGMENT_ROOT_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 import { OperationTypeNode } from 'graphql'
 
 describe('imports plan', () => {

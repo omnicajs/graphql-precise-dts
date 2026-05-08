@@ -4,9 +4,9 @@ import {
     test,
 } from 'vitest'
 
-import { buildModelRegistry } from '../../src/models/registry-builder'
-import { defineNamed } from '../../src'
-import { makeTestModelContext } from './helpers/model-context'
+import { buildModelRegistry } from '../../../src/models/registry-builder'
+import { defineNamed } from '../../../src'
+import { makeTestModelContext } from '../helpers/model-context'
 import {
     buildSchema,
     parse,
@@ -16,7 +16,7 @@ import {
     FRAGMENT_ROOT_KIND,
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 
 describe('model builder', () => {
     test('collects registered enums and specified scalars', () => {

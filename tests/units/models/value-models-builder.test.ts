@@ -1,4 +1,4 @@
-import type { TypeFieldNode } from '../../src/models/selection'
+import type { TypeFieldNode } from '../../../src/models/selection'
 import type {
     FieldNode,
     GraphQLInputType,
@@ -10,14 +10,14 @@ import {
     test,
 } from 'vitest'
 
-import { getFragmentDefinition } from './helpers/graphql-document'
-import { getSelectionNode } from './helpers/graphql-selection'
-import { getTypeForDefinition } from '../../src/models/resolve'
-import { makeTestModelContext } from './helpers/model-context'
+import { getFragmentDefinition } from '../helpers/graphql-document'
+import { getSelectionNode } from '../helpers/graphql-selection'
+import { getTypeForDefinition } from '../../../src/models/resolve'
+import { makeTestModelContext } from '../helpers/model-context'
 import {
     makeFieldValue,
     makeVariableValue,
-} from '../../src/models/value-models-builder'
+} from '../../../src/models/value-models-builder'
 
 import {
     buildSchema,
@@ -27,7 +27,7 @@ import {
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 
 describe('value models builder', () => {
     test('builds union field values for interface selections with distinct concrete branches', () => {

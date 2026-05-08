@@ -2,9 +2,9 @@ import type {
     TypeFieldNode,
     TypeFragmentInlineNode,
     TypeSelectionNode,
-} from '../../src/models/selection'
+} from '../../../src/models/selection'
 
-import type { SelectionModel } from '../../src/models/types'
+import type { SelectionModel } from '../../../src/models/types'
 
 import type {
     FieldNode,
@@ -19,7 +19,7 @@ import {
     test,
 } from 'vitest'
 
-import { getFragmentDefinition } from './helpers/graphql-document'
+import { getFragmentDefinition } from '../helpers/graphql-document'
 import {
     filterSelectionsForConcreteType,
     getFragmentTypeNames,
@@ -27,12 +27,12 @@ import {
     makeTypeRefForField,
     makeTypeRefForVariable,
     specializeTypenameSelections,
-} from '../../src/models/resolve'
+} from '../../../src/models/resolve'
 
 import {
     getSelectionNode,
     getTypedSelection,
-} from './helpers/graphql-selection'
+} from '../helpers/graphql-selection'
 
 import {
     buildSchema,
@@ -43,7 +43,7 @@ import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 import { Kind } from 'graphql'
 
 describe('type resolution for models', () => {

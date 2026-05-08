@@ -4,18 +4,18 @@ import {
     test,
 } from 'vitest'
 
-import { getTypeForDefinition } from '../../src/models/resolve'
-import { makeTestModelContext } from './helpers/model-context'
+import { getTypeForDefinition } from '../../../src/models/resolve'
+import { makeTestModelContext } from '../helpers/model-context'
 import {
     makeSelectionModel,
     makeSelectionModels,
     makeSelectionsForFields,
-} from '../../src/models/selections-builder'
+} from '../../../src/models/selections-builder'
 
 import {
     getDocumentFragmentDefinition,
     getFragmentDefinition,
-} from './helpers/graphql-document'
+} from '../helpers/graphql-document'
 import {
     buildSchema,
     parse,
@@ -24,7 +24,7 @@ import {
 import {
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 
 describe('selections builder', () => {
     test('applies conditional, exclude and nonnull policies while building selection models', () => {
