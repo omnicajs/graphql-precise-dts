@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.0.1...v0.1.0) (2026-05-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* Nested selections merged from conditional repeated parent fields now preserve conditionality in generated output. Fields that were previously emitted as required due to incorrect merge behavior may now become optional in nested object and union shapes.
+* Generated declaration export names are now validated for collisions within each emitted module. When generated aliases conflict with imported types, fragment exports, or operation payload and variables types, the plugin may either rename aliases with numeric suffixes or fail generation with a name-collision error. Projects that referenced previous generated alias names or relied on conflicting declaration output must update to the new generated names or resolve the collisions in source documents.
+* Generated operation payload type names were updated
+* Generated `declare module` blocks for GraphQL operations now emit exports in a different sequence than before. Now the export of variable types occurs before the types of operation results
+* The public TsType helper API was renamed. Previous helper exports such as stringType, numberType, booleanType, namedType, nullType, unknownType, genericType, objectType, tupleType, literalType, and makeNullableType were replaced with defineString, defineNumber, defineBoolean, defineNamed, defineNull, defineUnknown, defineGeneric, defineObject, defineTuple, defineLiteral, and makeNullable. Object type construction was also changed from array-based field descriptors to defineObject({...}) with defineObjectField(...). Consumers must update imports and custom scalar or directive type definitions to the new helper names and object builder shape.
+* Generated declaration output was restructured for repeated and recursive object shapes. Repeated or recursive input/output object shapes are now lifted into named type aliases and referenced from usage sites instead of always being rendered inline.
+* Scalar type configuration now expects structural TsType helper definitions instead of plain string type mappings.
+* The plugin now validates repeated selections with the same response name using explicit merge compatibility rules and fails generation when those selections are incompatible. Documents that previously generated declarations despite conflicting repeated fields, fragment spreads, arguments, nullability, or nested result shapes may now produce merge diagnostics and require query or fragment changes.
+* Generated operation variable types now use custom scalar input mappings in input positions. Projects that define different input and output scalar representations will see changed TypeScript types in generated ...Variables declarations. Consumers relying on the previous output-based behavior must update their expectations and any dependent typings.
+
+### Features
+
+* Custom scalar input types were applied ([605cb24](https://github.com/omnicajs/graphql-precise-dts/commit/605cb2458a23be95814ebd913cf511289efd181c))
+* Generated operation payload type names were updated ([2910189](https://github.com/omnicajs/graphql-precise-dts/commit/2910189bcab449eaf566bfb9e6635bebd5e343d8))
+* Preserved conditional nested selection merges ([db390b5](https://github.com/omnicajs/graphql-precise-dts/commit/db390b5c86ce795d32f5738ce8c28aa3616f2919))
+* Resolved declaration export name collisions ([105572c](https://github.com/omnicajs/graphql-precise-dts/commit/105572c57885d8c63916353002e3a44330f7be50))
+* Selection merge diagnostics were propagated ([7268af8](https://github.com/omnicajs/graphql-precise-dts/commit/7268af8364806b3c2946811d595cdc28be9fd248))
+* Structural TsType helpers were added ([762669a](https://github.com/omnicajs/graphql-precise-dts/commit/762669af319291dc12bf9b3cbbf470efddafcb64))
+* Updated public TsType helper API ([6532fe1](https://github.com/omnicajs/graphql-precise-dts/commit/6532fe1efdd1f57e6ff4b9487fccaeb8897dc06b))
+
+
+* Document models pipeline was extracted ([e7cb58a](https://github.com/omnicajs/graphql-precise-dts/commit/e7cb58ab85f8633e8555f62b27b97fe0f9a7f9b9))
+* The export order in generated operation declaration modules was changed ([91eba02](https://github.com/omnicajs/graphql-precise-dts/commit/91eba02e89728dc7a4891aff94d952967270ffad))
+
 ### 0.0.1 (2026-04-15)
 
 
