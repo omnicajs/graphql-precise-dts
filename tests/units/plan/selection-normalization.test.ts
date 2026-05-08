@@ -4,8 +4,8 @@ import {
     test,
 } from 'vitest'
 
-import { defineString } from '../../src'
-import { normalizeSelections } from '../../src/plan/planned/normalize/selection'
+import { defineString } from '../../../src'
+import { normalizeSelections } from '../../../src/plan/planned/normalize/selection'
 import {
     field,
     listType,
@@ -14,12 +14,12 @@ import {
     scalar,
     typenameValue,
     unionValue,
-} from '../fixtures/builders/declaration-render'
+} from '../../fixtures/builders/declaration-render'
 
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 
 describe('selection normalization', () => {
     test('merges duplicate fields from the same level and nested inline fragments', () => {

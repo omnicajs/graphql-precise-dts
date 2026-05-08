@@ -1,7 +1,7 @@
 import type {
     PlannedFieldSelectionModel,
     PlannedFragmentSpreadSelectionModel,
-} from '../../src/plan/planned/types'
+} from '../../../src/plan/planned/types'
 
 import {
     describe,
@@ -13,14 +13,14 @@ import {
     hasAliasedRootTypenameSelection,
     hasRootSpreadWithSameTypeNames,
     resolveTypenameSelection,
-} from '../../src/plan/renderable/shapes'
-import { renderStringLiteralUnion } from '../../src/render/basic'
-import { namedType } from '../fixtures/builders/declaration-render'
+} from '../../../src/plan/renderable/shapes'
+import { renderStringLiteralUnion } from '../../../src/render/basic'
+import { namedType } from '../../fixtures/builders/declaration-render'
 
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 
 const plannedTypenameField = (
     ...typeNames: string[]

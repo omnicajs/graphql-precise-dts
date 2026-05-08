@@ -5,10 +5,10 @@ import {
     vi,
 } from 'vitest'
 
-import { makeGenerationDirectivePolicies } from '../../src/directives/structural-policies'
-import { makePlannedDocumentModels } from '../../src/plan/planned'
-import { prepareRenderableDocumentModels } from '../../src/plan/renderable/prepare-models'
-import { renderDeclaration as renderPlannedDeclaration } from '../../src/render/declarations'
+import { makeGenerationDirectivePolicies } from '../../../src/directives/structural-policies'
+import { makePlannedDocumentModels } from '../../../src/plan/planned'
+import { prepareRenderableDocumentModels } from '../../../src/plan/renderable/prepare-models'
+import { renderDeclaration as renderPlannedDeclaration } from '../../../src/render/declarations'
 
 import {
     arrayOf,
@@ -18,7 +18,7 @@ import {
     defineNumber,
     defineString,
     unionOf,
-} from '../../src'
+} from '../../../src'
 
 import {
     declarationDefinitions,
@@ -34,14 +34,14 @@ import {
     variableField,
     variableObjectValue,
     variableScalar,
-} from '../fixtures/builders/declaration-render'
+} from '../../fixtures/builders/declaration-render'
 
 import {
     FRAGMENT_ROOT_KIND,
     SELECTION_MODEL_KIND,
     TYPE_REF_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 
 import { OperationTypeNode } from 'graphql'
 

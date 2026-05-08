@@ -5,24 +5,24 @@ import {
 } from 'vitest'
 
 import { buildSchema } from 'graphql'
-import { makeTestModelContext } from './helpers/model-context'
+import { makeTestModelContext } from '../helpers/model-context'
 import {
     defineNamed,
     defineString,
-} from '../../src'
+} from '../../../src'
 import {
     makeFragmentModel,
     makeOperationModel,
-} from '../../src/models/documents-builder'
+} from '../../../src/models/documents-builder'
 import {
     getFragmentDefinition,
     getOperationDefinition,
-} from './helpers/graphql-document'
+} from '../helpers/graphql-document'
 
 import {
     FRAGMENT_ROOT_KIND,
     VALUE_MODEL_KIND,
-} from '../../src/kinds'
+} from '../../../src/kinds'
 
 describe('documents builder', () => {
     test('builds union fragment roots for abstract fragments with type-specific branches', () => {

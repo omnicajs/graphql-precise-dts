@@ -4,7 +4,7 @@ import {
     test,
 } from 'vitest'
 
-import { renderSchemaDeclaration } from '../../src/render/schema'
+import { renderSchemaDeclaration } from '../../../src/render/schema'
 
 describe('schema render', () => {
     test('renders sorted scalar declarations and enum unions', () => {
