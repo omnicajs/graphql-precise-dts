@@ -8,6 +8,7 @@ import type {
 } from '@graphql-codegen/plugin-helpers'
 
 import { buildModelRegistry } from './models/registry-builder'
+import { validateNamedOperations } from './lib/document-errors'
 import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
 import { makeDocumentModelBundles } from './plan/document-model-bundles'
 import { makeDocumentModelImportMap } from './plan/document-model-imports'
@@ -52,6 +53,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     info
 ) => {
     if (!info?.outputFile) throw new Error('Output file is missing')
+    validateNamedOperations(documents)
 
     const schemaOutputFile = join(dirname(info.outputFile), `${GENERATED_SCHEMA_FILE_NAME}.d.ts`)
     const schemaModulePath = `./${GENERATED_SCHEMA_FILE_NAME}`
