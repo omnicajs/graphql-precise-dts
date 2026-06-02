@@ -8,32 +8,23 @@ import type {
 } from '@graphql-codegen/plugin-helpers'
 
 import { buildModelRegistry } from './models/registry-builder'
-import { validateNamedOperations } from './lib/document-errors'
+import { dirname } from 'path'
+import { emitMissingFragmentDefinitionWarnings } from './lib/documents'
 import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
+import { emitSkippedDocumentWarnings } from './lib/document-errors'
+import { findFragmentDefinitions } from './lib/documents'
+import { join } from 'path'
+import { makeDocumentLocationMap } from './lib/documents'
 import { makeDocumentModelBundles } from './plan/document-model-bundles'
 import { makeDocumentModelImportMap } from './plan/document-model-imports'
+import { makeGenerationDirectivePolicies } from './directives/structural-policies'
 import { makeModuleSpecifier } from './path'
+import { makeStructuralDirectivePolicies } from './directives/structural-policies'
+import { mkdirSync } from 'fs'
 import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
-import {
-    makeGenerationDirectivePolicies,
-    makeStructuralDirectivePolicies,
-} from './directives/structural-policies'
-
-import {
-    emitMissingFragmentDefinitionWarnings,
-    findFragmentDefinitions,
-    makeDocumentLocationMap,
-} from './lib/documents'
-
-import {
-    mkdirSync,
-    writeFileSync,
-} from 'fs'
-import {
-    dirname,
-    join,
-} from 'path'
+import { validateNamedOperations } from './lib/document-errors'
+import { writeFileSync } from 'fs'
 
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
 const EXACT_TYPE_DECLARATION = 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n'
@@ -53,6 +44,8 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     info
 ) => {
     if (!info?.outputFile) throw new Error('Output file is missing')
+
+    emitSkippedDocumentWarnings(documents)
     validateNamedOperations(documents)
 
     const schemaOutputFile = join(dirname(info.outputFile), `${GENERATED_SCHEMA_FILE_NAME}.d.ts`)

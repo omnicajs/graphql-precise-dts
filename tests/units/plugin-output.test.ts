@@ -46,6 +46,139 @@ const schema = buildSchema(`
     }
 `)
 
+describe('plugin skipped document warnings', () => {
+    const getSkippedDocumentWarning = (location: string): string =>
+        `Document "${location}" was skipped because no parsed GraphQL AST was provided to the plugin. `
+        + 'Check the document for syntax errors or unsupported constructs; skipped documents are not included in generated declarations.'
+
+    test.each([
+        {
+            name: 'empty field selection set',
+            location: 'empty-selection.graphql',
+            rawSDL: `
+                query EmptySelection {
+                    group {
+                    }
+                }
+            `,
+        },
+        {
+            name: 'unclosed operation selection',
+            location: 'unclosed-operation.graphql',
+            rawSDL: `
+                query UnclosedOperation {
+                    group {
+                        owner {
+                            id
+                        }
+            `,
+        },
+        {
+            name: 'fragment without type condition',
+            location: 'fragment-without-type.graphql',
+            rawSDL: `
+                fragment MissingTypeCondition {
+                    id
+                }
+            `,
+        },
+        {
+            name: 'field directive without name',
+            location: 'invalid-directive.graphql',
+            rawSDL: `
+                query InvalidDirective {
+                    group {
+                        owner {
+                            id @
+                        }
+                    }
+                }
+            `,
+        },
+    ])('warns when $name is skipped before plugin execution', async ({ location, rawSDL }) => {
+        expect(() => parse(rawSDL)).toThrow()
+
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location,
+                    document: undefined,
+                    rawSDL,
+                }, {
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(warn).toHaveBeenCalledWith(getSkippedDocumentWarning(location))
+
+            expect(result.content).toContain(`declare module '~tests/group.graphql'`)
+            expect(result.content).not.toContain(location)
+        })
+
+        warn.mockRestore()
+    })
+
+    test('warns for every skipped document in a mixed documents list', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'empty-selection.graphql',
+                    document: undefined,
+                    rawSDL: `
+                        query EmptySelection {
+                            group {
+                            }
+                        }
+                    `,
+                }, {
+                    location: 'fragment-without-type.graphql',
+                    document: undefined,
+                    rawSDL: `
+                        fragment MissingTypeCondition {
+                            id
+                        }
+                    `,
+                }, {
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(warn).toHaveBeenCalledWith(getSkippedDocumentWarning('empty-selection.graphql'))
+            expect(warn).toHaveBeenCalledWith(getSkippedDocumentWarning('fragment-without-type.graphql'))
+
+            expect(result.content).toContain(`declare module '~tests/group.graphql'`)
+            expect(result.content).not.toContain('EmptySelection')
+            expect(result.content).not.toContain('MissingTypeCondition')
+        })
+
+        warn.mockRestore()
+    })
+})
+
 describe('plugin directive handling', () => {
     test('fails when output file info is missing', () => {
         expect(() => plugin(
