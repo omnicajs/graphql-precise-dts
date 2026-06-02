@@ -5,16 +5,19 @@ import {
     vi,
 } from 'vitest'
 
-import { join } from 'path'
-import { readFileSync } from 'fs'
-import { withTempOutput } from './utils/temp-output'
 import {
     defineNamed,
     defineNull,
     defineString,
+} from '../../src'
+import { existsSync } from 'fs'
+import { join } from 'path'
+import { readFileSync } from 'fs'
+import {
     plugin,
     unionOf,
 } from '../../src'
+import { withTempOutput } from './utils/temp-output'
 
 import {
     buildSchema,
@@ -51,6 +54,30 @@ describe('plugin directive handling', () => {
             { prefix: '~tests/' },
             {} as never
         )).toThrow('Output file is missing')
+    })
+
+    test('fails early when an operation is missing a name', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        query {
+                            group {
+                                owner {
+                                    id
+                                }
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow('Operation name is missing for query operation in "group.graphql:2:25". Name the operation so the plugin can generate stable declaration exports.')
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
     })
 
     test('fails when a non-typename field is aliased to __typename', async () => {
