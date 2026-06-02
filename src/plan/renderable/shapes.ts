@@ -12,7 +12,10 @@ import type {
     RenderableUnionShape,
 } from './shape-types'
 
-import { RENDER_STRATEGY } from './kinds'
+import {
+    RENDER_STRATEGY,
+    RENDERABLE_UNION_SHAPE,
+} from './kinds'
 import {
     SELECTION_MODEL_KIND,
     VALUE_MODEL_KIND,
@@ -252,7 +255,7 @@ export const prepareUnionShape = (
 
     if (preparedVariants.length < 1) {
         return {
-            kind: 'variants',
+            kind: RENDERABLE_UNION_SHAPE.VARIANTS,
             variants: [],
         }
     }
@@ -263,7 +266,7 @@ export const prepareUnionShape = (
 
     if (hasSameShape) {
         return {
-            kind: 'collapsed',
+            kind: RENDERABLE_UNION_SHAPE.COLLAPSED,
             typename: {
                 typeNames: preparedVariants.map(variant => variant.typeName),
                 required: !hasExplicitTypename
@@ -275,7 +278,7 @@ export const prepareUnionShape = (
     }
 
     return {
-        kind: 'variants',
+        kind: RENDERABLE_UNION_SHAPE.VARIANTS,
         variants: variants.map(variant =>
             prepareObjectShape(
                 variant.fields,

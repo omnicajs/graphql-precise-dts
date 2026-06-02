@@ -14,6 +14,7 @@ import type {
 import { TypeInfo } from 'graphql'
 
 import { collectDocumentModelImports } from './document-model-imports'
+import { excludeImportedDuplicateOutputAliases } from './renderable/imported-aliases'
 import { getOperationTypeName } from './naming'
 import { makeOperationModel } from '../models/documents-builder'
 import { makePlannedDocumentModels } from './planned'
@@ -207,8 +208,12 @@ const prepareDocumentModelBundle = (
     directivePolicies: GenerationDirectivePolicies
 ): DocumentModelBundle => {
     const imports = collectDocumentModelImports(models, importMap)
-    const renderableModels = prepareRenderableDocumentModels(
-        makePlannedDocumentModels(models, [ ...imports.keys() ], customScalars, directivePolicies)
+    const importsNamesSet = new Set(imports.keys())
+    const renderableModels = excludeImportedDuplicateOutputAliases(
+        prepareRenderableDocumentModels(
+            makePlannedDocumentModels(models, [ ...importsNamesSet ], customScalars, directivePolicies)
+        ),
+        importsNamesSet
     )
 
     validateDocumentBundleExportNames(location, importMap, imports, renderableModels)

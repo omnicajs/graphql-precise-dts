@@ -6,6 +6,8 @@ import type {
     RenderableVariableValue,
 } from './value-types'
 
+import { RENDERABLE_UNION_SHAPE } from './kinds'
+
 type RenderableTypename = {
     typeNames: string[];
     required: boolean;
@@ -41,11 +43,11 @@ export type RenderableObjectShape = RenderableSelectionSet & {
 }
 
 export type RenderableUnionShape = {
-    kind: 'collapsed';
+    kind: typeof RENDERABLE_UNION_SHAPE.COLLAPSED;
     typename: RenderableTypename;
     rows: RenderableField[];
     spreads: RenderableSpread[];
 } | {
-    kind: 'variants';
+    kind: typeof RENDERABLE_UNION_SHAPE.VARIANTS;
     variants: RenderableObjectShape[];
 }

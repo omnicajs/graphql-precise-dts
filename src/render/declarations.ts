@@ -29,7 +29,10 @@ import {
     uncapitalize,
 } from '../lib/strings'
 
-import { RENDER_STRATEGY } from '../plan/renderable/kinds'
+import {
+    RENDER_STRATEGY,
+    RENDERABLE_UNION_SHAPE,
+} from '../plan/renderable/kinds'
 import {
     FRAGMENT_ROOT_KIND,
     TYPE_REF_KIND,
@@ -101,7 +104,7 @@ const renderObjectShape = ({ typename, rows, spreads }: RenderableObjectShape): 
 ], spreads.map(spread => spread.conditional ? `Partial<${spread.name}>` : spread.name))
 
 const renderUnionShape = (shape: RenderableUnionShape): string => {
-    if (shape.kind === 'collapsed') {
+    if (shape.kind === RENDERABLE_UNION_SHAPE.COLLAPSED) {
         return renderObjectType([
             renderTypenameRow(shape.typename.typeNames, shape.typename.required),
             ...shape.rows.map(field => renderFieldRow(
