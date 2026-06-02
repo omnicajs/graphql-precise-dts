@@ -46,3 +46,14 @@ export const validateNamedOperations = (documents: DocumentFile[]) => {
         })
     })
 }
+
+export const emitSkippedDocumentWarnings = (documents: DocumentFile[]) => {
+    documents.forEach(documentFile => {
+        if (documentFile.document) return
+
+        console.warn(
+            `Document "${documentFile.location ?? UNKNOWN_DOCUMENT_LOCATION}" was skipped because no parsed GraphQL AST was provided to the plugin. `
+            + 'Check the document for syntax errors or unsupported constructs; skipped documents are not included in generated declarations.'
+        )
+    })
+}
