@@ -163,6 +163,63 @@ describe('plugin directive handling', () => {
         })
     })
 
+    test('uses imported fragment type instead of duplicate output alias', async () => {
+        const userSchema = buildSchema(`
+            type Query {
+                primaryUser: User!
+                secondaryUser: User!
+            }
+
+            type User {
+                id: ID!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                userSchema,
+                [{
+                    location: 'fragments.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
+                            id
+                        }
+                    `),
+                }, {
+                    location: 'users.graphql',
+                    document: parse(`
+                        query UsersQuery {
+                            primaryUser {
+                                ...UserDetails
+                            }
+
+                            secondaryUser {
+                                ...UserDetails
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result.content).toContain([
+                `declare module '~tests/users.graphql' {`,
+                `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'\n`,
+                `\timport type { UserDetails } from '~tests/fragments.graphql'\n`,
+                `\texport type UsersQueryQueryVariables = { [key: string]: never }\n`,
+                `\texport type UsersQueryQueryPayload = {`,
+                `\t\t__typename?: 'Query';`,
+                `\t\tprimaryUser: UserDetails;`,
+                `\t\tsecondaryUser: UserDetails;`,
+                `\t}\n`,
+                `\texport const usersQueryQuery: TypedDocumentNode<UsersQueryQueryPayload, UsersQueryQueryVariables>\n`,
+                `\texport default usersQueryQuery`,
+                `}`,
+            ].join('\n'))
+        })
+    })
+
     test('merges a sibling field returned from an inline fragment', async () => {
         await withTempOutput(async outputInfo => {
             const result = await plugin(
