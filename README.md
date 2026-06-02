@@ -334,3 +334,4 @@ for generated `declare module` ids.
 - [Types](docs/TYPES.md) - structural `TsType` model, available helpers, supported operations, and config examples.
 - [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies,
 current policy staging, and `__typename` behavior for conditional and excluded selections.
+- [Diagnostics](docs/DIAGNOSTICS.md) - warnings, errors, and automatic recovery behavior reported during generation.
