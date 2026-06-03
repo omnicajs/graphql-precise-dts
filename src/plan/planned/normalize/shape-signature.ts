@@ -4,6 +4,7 @@ import type {
     FieldValue,
     SelectionModel,
     TypeRef,
+    VariableValue,
 } from '../../../models/types'
 
 import { normalizeSelections } from './selection'
@@ -26,6 +27,43 @@ const makeTypeRefShapeSignature = (typeRef: TypeRef): string => {
             return `list:${makeTypeRefShapeSignature(typeRef.ofType)}`
         case TYPE_REF_KIND.NON_NULL:
             return `nonnull:${makeTypeRefShapeSignature(typeRef.ofType)}`
+    }
+}
+
+const makeVariableValueShapeSignature = (
+    value: VariableValue,
+    inProgress = new Set<string>()
+): string => {
+    switch (value.kind) {
+        case VALUE_MODEL_KIND.SCALAR:
+            return `scalar:${value.name}:${value.usage}`
+        case VALUE_MODEL_KIND.ENUM:
+            return `enum:${value.name}`
+        case VALUE_MODEL_KIND.UNKNOWN:
+            return `unknown:${value.reason}`
+        case VALUE_MODEL_KIND.OBJECT: {
+            const typeName = value.typeName ?? 'anonymous'
+
+            if (value.isRecursiveReference || inProgress.has(typeName)) {
+                return `recursive:${typeName}`
+            }
+
+            inProgress.add(typeName)
+
+            const signature = [
+                `object:${typeName}`,
+                ...value.fields.map(field => [
+                    field.name,
+                    field.optional ? 'optional' : 'required',
+                    makeTypeRefShapeSignature(field.typeRef),
+                    makeVariableValueShapeSignature(field.value, inProgress),
+                ].join(':')),
+            ].join('|')
+
+            inProgress.delete(typeName)
+
+            return signature
+        }
     }
 }
 
@@ -128,3 +166,5 @@ export const makeOutputShapeSignature = (
     `types:${[ ...typeNames ].sort().join('|')}`,
     makeSelectionsShapeSignature(fields, options, makeOutputSignatureState()),
 ].join('::')
+
+export const makeVariableShapeSignature = (value: VariableValue): string => makeVariableValueShapeSignature(value)

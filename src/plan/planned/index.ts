@@ -45,14 +45,13 @@ export const makePlannedDocumentModels = (
         fragments: new Map(
             [ ...models.fragments.entries() ].map(([ name, fragment ]) => [
                 name,
-                buildFragmentModel(name, fragment, outputBuildState, customScalars, directivePolicies, reportWarning),
+                buildFragmentModel(fragment, outputBuildState, customScalars, directivePolicies, reportWarning),
             ])
         ),
         operations: new Map(
             [ ...models.operations.entries() ].map(([ name, operation ]) => [
                 name,
                 buildOperationModel(
-                    name,
                     operation,
                     outputBuildState,
                     variableBuildState,

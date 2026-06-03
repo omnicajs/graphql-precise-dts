@@ -7,11 +7,9 @@ import type { WarningReporter } from '../warnings'
 
 import { buildSelection } from './output-planner'
 import { buildVariableField } from './variable-planner'
-import { getOperationTypeName } from '../naming'
 import { normalizeSelections } from './normalize/selection'
 
 export const buildOperationModel = (
-    operationName: string,
     operation: OperationModel,
     outputState: OutputBuildState,
     variableState: VariableBuildState,
@@ -19,15 +17,13 @@ export const buildOperationModel = (
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedOperationModel => {
-    const operationTypeName = getOperationTypeName(operationName, operation.operationType)
-
     return {
         ...operation,
         variables: operation.variables.map(variable =>
             buildVariableField(variable, variableState, customScalars)
         ),
         result: normalizeSelections(operation.result).map(selection =>
-            buildSelection(selection, operationTypeName, outputState, customScalars, directivePolicies, reportWarning)
+            buildSelection(selection, outputState, customScalars, directivePolicies, reportWarning)
         ),
     }
 }
