@@ -22,15 +22,14 @@ import type {
     PlannedSelectionModel,
 } from './types'
 
-import { resolveGenerationSelectionDirectives } from '../../directives/resolve'
-import { capitalize } from '../../lib/strings'
-import { normalizeTsType } from '../../ts-type'
-import { makeOutputShapeSignature } from './normalize/shape-signature'
-import { normalizeSelections } from './normalize/selection'
 import {
     buildScalarValue,
     getSuggestedOutputAliasName,
 } from './shared'
+import { makeOutputShapeSignature } from './normalize/shape-signature'
+import { normalizeSelections } from './normalize/selection'
+import { normalizeTsType } from '../../ts-type'
+import { resolveGenerationSelectionDirectives } from '../../directives/resolve'
 
 import {
     FRAGMENT_ROOT_KIND,
@@ -112,7 +111,7 @@ const buildObjectFieldValue = (
     if (!alreadyInProgress) state.inProgressSignatures.add(signature)
 
     node.fields = normalizeSelections(value.fields).map(selection =>
-        buildSelection(selection, aliasName, state, customScalars, directivePolicies, reportWarning)
+        buildSelection(selection, state, customScalars, directivePolicies, reportWarning)
     )
 
     if (!alreadyInProgress) state.inProgressSignatures.delete(signature)
@@ -123,7 +122,6 @@ const buildObjectFieldValue = (
 
 const buildFieldValue = (
     value: FieldValue,
-    aliasName: string,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
@@ -133,21 +131,21 @@ const buildFieldValue = (
         case VALUE_MODEL_KIND.SCALAR:
             return buildScalarValue(value, customScalars)
         case VALUE_MODEL_KIND.OBJECT:
-            return buildObjectFieldValue(value, aliasName, state, customScalars, directivePolicies, reportWarning)
+            return buildObjectFieldValue(
+                value,
+                getSuggestedOutputAliasName(value),
+                state,
+                customScalars,
+                directivePolicies,
+                reportWarning
+            )
         case VALUE_MODEL_KIND.UNION:
             return {
                 kind: VALUE_MODEL_KIND.UNION,
                 variants: value.variants.map(variant => ({
                     typeName: variant.typeName,
                     fields: normalizeSelections(variant.fields).map(selection =>
-                        buildSelection(
-                            selection,
-                            `${aliasName}${capitalize(variant.typeName)}`,
-                            state,
-                            customScalars,
-                            directivePolicies,
-                            reportWarning
-                        )
+                        buildSelection(selection, state, customScalars, directivePolicies, reportWarning)
                     ),
                 })),
             }
@@ -158,7 +156,6 @@ const buildFieldValue = (
 
 export const buildSelection = (
     selection: NormalizedSelectionModel,
-    parentAliasName: string,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
@@ -181,7 +178,6 @@ export const buildSelection = (
                     : {}),
                 value: buildFieldValue(
                     selection.value,
-                    getSuggestedOutputAliasName(parentAliasName, selection.responseName, selection.value),
                     state,
                     customScalars,
                     directivePolicies,
@@ -208,10 +204,10 @@ export const buildOutputAliases = (
 ): PlannedOutputAlias[] => {
     const outputAliases: PlannedOutputAlias[] = []
 
-    occurrences.forEach(occurrence => {
+    occurrences.forEach((occurrence, signature) => {
         if (!occurrence.recursive && occurrence.count < 2) return
 
-        const aliasName = nameAllocator.allocate(occurrence.suggestedAliasName)
+        const aliasName = nameAllocator(occurrence.suggestedAliasName, signature)
         const representativeNode = occurrence.nodes[0]
         if (!representativeNode) return
 
@@ -232,7 +228,6 @@ export const buildOutputAliases = (
 }
 
 const buildFragmentRoot = (
-    fragmentName: string,
     root: FragmentRoot,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
@@ -244,26 +239,18 @@ const buildFragmentRoot = (
         variants: root.variants.map(variant => ({
             typeName: variant.typeName,
             fields: normalizeSelections(variant.fields).map(selection =>
-                buildSelection(
-                    selection,
-                    `${fragmentName}${capitalize(variant.typeName)}`,
-                    state,
-                    customScalars,
-                    directivePolicies,
-                    reportWarning
-                )
+                buildSelection(selection, state, customScalars, directivePolicies, reportWarning)
             ),
         })),
     }
     : {
         kind: FRAGMENT_ROOT_KIND.OBJECT,
         fields: normalizeSelections(root.fields).map(selection =>
-            buildSelection(selection, fragmentName, state, customScalars, directivePolicies, reportWarning)
+            buildSelection(selection, state, customScalars, directivePolicies, reportWarning)
         ),
     }
 
 export const buildFragmentModel = (
-    fragmentName: string,
     fragment: FragmentModel,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
@@ -271,5 +258,5 @@ export const buildFragmentModel = (
     reportWarning: WarningReporter
 ): PlannedFragmentModel => ({
     ...fragment,
-    root: buildFragmentRoot(fragmentName, fragment.root, state, customScalars, directivePolicies, reportWarning),
+    root: buildFragmentRoot(fragment.root, state, customScalars, directivePolicies, reportWarning),
 })

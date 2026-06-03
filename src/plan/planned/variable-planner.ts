@@ -15,6 +15,7 @@ import type {
 } from './types'
 
 import { buildScalarValue } from './shared'
+import { makeVariableShapeSignature } from './normalize/shape-signature'
 
 import { VALUE_MODEL_KIND } from '../../kinds'
 
@@ -22,6 +23,7 @@ export type VariableBuildState = {
     cache: Map<string, PlannedVariableObjectValue>;
     inProgress: Set<string>;
     aliasNames: Map<string, string>;
+    aliasSignaturesByTypeName: Map<string, string>;
     nameAllocator: NameAllocator;
 }
 
@@ -29,11 +31,13 @@ export const createVariableBuildState = (nameAllocator: NameAllocator): Variable
     cache: new Map(),
     inProgress: new Set(),
     aliasNames: new Map(),
+    aliasSignaturesByTypeName: new Map(),
     nameAllocator,
 })
 
 const getVariableObjectAliasName = (typeName: string): string => {
-    return typeName.endsWith('Input') ? typeName : `${typeName}Input`
+    const inputName = typeName.endsWith('Input') ? typeName : `${typeName}Input`
+    return `${inputName}Alias`
 }
 
 const getAllocatedVariableAliasName = (
@@ -43,7 +47,10 @@ const getAllocatedVariableAliasName = (
     const cachedAliasName = state.aliasNames.get(typeName)
     if (cachedAliasName) return cachedAliasName
 
-    const aliasName = state.nameAllocator.allocate(getVariableObjectAliasName(typeName))
+    const aliasName = state.nameAllocator(
+        getVariableObjectAliasName(typeName),
+        state.aliasSignaturesByTypeName.get(typeName) ?? typeName
+    )
     state.aliasNames.set(typeName, aliasName)
 
     return aliasName
@@ -150,6 +157,10 @@ export const buildVariableAliases = (
     customScalars: CustomScalarMappingRecord
 ): PlannedVariableAlias[] => {
     const { requiredTypeNames, definitions } = collectVariableDefinitions(operations)
+
+    definitions.forEach((definition, typeName) => {
+        state.aliasSignaturesByTypeName.set(typeName, makeVariableShapeSignature(definition))
+    })
 
     return [ ...requiredTypeNames ].flatMap(typeName => {
         const definition = definitions.get(typeName)

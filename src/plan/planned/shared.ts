@@ -10,8 +10,8 @@ import type {
     PlannedVariableValue,
 } from './types'
 
-import { getScalarTsType } from '../../scalars/builder'
 import { capitalize } from '../../lib/strings'
+import { getScalarTsType } from '../../scalars/builder'
 
 import { VALUE_MODEL_KIND } from '../../kinds'
 
@@ -23,14 +23,10 @@ export const buildScalarValue = (
     typeTs: getScalarTsType(value.name, customScalars, value.usage),
 })
 
-export const getSuggestedOutputAliasName = (
-    parentAliasName: string,
-    responseName: string,
-    value: FieldValue
-): string => {
+export const getSuggestedOutputAliasName = (value: FieldValue): string => {
     if (value.kind === VALUE_MODEL_KIND.OBJECT && value.typeNames?.length === 1) {
-        return `${parentAliasName}${capitalize(value.typeNames[0])}`
+        return `${capitalize(value.typeNames[0])}Alias`
     }
 
-    return `${parentAliasName}${capitalize(responseName)}`
+    return 'ObjectAlias'
 }
