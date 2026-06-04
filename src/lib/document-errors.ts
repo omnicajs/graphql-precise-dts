@@ -33,7 +33,7 @@ export const assertNamedOperation = (
     )
 }
 
-export const validateNamedOperations = (documents: DocumentFile[]) => {
+export const guardNamedOperations = (documents: DocumentFile[]) => {
     const documentLocations = makeDocumentLocationMap(documents)
 
     documents.forEach(documentFile => {
