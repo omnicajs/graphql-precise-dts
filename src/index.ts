@@ -23,7 +23,7 @@ import { makeStructuralDirectivePolicies } from './directives/structural-policie
 import { mkdirSync } from 'fs'
 import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
-import { validateNamedOperations } from './lib/document-errors'
+import { guardNamedOperations } from './lib/document-errors'
 import { writeFileSync } from 'fs'
 
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
@@ -46,7 +46,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     if (!info?.outputFile) throw new Error('Output file is missing')
 
     emitSkippedDocumentWarnings(documents)
-    validateNamedOperations(documents)
+    guardNamedOperations(documents)
 
     const schemaOutputFile = join(dirname(info.outputFile), `${GENERATED_SCHEMA_FILE_NAME}.d.ts`)
     const schemaModulePath = `./${GENERATED_SCHEMA_FILE_NAME}`
