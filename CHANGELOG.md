@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.1.0...v0.2.0) (2026-06-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* Generated aliases were made internal
+* Generated alias type names now use shape-based names with `Alias` suffixes and hash suffixes for collisions. Previously generated names such as `TreeInput`, `TreeFragmentTree`, or numeric collision variants like `TreeInput2` may now be emitted as `TreeInputAlias`, `TreeAlias`, or `TreeAlias_<hash>`.
+* Generated declarations can omit previously emitted output alias types when their shape is fully covered by imported fragment spreads.
+
+### Features
+
+* Generated aliases were made internal ([e47b19d](https://github.com/omnicajs/graphql-precise-dts/commit/e47b19de214bf74244901b839081b653c629f76e))
+
+
+### Fixes
+
+* Added early rejection for unnamed operations ([b7cde13](https://github.com/omnicajs/graphql-precise-dts/commit/b7cde13c0fdf525e1022802f0c5156812c25fc90))
+* Added warnings for skipped documents ([4805ccc](https://github.com/omnicajs/graphql-precise-dts/commit/4805cccecc6789d4e7233df6c299f179db09fbef))
+* Removed duplicate aliases for imported fragments ([84a38e3](https://github.com/omnicajs/graphql-precise-dts/commit/84a38e3161bdbd5c259818df85a3158f6c4ebeab))
+* Simplified generated alias naming ([37a120e](https://github.com/omnicajs/graphql-precise-dts/commit/37a120e80ceb88a10bfba0dc3e6c09a58d1c7178))
+
 ## [0.1.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.0.1...v0.1.0) (2026-05-08)
 
 
