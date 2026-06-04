@@ -224,11 +224,11 @@ export const renderDeclaration = (
     }
 
     models.variableAliases.forEach(({ aliasName, fields }: RenderableVariableAlias) => {
-        declarationRowsBlocks.push(indent(`export type ${aliasName} = ${renderVariableObject(fields)}`))
+        declarationRowsBlocks.push(indent(`type ${aliasName} = ${renderVariableObject(fields)}`))
     })
 
     models.outputAliases.forEach(({ aliasName, shape }: RenderableOutputAlias) => {
-        declarationRowsBlocks.push(indent(`export type ${aliasName} = ${renderObjectShape(shape)}`))
+        declarationRowsBlocks.push(indent(`type ${aliasName} = ${renderObjectShape(shape)}`))
     })
 
     for (const [ key, fragment ] of models.fragments.entries()) {

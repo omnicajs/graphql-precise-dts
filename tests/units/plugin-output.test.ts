@@ -1467,7 +1467,7 @@ describe('plugin __typename support', () => {
             expect(result.content).toContain([
                 `declare module '~tests/tree.graphql' {`,
                 `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'\n`,
-                `\texport type TreeInputAlias = {`,
+                `\ttype TreeInputAlias = {`,
                 `\t\tvalue?: string | null;`,
                 `\t\tchildren?: Array<TreeInputAlias> | null;`,
                 `\t}`,

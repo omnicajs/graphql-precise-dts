@@ -252,7 +252,7 @@ describe('declaration render', () => {
                 )
 
                 expect(result).toContain([
-                    '\texport type TreeInputAlias = {',
+                    '\ttype TreeInputAlias = {',
                     '\t\tvalue?: string | null;',
                     '\t\tchildren?: Array<TreeInputAlias> | null;',
                     '\t}',
@@ -297,11 +297,11 @@ describe('declaration render', () => {
                     '\t}',
                 ].join('\n'))
 
-                const aliasName = result.match(/export type (TreeInputAlias_[a-f0-9]{4}) =/)?.[1]
+                const aliasName = result.match(/type (TreeInputAlias_[a-f0-9]{4}) =/)?.[1]
 
                 expect(aliasName).toBeDefined()
                 expect(result).toContain([
-                    `\texport type ${aliasName} = {`,
+                    `\ttype ${aliasName} = {`,
                     '\t\tvalue?: string | null;',
                     `\t\tchildren?: Array<${aliasName}> | null;`,
                     '\t}',
@@ -335,12 +335,12 @@ describe('declaration render', () => {
                     ),
                     new Map([['TreeInputAlias', './tree-input']])
                 )
-                const aliasName = result.match(/export type (TreeInputAlias_[a-f0-9]{4}) =/)?.[1]
+                const aliasName = result.match(/type (TreeInputAlias_[a-f0-9]{4}) =/)?.[1]
 
                 expect(aliasName).toBeDefined()
                 expect(result).toContain(`\timport type { TreeInputAlias } from './tree-input'`)
                 expect(result).toContain([
-                    `\texport type ${aliasName} = {`,
+                    `\ttype ${aliasName} = {`,
                     '\t\tvalue?: string | null;',
                     `\t\tchildren?: Array<${aliasName}> | null;`,
                     '\t}',
@@ -380,17 +380,17 @@ describe('declaration render', () => {
                     ),
                     new Map()
                 )
-                const legacyAliasName = result.match(/export type (TreeInputAlias_[a-f0-9]{4}) =/)?.[1]
+                const legacyAliasName = result.match(/type (TreeInputAlias_[a-f0-9]{4}) =/)?.[1]
 
                 expect(legacyAliasName).toBeDefined()
                 expect(result).toContain([
-                    '\texport type TreeInputAlias = {',
+                    '\ttype TreeInputAlias = {',
                     '\t\tvalue?: string | null;',
                     '\t\tchildren?: Array<TreeInputAlias> | null;',
                     '\t}',
                 ].join('\n'))
                 expect(result).toContain([
-                    `\texport type ${legacyAliasName} = {`,
+                    `\ttype ${legacyAliasName} = {`,
                     '\t\tlabel?: string | null;',
                     `\t\tchildren?: Array<${legacyAliasName}> | null;`,
                     '\t}',
@@ -421,7 +421,7 @@ describe('declaration render', () => {
                         new Map([['TreeInputAlias', './tree-input']])
                     )
                 const extractAliasName = (result: string): string | undefined =>
-                    result.match(/export type (TreeInputAlias_[a-f0-9]{4}) =/)?.[1]
+                    result.match(/type (TreeInputAlias_[a-f0-9]{4}) =/)?.[1]
 
                 const valueFirstResult = renderWithTreeInputFields([
                     variableField('value', variableScalar(defineString())),
@@ -440,14 +440,14 @@ describe('declaration render', () => {
                 expect(labelFirstAliasName).toBeDefined()
 
                 expect(valueFirstResult).toContain([
-                    `\texport type ${valueFirstAliasName} = {`,
+                    `\ttype ${valueFirstAliasName} = {`,
                     '\t\tvalue?: string | null;',
                     '\t\tlabel?: string | null;',
                     `\t\tchildren?: Array<${valueFirstAliasName}> | null;`,
                     '\t}',
                 ].join('\n'))
                 expect(labelFirstResult).toContain([
-                    `\texport type ${labelFirstAliasName} = {`,
+                    `\ttype ${labelFirstAliasName} = {`,
                     '\t\tlabel?: string | null;',
                     '\t\tvalue?: string | null;',
                     `\t\tchildren?: Array<${labelFirstAliasName}> | null;`,
@@ -458,11 +458,11 @@ describe('declaration render', () => {
             test('expands variable alias hash length and falls back to indexed full-hash names', () => {
                 const extractRecursiveTreeInputAlias = (result: string): string | undefined =>
                     result.match(
-                        /\texport type (TreeInputAlias_[a-f0-9]{4,8}(?:\d+)?) = \{\n\t\tvalue\?: string \| null;\n\t\tchildren\?: Array<\1> \| null;\n\t\}/
+                        /\ttype (TreeInputAlias_[a-f0-9]{4,8}(?:\d+)?) = \{\n\t\tvalue\?: string \| null;\n\t\tchildren\?: Array<\1> \| null;\n\t\}/
                     )?.[1]
                 const expectRecursiveTreeInputAlias = (result: string, aliasName: string | undefined) => {
                     expect(result).toContain([
-                        `\texport type ${aliasName} = {`,
+                        `\ttype ${aliasName} = {`,
                         '\t\tvalue?: string | null;',
                         `\t\tchildren?: Array<${aliasName}> | null;`,
                         '\t}',
@@ -552,13 +552,13 @@ describe('declaration render', () => {
                 )
 
                 expect(result).toContain([
-                    '\texport type ObjectInputAlias = {',
+                    '\ttype ObjectInputAlias = {',
                     '\t\tvalue: string | null;',
                     '\t\tchildren: Array<ObjectInputAlias> | null;',
                     '\t}',
                 ].join('\n'))
                 expect(result).toContain([
-                    '\texport type ObjectAlias = {',
+                    '\ttype ObjectAlias = {',
                     '\t\tvalue: string | null;',
                     '\t\tchildren: Array<ObjectAlias> | null;',
                     '\t}',
@@ -857,7 +857,7 @@ describe('declaration render', () => {
                 const result = renderDeclaration('./documents', definitions, new Map())
 
                 expect(result).toContain([
-                    '\texport type TreeAlias = {',
+                    '\ttype TreeAlias = {',
                     `\t\t__typename?: 'Tree';`,
                     '\t\tvalue: string | null;',
                     '\t\tchildren: Array<TreeAlias> | null;',
@@ -893,10 +893,10 @@ describe('declaration render', () => {
 
                 const result = renderDeclaration('./documents', definitions, new Map())
 
-                expect(result).toContain(`\texport type TreeAlias = {`)
+                expect(result).toContain(`\ttype TreeAlias = {`)
                 expect(result).toContain(`\t\tleft: TreeAlias;`)
                 expect(result).toContain(`\t\tright: TreeAlias;`)
-                expect(result.match(/export type TreeAlias =/g)).toHaveLength(1)
+                expect(result.match(/type TreeAlias =/g)).toHaveLength(1)
             })
 
             test('keeps output alias names independent from operation and fragment names', () => {
@@ -933,7 +933,7 @@ describe('declaration render', () => {
                 )
 
                 expect(result).toContain([
-                    '\texport type TreeAlias = {',
+                    '\ttype TreeAlias = {',
                     `\t\t__typename?: 'Tree';`,
                     '\t\tvalue: string | null;',
                     '\t\tchildren: Array<TreeAlias> | null;',
@@ -951,7 +951,7 @@ describe('declaration render', () => {
                     '\t\troot: TreeAlias;',
                     '\t}',
                 ].join('\n'))
-                expect(result.match(/export type TreeAlias =/g)).toHaveLength(1)
+                expect(result.match(/type TreeAlias =/g)).toHaveLength(1)
             })
 
             test('reuses aliases for repeated non-recursive result object shapes', () => {
@@ -971,7 +971,7 @@ describe('declaration render', () => {
                 const result = renderDeclaration('./documents', definitions, new Map())
 
                 expect(result).toContain([
-                    '\texport type ProfileAlias = {',
+                    '\ttype ProfileAlias = {',
                     `\t\t__typename?: 'Profile';`,
                     '\t\tid: string;',
                     '\t\tname: string | null;',
@@ -984,7 +984,7 @@ describe('declaration render', () => {
                     '\t\tsecondaryProfile: ProfileAlias;',
                     '\t}',
                 ].join('\n'))
-                expect(result.match(/export type ProfileAlias =/g)).toHaveLength(1)
+                expect(result.match(/type ProfileAlias =/g)).toHaveLength(1)
             })
 
             test('keeps similar recursive result object shapes separate', () => {
@@ -1008,18 +1008,18 @@ describe('declaration render', () => {
                 ]))
 
                 const result = renderDeclaration('./documents', definitions, new Map())
-                const labelAliasName = result.match(/export type (TreeAlias_[a-f0-9]{4}) =/)?.[1]
+                const labelAliasName = result.match(/type (TreeAlias_[a-f0-9]{4}) =/)?.[1]
 
                 expect(labelAliasName).toBeDefined()
                 expect(result).toContain([
-                    '\texport type TreeAlias = {',
+                    '\ttype TreeAlias = {',
                     `\t\t__typename?: 'Tree';`,
                     '\t\tvalue: string | null;',
                     '\t\tchildren: Array<TreeAlias> | null;',
                     '\t}',
                 ].join('\n'))
                 expect(result).toContain([
-                    `\texport type ${labelAliasName} = {`,
+                    `\ttype ${labelAliasName} = {`,
                     `\t\t__typename?: 'Tree';`,
                     '\t\tlabel: string | null;',
                     `\t\tchildren: Array<${labelAliasName}> | null;`,
@@ -1032,7 +1032,7 @@ describe('declaration render', () => {
                     `\t\tlabelTree: ${labelAliasName};`,
                     '\t}',
                 ].join('\n'))
-                expect(result.match(/export type TreeAlias/g)).toHaveLength(2)
+                expect(result.match(/type TreeAlias/g)).toHaveLength(2)
             })
 
             test('includes output field order in alias shape hashes', () => {
@@ -1062,10 +1062,10 @@ describe('declaration render', () => {
                     new Map()
                 )
                 const valueFirstAliasName = result.match(
-                    /export type (TreeAlias_[a-f0-9]{4,8}) = \{\n\t\t__typename\?: 'Tree';\n\t\tvalue: string \| null;\n\t\tchildren: Array<\1> \| null;\n\t\}/
+                    /type (TreeAlias_[a-f0-9]{4,8}) = \{\n\t\t__typename\?: 'Tree';\n\t\tvalue: string \| null;\n\t\tchildren: Array<\1> \| null;\n\t\}/
                 )?.[1]
                 const childrenFirstAliasName = result.match(
-                    /export type (TreeAlias_[a-f0-9]{4,8}) = \{\n\t\t__typename\?: 'Tree';\n\t\tchildren: Array<\1> \| null;\n\t\tvalue: string \| null;\n\t\}/
+                    /type (TreeAlias_[a-f0-9]{4,8}) = \{\n\t\t__typename\?: 'Tree';\n\t\tchildren: Array<\1> \| null;\n\t\tvalue: string \| null;\n\t\}/
                 )?.[1]
 
                 expect(valueFirstAliasName).toBeDefined()
@@ -1128,7 +1128,7 @@ describe('declaration render', () => {
                 const result = renderDeclaration('./documents', definitions, new Map())
 
                 expect(result).toContain([
-                    '\texport type ObjectAlias = {',
+                    '\ttype ObjectAlias = {',
                     `\t\t__typename?: 'User' | 'Admin';`,
                     '\t\tid: string;',
                     '\t}',
@@ -1136,7 +1136,7 @@ describe('declaration render', () => {
                 expect(result).toContain('\t\tprimarySearch: {')
                 expect(result).toContain('\t\tsecondarySearch: {')
                 expect(result.match(/\tnode: ObjectAlias;/g)).toHaveLength(2)
-                expect(result.match(/export type ObjectAlias =/g)).toHaveLength(1)
+                expect(result.match(/type ObjectAlias =/g)).toHaveLength(1)
             })
 
             test('avoids collisions between output aliases and operation payload exports', () => {
@@ -1164,7 +1164,7 @@ describe('declaration render', () => {
                 )
 
                 expect(result).toContain([
-                    '\texport type PayloadAlias = {',
+                    '\ttype PayloadAlias = {',
                     `\t\t__typename?: 'Payload';`,
                     '\t\tvalue: string | null;',
                     '\t}',
@@ -1198,12 +1198,12 @@ describe('declaration render', () => {
                 ]))
 
                 const result = renderDeclaration('./documents', definitions, new Map())
-                const aliasName = result.match(/export type (TreeAlias_[a-f0-9]{4}) =/)?.[1]
+                const aliasName = result.match(/type (TreeAlias_[a-f0-9]{4}) =/)?.[1]
 
                 expect(aliasName).toBeDefined()
 
                 expect(result).toContain([
-                    `\texport type ${aliasName} = {`,
+                    `\ttype ${aliasName} = {`,
                     `\t\t__typename?: 'Tree';`,
                     '\t\tvalue: string | null;',
                     `\t\tchildren: Array<${aliasName}> | null;`,
@@ -1234,11 +1234,11 @@ describe('declaration render', () => {
                 ]))
 
                 const result = renderDeclaration('./documents', definitions, new Map())
-                const aliasName = result.match(/export type (ObjectAlias_[a-f0-9]{4}) =/)?.[1]
+                const aliasName = result.match(/type (ObjectAlias_[a-f0-9]{4}) =/)?.[1]
 
                 expect(aliasName).toBeDefined()
                 expect(result).toContain([
-                    `\texport type ${aliasName} = {`,
+                    `\ttype ${aliasName} = {`,
                     '\t\tvalue: string | null;',
                     `\t\tchildren: Array<${aliasName}> | null;`,
                     '\t}',
@@ -1267,7 +1267,7 @@ describe('declaration render', () => {
                 const result = renderDeclaration('./documents', definitions, new Map())
 
                 expect(result).toContain([
-                    '\texport type ObjectAlias = {',
+                    '\ttype ObjectAlias = {',
                     `\t\t__typename?: 'User' | 'Admin';`,
                     '\t\tvalue: string | null;',
                     '\t\tchildren: Array<ObjectAlias> | null;',
@@ -1298,12 +1298,12 @@ describe('declaration render', () => {
                     definitions,
                     new Map([['TreeAlias', './tree-types']])
                 )
-                const aliasName = result.match(/export type (TreeAlias_[a-f0-9]{4}) =/)?.[1]
+                const aliasName = result.match(/type (TreeAlias_[a-f0-9]{4}) =/)?.[1]
 
                 expect(aliasName).toBeDefined()
                 expect(result).toContain(`\timport type { TreeAlias } from './tree-types'`)
                 expect(result).toContain([
-                    `\texport type ${aliasName} = {`,
+                    `\ttype ${aliasName} = {`,
                     `\t\t__typename?: 'Tree';`,
                     '\t\tvalue: string | null;',
                     `\t\tchildren: Array<${aliasName}> | null;`,
@@ -1341,7 +1341,7 @@ describe('declaration render', () => {
                 )
 
                 expect(result).toContain([
-                    '\texport type TreeAlias = {',
+                    '\ttype TreeAlias = {',
                     `\t\t__typename?: 'Tree';`,
                     '\t\tvalue: string | null;',
                     '\t\tchildren: Array<TreeAlias> | null;',
@@ -1359,11 +1359,11 @@ describe('declaration render', () => {
             test('expands output alias hash length and falls back to indexed full-hash names', () => {
                 const extractRecursiveTreeAlias = (result: string): string | undefined =>
                     result.match(
-                        /\texport type (TreeAlias_[a-f0-9]{4,8}(?:\d+)?) = \{\n\t\t__typename\?: 'Tree';\n\t\tvalue: string \| null;\n\t\tchildren: Array<\1> \| null;\n\t\}/
+                        /\ttype (TreeAlias_[a-f0-9]{4,8}(?:\d+)?) = \{\n\t\t__typename\?: 'Tree';\n\t\tvalue: string \| null;\n\t\tchildren: Array<\1> \| null;\n\t\}/
                     )?.[1]
                 const expectRecursiveTreeAlias = (result: string, aliasName: string | undefined) => {
                     expect(result).toContain([
-                        `\texport type ${aliasName} = {`,
+                        `\ttype ${aliasName} = {`,
                         `\t\t__typename?: 'Tree';`,
                         '\t\tvalue: string | null;',
                         `\t\tchildren: Array<${aliasName}> | null;`,
