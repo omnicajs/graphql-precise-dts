@@ -4,16 +4,52 @@ import {
     test,
 } from 'vitest'
 
+import { buildSchema } from 'graphql'
 import { join } from 'path'
-import { makeModuleSpecifier } from '../../src/path'
+import {
+    makeDeclarationModuleSpecifier,
+    makeModuleSpecifier,
+    makeSchemaDeclarationOutputFile,
+    makeSchemaOutputDirectory,
+} from '../../src/path'
+import { parse } from 'graphql'
 import { plugin } from '../../src'
 import { withTempOutput } from './utils/temp-output'
-import {
-    buildSchema,
-    parse,
-} from 'graphql'
 
 describe('plugin module path resolution', () => {
+    test('makes a module specifier between generated declaration files', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'src/generated/schema/schema.generated.d.ts')
+        )).toBe('./schema/schema.generated')
+    })
+
+    test('uses generated declaration directory as schema output directory by default', () => {
+        expect(makeSchemaOutputDirectory(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts')
+        )).toBe(join(process.cwd(), 'src/generated'))
+    })
+
+    test('resolves a configured relative schema output directory from generated declarations', () => {
+        expect(makeSchemaOutputDirectory(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            'schema'
+        )).toBe(join(process.cwd(), 'src/generated/schema'))
+    })
+
+    test('keeps a configured absolute schema output directory', () => {
+        expect(makeSchemaOutputDirectory(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'schema-output')
+        )).toBe(join(process.cwd(), 'schema-output'))
+    })
+
+    test('makes schema declaration output file inside schema output directory', () => {
+        expect(makeSchemaDeclarationOutputFile(
+            join(process.cwd(), 'src/generated/schema')
+        )).toBe(join(process.cwd(), 'src/generated/schema/schema.d.ts'))
+    })
+
     test('uses the scoped suffix when document location matches scope root', () => {
         expect(makeModuleSpecifier(
             '~tests/',
