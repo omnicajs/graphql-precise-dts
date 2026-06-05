@@ -23,7 +23,7 @@ import { TypeInfo } from 'graphql'
 import { isUndefined } from '../lib/predicates'
 import { capitalize } from '../lib/strings'
 import { makeSelectionModels } from './selections-builder'
-import { makeVariableValue } from './value-models-builder'
+import { makeVariableValue } from './value-builder'
 
 import {
     filterSelectionsForConcreteType,

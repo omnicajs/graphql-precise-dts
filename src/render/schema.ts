@@ -1,13 +1,9 @@
-import type { ModelSchemaRegistry } from '../models/registry'
+import type { ScalarModelShape } from '../models/types'
 import type { Scalars } from '../scalars/types'
-import type {
-    EnumValueEntries,
-    ScalarModelShape,
-} from '../models/types'
+import type { SchemaOutputModel } from '../models/generation'
 
 import { indent } from '../lib/strings'
 import { isScalarPrimitiveKey } from '../scalars/builder'
-import { renderStringLiteralUnion } from './basic'
 
 const primitiveScalarOrder = [
     'ID',
@@ -50,12 +46,6 @@ const renderScalarsDeclaration = (scalars: Map<string, ScalarModelShape>): strin
     ].join('\n')
 }
 
-const renderEnumsDeclarations = (enums: Map<string, EnumValueEntries>): string[] => [ ...enums.entries() ]
-    .map(([ enumName, enumDefinition ]) => `export type ${enumName} = ${renderStringLiteralUnion(
-        enumDefinition.map(({ value }) => String(value))
-    )}`)
-
-export const renderSchemaDeclaration = (schemaRegistry: ModelSchemaRegistry) => [
-    renderScalarsDeclaration(schemaRegistry.scalars),
-    ...renderEnumsDeclarations(schemaRegistry.enums),
+export const renderSchemaDeclaration = (schema: SchemaOutputModel) => [
+    renderScalarsDeclaration(schema.scalars),
 ].filter(Boolean).join('\n\n')

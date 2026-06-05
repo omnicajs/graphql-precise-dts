@@ -5,14 +5,16 @@ import type {
     ScalarModelShape,
 } from './types/type-ref'
 
-export type ModelSchemaRegistry = {
+export type SchemaOutputModel = {
     scalars: Map<string, ScalarModelShape>;
-    enums: Map<string, EnumValueEntries>;
 }
 
-export type ModelRegistry = {
-    schema: ModelSchemaRegistry;
-    documents: {
-        fragments: Map<string, FragmentModel>;
-    };
+export type ReusableModelRegistry = {
+    enums: Map<string, EnumValueEntries>;
+    fragments: Map<string, FragmentModel>;
+}
+
+export type GenerationModels = {
+    schema: SchemaOutputModel;
+    registry: ReusableModelRegistry;
 }

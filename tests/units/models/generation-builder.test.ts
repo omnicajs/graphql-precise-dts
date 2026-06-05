@@ -4,7 +4,7 @@ import {
     test,
 } from 'vitest'
 
-import { buildModelRegistry } from '../../../src/models/registry-builder'
+import { buildGenerationModels } from '../../../src/models/generation-builder'
 import { defineNamed } from '../../../src'
 import { makeTestModelContext } from '../helpers/model-context'
 import {
@@ -18,7 +18,7 @@ import {
     VALUE_MODEL_KIND,
 } from '../../../src/kinds'
 
-describe('model builder', () => {
+describe('generation builder', () => {
     test('collects registered enums and specified scalars', () => {
         const schema = buildSchema(`
             enum UserStatus {
@@ -47,7 +47,13 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildModelRegistry(
+        const {
+            schema: { scalars },
+            registry: {
+                enums,
+                fragments,
+            },
+        } = buildGenerationModels(
             {
                 fragments: [],
                 enums: [ 'UserStatus' ],
@@ -59,21 +65,21 @@ describe('model builder', () => {
             { String: defineNamed('DateIsoString') }
         )
 
-        expect(registry.schema.enums.get('UserStatus')).toEqual([
+        expect(enums.get('UserStatus')).toEqual([
             { name: 'ACTIVE', value: 'ACTIVE' },
             { name: 'BLOCKED', value: 'BLOCKED' },
         ])
 
-        expect(registry.schema.scalars.get('String')).toEqual({
+        expect(scalars.get('String')).toEqual({
             input: 'DateIsoString',
             output: 'DateIsoString',
         })
-        expect(registry.schema.scalars.get('ID')).toEqual({
+        expect(scalars.get('ID')).toEqual({
             input: 'string',
             output: 'string',
         })
 
-        expect(registry.documents.fragments.size).toBe(0)
+        expect(fragments.size).toBe(0)
     })
 
     test('builds fragment models with nested objects, enums and fragment spreads', () => {
@@ -114,7 +120,7 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildModelRegistry(
+        const { registry: { fragments } } = buildGenerationModels(
             {
                 fragments: [ 'UserBase', 'UserCard' ],
                 enums: [ 'UserStatus' ],
@@ -125,7 +131,7 @@ describe('model builder', () => {
             }), {}
         )
 
-        expect(registry.documents.fragments.get('UserBase')).toEqual(expect.objectContaining({
+        expect(fragments.get('UserBase')).toEqual(expect.objectContaining({
             onType: 'User',
             root: {
                 kind: FRAGMENT_ROOT_KIND.OBJECT,
@@ -142,7 +148,7 @@ describe('model builder', () => {
             },
         }))
 
-        expect(registry.documents.fragments.get('UserCard')).toEqual(expect.objectContaining({
+        expect(fragments.get('UserCard')).toEqual(expect.objectContaining({
             onType: 'User',
             root: {
                 kind: FRAGMENT_ROOT_KIND.OBJECT,
@@ -222,7 +228,7 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildModelRegistry(
+        const { registry: { fragments } } = buildGenerationModels(
             {
                 fragments: [ 'GroupOwner' ],
                 enums: [],
@@ -233,7 +239,7 @@ describe('model builder', () => {
             }), {}
         )
 
-        const groupOwner = registry.documents.fragments.get('GroupOwner')
+        const groupOwner = fragments.get('GroupOwner')
 
         expect(groupOwner).not.toBeUndefined()
 
@@ -349,7 +355,7 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildModelRegistry(
+        const { registry: { fragments } } = buildGenerationModels(
             {
                 fragments: [ 'GroupOwner' ],
                 enums: [],
@@ -360,7 +366,7 @@ describe('model builder', () => {
             }), {}
         )
 
-        const groupOwner = registry.documents.fragments.get('GroupOwner')
+        const groupOwner = fragments.get('GroupOwner')
         const ownerField = groupOwner?.root.kind === FRAGMENT_ROOT_KIND.OBJECT
             ? groupOwner.root.fields[0]
             : undefined
@@ -438,7 +444,7 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildModelRegistry(
+        const { registry: { fragments } } = buildGenerationModels(
             {
                 fragments: [ 'UserCard' ],
                 enums: [],
@@ -449,7 +455,7 @@ describe('model builder', () => {
             }), {}
         )
 
-        expect(registry.documents.fragments.get('UserCard')).toEqual(expect.objectContaining({
+        expect(fragments.get('UserCard')).toEqual(expect.objectContaining({
             root: {
                 kind: FRAGMENT_ROOT_KIND.OBJECT,
                 fields: [
@@ -466,7 +472,7 @@ describe('model builder', () => {
                 ],
             },
         }))
-        const conditionalUserCard = registry.documents.fragments.get('UserCard')
+        const conditionalUserCard = fragments.get('UserCard')
 
         expect(conditionalUserCard?.root.kind).toBe(FRAGMENT_ROOT_KIND.OBJECT)
         expect(conditionalUserCard?.root.kind === FRAGMENT_ROOT_KIND.OBJECT
@@ -497,7 +503,7 @@ describe('model builder', () => {
             `),
         }]
 
-        const registry = buildModelRegistry(
+        const { registry: { fragments } } = buildGenerationModels(
             {
                 fragments: [ 'UserCard' ],
                 enums: [],
@@ -513,7 +519,7 @@ describe('model builder', () => {
             }), {}
         )
 
-        const policyUserCard = registry.documents.fragments.get('UserCard')
+        const policyUserCard = fragments.get('UserCard')
 
         expect(policyUserCard?.root.kind).toBe(FRAGMENT_ROOT_KIND.OBJECT)
         expect(policyUserCard?.root.kind === FRAGMENT_ROOT_KIND.OBJECT

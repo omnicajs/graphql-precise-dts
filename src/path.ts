@@ -6,6 +6,8 @@ import {
 } from 'path'
 
 const DEFAULT_DOCUMENT_NAME = '*.graphql'
+
+const GENERATED_ENUMS_FILE_NAME = 'enums'
 const GENERATED_SCHEMA_FILE_NAME = 'schema'
 
 const normalizePath = (value: string): string => value.split('\\').join('/')
@@ -39,13 +41,13 @@ const makeRelativeModuleSpecifier = (path: string): string => {
     return `./${path}`
 }
 
-const stripDeclarationExtension = (path: string): string => path.replace(/\.d\.ts$/, '')
+const stripGeneratedTypeScriptExtension = (path: string): string => path.replace(/(?:\.d)?\.ts$/, '')
 
 export const makeDeclarationModuleSpecifier = (
     fromFile: string,
     toFile: string
 ): string => makeRelativeModuleSpecifier(
-    normalizePath(relative(dirname(fromFile), stripDeclarationExtension(toFile)))
+    normalizePath(relative(dirname(fromFile), stripGeneratedTypeScriptExtension(toFile)))
 )
 
 export const makeSchemaOutputDirectory = (
@@ -62,8 +64,12 @@ export const makeSchemaOutputDirectory = (
 }
 
 export const makeSchemaDeclarationOutputFile = (
-    schemaOutputDirectory: string
-): string => join(schemaOutputDirectory, `${GENERATED_SCHEMA_FILE_NAME}.d.ts`)
+    directory: string
+): string => join(directory, `${GENERATED_SCHEMA_FILE_NAME}.d.ts`)
+
+export const makeEnumsOutputFile = (
+    directory: string
+): string => join(directory, `${GENERATED_ENUMS_FILE_NAME}.ts`)
 
 export const makeModuleSpecifier = (
     prefix: string,

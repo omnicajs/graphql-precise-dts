@@ -7,7 +7,7 @@ import type {
     Types,
 } from '@graphql-codegen/plugin-helpers'
 
-import { buildModelRegistry } from './models/registry-builder'
+import { buildGenerationModels } from './models/generation-builder'
 import { dirname } from 'path'
 import { emitMissingFragmentDefinitionWarnings } from './lib/documents'
 import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
@@ -18,6 +18,7 @@ import { makeDeclarationModuleSpecifier } from './path'
 import { makeDocumentLocationMap } from './lib/documents'
 import { makeDocumentModelBundles } from './plan/document-model-bundles'
 import { makeDocumentModelImportMap } from './plan/document-model-imports'
+import { makeEnumsOutputFile } from './path'
 import { makeGenerationDirectivePolicies } from './directives/structural-policies'
 import {
     makeModuleSpecifier,
@@ -27,6 +28,7 @@ import {
 import { makeStructuralDirectivePolicies } from './directives/structural-policies'
 import { mkdirSync } from 'fs'
 import { renderDeclarations } from './render/declarations'
+import { renderEnumsDeclaration } from './render/enum'
 import { renderSchemaDeclaration } from './render/schema'
 import { writeFileSync } from 'fs'
 
@@ -53,7 +55,9 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
 
     const schemaOutputDirectory = makeSchemaOutputDirectory(info.outputFile, config.schemaOutputDirectory)
     const schemaOutputFile = makeSchemaDeclarationOutputFile(schemaOutputDirectory)
-    const schemaModulePath = makeDeclarationModuleSpecifier(info.outputFile, schemaOutputFile)
+
+    const enumsOutputFile = makeEnumsOutputFile(schemaOutputDirectory)
+    const enumsModulePath = makeDeclarationModuleSpecifier(info.outputFile, enumsOutputFile)
 
     const documentModuleSpecifier = (location: string | undefined) => makeModuleSpecifier(
         config.prefix ?? '*/',
@@ -62,7 +66,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         config.scope
     )
 
-    const importMap = makeDocumentModelImportMap(schema, documents, schemaModulePath, documentModuleSpecifier)
+    const importMap = makeDocumentModelImportMap(schema, documents, enumsModulePath, documentModuleSpecifier)
 
     const fragmentDefinitions = findFragmentDefinitions(documents)
     const directivePolicies = config.directivePolicies ?? {}
@@ -79,7 +83,7 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         structuralDirectivePolicies: makeStructuralDirectivePolicies(directivePolicies),
     } satisfies ModelContext
 
-    const registry = buildModelRegistry(
+    const { schema: schemaOutput, registry } = buildGenerationModels(
         {
             fragments: [ ...importMap.fragments.keys() ],
             enums: [ ...importMap.enums.keys() ],
@@ -88,12 +92,21 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         config.scalars ?? {}
     )
 
-    mkdirSync(dirname(schemaOutputFile), { recursive: true })
-    writeFileSync(schemaOutputFile, renderSchemaDeclaration(registry.schema))
+    const schemaDeclaration = renderSchemaDeclaration(schemaOutput)
+    const enumsDeclaration = registry.enums.size
+        ? renderEnumsDeclaration(registry.enums)
+        : ''
+
+    if (schemaDeclaration || enumsDeclaration) {
+        mkdirSync(dirname(schemaOutputFile), { recursive: true })
+    }
+
+    if (schemaDeclaration) writeFileSync(schemaOutputFile, schemaDeclaration)
+    if (enumsDeclaration) writeFileSync(enumsOutputFile, enumsDeclaration)
 
     const documentBundles = makeDocumentModelBundles(
         documents,
-        registry.documents.fragments,
+        registry.fragments,
         context,
         importMap,
         config.scalars ?? {},

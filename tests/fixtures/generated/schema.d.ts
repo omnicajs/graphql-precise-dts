@@ -4,5 +4,3 @@ export type Scalars = {
 	Boolean: { input: boolean; output: boolean; };
 	DateTime: { input: string; output: string; };
 };
-
-export type Permission = 'GroupCreate' | 'GroupEdit'

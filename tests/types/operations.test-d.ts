@@ -1,4 +1,4 @@
-import type { Permission } from '../fixtures/generated/schema'
+import type { Permission } from '../fixtures/generated/enums'
 import type { ApolloClient } from '@apollo/client'
 import type { GroupDetails as GroupDetailsFragment } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'
 import type { UserDetails as UserDetailsFragment } from '~tests/fixtures/documents/fragments/UserDetails.graphql'

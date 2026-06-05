@@ -4,7 +4,7 @@ import {
     test,
 } from 'vitest'
 
-import { buildModelRegistry } from '../../../src/models/registry-builder'
+import { buildGenerationModels } from '../../../src/models/generation-builder'
 import { makeDocumentModelBundles } from '../../../src/plan/document-model-bundles'
 import { makeTestModelContext } from '../helpers/model-context'
 import {
@@ -23,7 +23,7 @@ const createImportMap = (
 const prepareBundleInputs = (
     schemaSource: string,
     documentSource: string,
-    registryNames: { fragments?: string[]; enums?: string[] } = {},
+    registeredNames: { fragments?: string[]; enums?: string[] } = {},
     importMap = createImportMap()
 ) => {
     const schema = buildSchema(schemaSource)
@@ -36,13 +36,13 @@ const prepareBundleInputs = (
         schema,
         documents,
     })
-    const fragments = buildModelRegistry(
+    const { registry: { fragments } } = buildGenerationModels(
         {
-            fragments: registryNames.fragments ?? [],
-            enums: registryNames.enums ?? [],
+            fragments: registeredNames.fragments ?? [],
+            enums: registeredNames.enums ?? [],
         },
         context
-    ).documents.fragments
+    )
 
     return {
         context,
@@ -89,10 +89,10 @@ describe('document model bundles', () => {
             schema,
             documents,
         })
-        const fragments = buildModelRegistry(
+        const { registry: { fragments } } = buildGenerationModels(
             { fragments: [ 'UserDetails' ], enums: [] },
             context
-        ).documents.fragments
+        )
         const importMap = {
             fragments: new Map<string, string>(),
             enums: new Map<string, string>(),
@@ -151,10 +151,10 @@ describe('document model bundles', () => {
             schema,
             documents,
         })
-        const fragments = buildModelRegistry(
+        const { registry: { fragments } } = buildGenerationModels(
             { fragments: [ 'UserDetails' ], enums: [] },
             context
-        ).documents.fragments
+        )
         const importMap = {
             fragments: new Map<string, string>(),
             enums: new Map<string, string>(),

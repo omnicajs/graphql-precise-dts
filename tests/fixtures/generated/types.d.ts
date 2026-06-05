@@ -1,7 +1,7 @@
 type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }
 
 declare module '~tests/fixtures/documents/fragments/GroupDetails.graphql' {
-	import type { Permission } from './schema'
+	import type { Permission } from './enums'
 	import type { UserDetails } from '~tests/fixtures/documents/fragments/UserDetails.graphql'
 
 	export type GroupDetails = {

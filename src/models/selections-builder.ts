@@ -8,7 +8,7 @@ import type { SelectionNode } from 'graphql'
 import type { TypeSelectionNode } from './selection'
 
 import { formatNodeLocation } from '../lib/documents'
-import { makeFieldValue } from './value-models-builder'
+import { makeFieldValue } from './value-builder'
 import { print } from 'graphql'
 
 import {
