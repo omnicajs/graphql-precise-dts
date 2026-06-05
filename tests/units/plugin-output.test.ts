@@ -1527,9 +1527,19 @@ describe('plugin __typename support', () => {
 
             expect(readFileSync(join(tempDir, 'schema.d.ts'), 'utf8')).toBe(
                 [
+                    `import type { Permission } from './enums'\n`,
                     'export type Scalars = {',
                     '\tDateTime: { input: string; output: string; };',
-                    '};',
+                    '}\n',
+                    'export type Group = {',
+                    `\t__typename?: 'Group';`,
+                    `\tpermission: Permission;`,
+                    `\tcreatedAt: string;`,
+                    '}\n',
+                    'export type Query = {',
+                    `\t__typename?: 'Query';`,
+                    `\tgroup: Group;`,
+                    '}',
                 ].join('\n')
             )
 
@@ -1583,7 +1593,19 @@ describe('plugin __typename support', () => {
             expect(existsSync(join(tempDir, 'schema.d.ts'))).toBe(false)
             expect(existsSync(join(tempDir, 'enums.ts'))).toBe(false)
 
-            expect(existsSync(join(tempDir, 'generated/schema/schema.d.ts'))).toBe(false)
+            expect(readFileSync(join(tempDir, 'generated/schema/schema.d.ts'), 'utf8')).toBe(
+                [
+                    `import type { Permission } from './enums'\n`,
+                    'export type Group = {',
+                    `\t__typename?: 'Group';`,
+                    `\tpermission: Permission;`,
+                    '}\n',
+                    'export type Query = {',
+                    `\t__typename?: 'Query';`,
+                    `\tgroup: Group;`,
+                    '}',
+                ].join('\n')
+            )
             expect(readFileSync(join(tempDir, 'generated/schema/enums.ts'), 'utf8')).toBe(
                 [
                     'export enum Permission {',
@@ -1635,14 +1657,22 @@ describe('plugin __typename support', () => {
                 [
                     'export type Scalars = {',
                     '\tDateTime: { input: string; output: string; };',
-                    '};',
+                    '}\n',
+                    'export type Query = {',
+                    `\t__typename?: 'Query';`,
+                    `\tuser: User;`,
+                    '}\n',
+                    'export type User = {',
+                    `\t__typename?: 'User';`,
+                    `\tcreatedAt: string;`,
+                    '}',
                 ].join('\n')
             )
             expect(existsSync(join(tempDir, 'enums.ts'))).toBe(false)
         })
     })
 
-    test('does not write schema file when schema declaration is empty', async () => {
+    test('writes schema file for enum-backed schema object types', async () => {
         const enumSchema = buildSchema(`
             type Query {
                 group: Group!
@@ -1673,7 +1703,19 @@ describe('plugin __typename support', () => {
                 { outputFile }
             )
 
-            expect(existsSync(join(tempDir, 'schema.d.ts'))).toBe(false)
+            expect(readFileSync(join(tempDir, 'schema.d.ts'), 'utf8')).toBe(
+                [
+                    `import type { Permission } from './enums'\n`,
+                    'export type Group = {',
+                    `\t__typename?: 'Group';`,
+                    `\tpermission: Permission;`,
+                    '}\n',
+                    'export type Query = {',
+                    `\t__typename?: 'Query';`,
+                    `\tgroup: Group;`,
+                    '}',
+                ].join('\n')
+            )
             expect(readFileSync(join(tempDir, 'enums.ts'), 'utf8')).toBe(
                 [
                     'export enum Permission {',
