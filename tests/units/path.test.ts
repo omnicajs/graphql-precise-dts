@@ -8,6 +8,7 @@ import { buildSchema } from 'graphql'
 import { join } from 'path'
 import {
     makeDeclarationModuleSpecifier,
+    makeEnumsOutputFile,
     makeModuleSpecifier,
     makeSchemaDeclarationOutputFile,
     makeSchemaOutputDirectory,
@@ -22,6 +23,13 @@ describe('plugin module path resolution', () => {
             join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
             join(process.cwd(), 'src/generated/schema/schema.generated.d.ts')
         )).toBe('./schema/schema.generated')
+    })
+
+    test('makes a module specifier from declarations to generated TypeScript files', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'src/generated/schema/enums.ts')
+        )).toBe('./schema/enums')
     })
 
     test('uses generated declaration directory as schema output directory by default', () => {
@@ -48,6 +56,12 @@ describe('plugin module path resolution', () => {
         expect(makeSchemaDeclarationOutputFile(
             join(process.cwd(), 'src/generated/schema')
         )).toBe(join(process.cwd(), 'src/generated/schema/schema.d.ts'))
+    })
+
+    test('makes enums output file inside schema output directory', () => {
+        expect(makeEnumsOutputFile(
+            join(process.cwd(), 'src/generated/schema')
+        )).toBe(join(process.cwd(), 'src/generated/schema/enums.ts'))
     })
 
     test('uses the scoped suffix when document location matches scope root', () => {

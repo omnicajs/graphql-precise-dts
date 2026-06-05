@@ -17,7 +17,7 @@ import { makeTestModelContext } from '../helpers/model-context'
 import {
     makeFieldValue,
     makeVariableValue,
-} from '../../../src/models/value-models-builder'
+} from '../../../src/models/value-builder'
 
 import {
     buildSchema,
@@ -29,7 +29,7 @@ import {
     VALUE_MODEL_KIND,
 } from '../../../src/kinds'
 
-describe('value models builder', () => {
+describe('value builder', () => {
     test('builds union field values for interface selections with distinct concrete branches', () => {
         const schema = buildSchema(`
             interface User {

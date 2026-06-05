@@ -1,6 +1,6 @@
 import type { FragmentModel } from './types/document'
+import type { GenerationModels } from './generation'
 import type { ModelContext } from './types/context'
-import type { ModelRegistry } from './registry'
 import type { Schema } from '../plugin-types'
 
 import type {
@@ -44,17 +44,17 @@ type RegisteredNames = {
     enums: string[];
 }
 
-const createModelRegistry = (): ModelRegistry => ({
+const createGenerationModels = (): GenerationModels => ({
     schema: {
         scalars: new Map<string, ScalarModelShape>(),
-        enums: new Map<string, EnumValueEntries>(),
     },
-    documents: {
+    registry: {
+        enums: new Map<string, EnumValueEntries>(),
         fragments: new Map<string, FragmentModel>(),
     },
 })
 
-const registerCustomScalars = (
+const addCustomScalars = (
     scalars: Map<string, ScalarModelShape>,
     schema: Schema,
     customScalars: CustomScalarMappingRecord
@@ -66,7 +66,7 @@ const registerCustomScalars = (
     }
 })
 
-const registerPrimitiveScalars = (
+const addPrimitiveScalars = (
     scalars: Map<string, ScalarModelShape>,
     usedPrimitiveScalars: Set<keyof Scalars>
 ) => specifiedScalarTypes.forEach(({ name }) => {
@@ -74,33 +74,6 @@ const registerPrimitiveScalars = (
         scalars.set(name, getScalarPrimitiveShapeTs(name as keyof Scalars))
     }
 })
-
-const registerEnums = (
-    enums: Map<string, EnumValueEntries>,
-    schema: Schema,
-    importEnumsName: string[]
-) => importEnumsName.forEach(enumName => {
-    const enumType = schema.getType(enumName)
-
-    if (isEnumType(enumType) && !enums.has(enumName)) {
-        enums.set(enumName, enumType.getValues().map(v => ({
-            name: v.name,
-            value: v.value,
-        })))
-    }
-})
-
-const registerFragments = (
-    fragments: Map<string, FragmentModel>,
-    importFragmentsName: string[],
-    context: ModelContext
-) => {
-    for (const [key, def] of context.fragmentDefinitions.entries()) {
-        if (importFragmentsName.includes(key) && !fragments.has(key)) {
-            fragments.set(key, makeFragmentModel(def, context))
-        }
-    }
-}
 
 const collectPrimitiveScalar = (
     type: GraphQLNamedType,
@@ -155,18 +128,46 @@ const collectUsedPrimitiveScalars = (
     return usedScalars
 }
 
-export const buildModelRegistry = (
+const registerEnums = (
+    enums: Map<string, EnumValueEntries>,
+    schema: Schema,
+    importEnumsName: string[]
+) => importEnumsName.forEach(enumName => {
+    const enumType = schema.getType(enumName)
+
+    if (isEnumType(enumType) && !enums.has(enumName)) {
+        enums.set(enumName, enumType.getValues().map(v => ({
+            name: v.name,
+            value: v.value,
+        })))
+    }
+})
+
+const registerFragments = (
+    fragments: Map<string, FragmentModel>,
+    importFragmentsName: string[],
+    context: ModelContext
+) => {
+    for (const [key, def] of context.fragmentDefinitions.entries()) {
+        if (importFragmentsName.includes(key) && !fragments.has(key)) {
+            fragments.set(key, makeFragmentModel(def, context))
+        }
+    }
+}
+
+export const buildGenerationModels = (
     registeredNames: RegisteredNames,
     context: ModelContext,
     customScalars: CustomScalarMappingRecord = {}
-): ModelRegistry => {
-    const registry = createModelRegistry()
+): GenerationModels => {
+    const { schema, registry } = createGenerationModels()
     const usedPrimitiveScalars = collectUsedPrimitiveScalars(context.schema)
 
-    registerCustomScalars(registry.schema.scalars, context.schema, customScalars)
-    registerPrimitiveScalars(registry.schema.scalars, usedPrimitiveScalars)
-    registerEnums(registry.schema.enums, context.schema, registeredNames.enums)
-    registerFragments(registry.documents.fragments, registeredNames.fragments, context)
+    addCustomScalars(schema.scalars, context.schema, customScalars)
+    addPrimitiveScalars(schema.scalars, usedPrimitiveScalars)
 
-    return registry
+    registerEnums(registry.enums, context.schema, registeredNames.enums)
+    registerFragments(registry.fragments, registeredNames.fragments, context)
+
+    return { schema, registry }
 }

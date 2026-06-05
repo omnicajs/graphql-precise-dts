@@ -1480,7 +1480,7 @@ describe('plugin __typename support', () => {
         })
     })
 
-    test('writes schema.d.ts next to the generated declarations and imports enums from it', async () => {
+    test('writes schema.d.ts and enums.ts next to the generated declarations and imports enums from enums file', async () => {
         const enumSchema = buildSchema(`
             scalar DateTime
 
@@ -1523,20 +1523,28 @@ describe('plugin __typename support', () => {
                 { outputFile }
             )
 
-            expect(result.content).toContain(`import type { Permission } from './schema'`)
+            expect(result.content).toContain(`import type { Permission } from './enums'`)
 
             expect(readFileSync(join(tempDir, 'schema.d.ts'), 'utf8')).toBe(
                 [
                     'export type Scalars = {',
                     '\tDateTime: { input: string; output: string; };',
-                    '};\n',
-                    `export type Permission = 'GroupCreate' | 'GroupEdit'`,
+                    '};',
+                ].join('\n')
+            )
+
+            expect(readFileSync(join(tempDir, 'enums.ts'), 'utf8')).toBe(
+                [
+                    'export enum Permission {',
+                    `\tGroupCreate = 'GroupCreate',`,
+                    `\tGroupEdit = 'GroupEdit',`,
+                    '}',
                 ].join('\n')
             )
         })
     })
 
-    test('writes schema declarations to a configured directory and imports enums from it', async () => {
+    test('writes enums to a configured schema directory and imports enums from it', async () => {
         const enumSchema = buildSchema(`
             type Query {
                 group: Group!
@@ -1570,12 +1578,109 @@ describe('plugin __typename support', () => {
                 { outputFile }
             )
 
-            expect(result.content).toContain(`import type { Permission } from './generated/schema/schema'`)
+            expect(result.content).toContain(`import type { Permission } from './generated/schema/enums'`)
 
             expect(existsSync(join(tempDir, 'schema.d.ts'))).toBe(false)
+            expect(existsSync(join(tempDir, 'enums.ts'))).toBe(false)
 
-            expect(readFileSync(join(tempDir, 'generated/schema/schema.d.ts'), 'utf8')).toBe(
-                `export type Permission = 'GroupCreate' | 'GroupEdit'`
+            expect(existsSync(join(tempDir, 'generated/schema/schema.d.ts'))).toBe(false)
+            expect(readFileSync(join(tempDir, 'generated/schema/enums.ts'), 'utf8')).toBe(
+                [
+                    'export enum Permission {',
+                    `\tGroupCreate = 'GroupCreate',`,
+                    `\tGroupEdit = 'GroupEdit',`,
+                    '}',
+                ].join('\n')
+            )
+        })
+    })
+
+    test('does not write enums file when no enums are registered', async () => {
+        const scalarSchema = buildSchema(`
+            scalar DateTime
+
+            type Query {
+                user: User!
+            }
+
+            type User {
+                createdAt: DateTime!
+            }
+        `)
+
+        await withTempOutput(async ({ outputFile, tempDir }) => {
+            await plugin(
+                scalarSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment UserDetails on User {
+                            createdAt
+                        }
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    scalars: {
+                        DateTime: {
+                            input: defineString(),
+                            output: defineString(),
+                        },
+                    },
+                },
+                { outputFile }
+            )
+
+            expect(readFileSync(join(tempDir, 'schema.d.ts'), 'utf8')).toBe(
+                [
+                    'export type Scalars = {',
+                    '\tDateTime: { input: string; output: string; };',
+                    '};',
+                ].join('\n')
+            )
+            expect(existsSync(join(tempDir, 'enums.ts'))).toBe(false)
+        })
+    })
+
+    test('does not write schema file when schema declaration is empty', async () => {
+        const enumSchema = buildSchema(`
+            type Query {
+                group: Group!
+            }
+
+            type Group {
+                permission: Permission!
+            }
+
+            enum Permission {
+                GroupCreate
+                GroupEdit
+            }
+        `)
+
+        await withTempOutput(async ({ outputFile, tempDir }) => {
+            await plugin(
+                enumSchema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupDetails on Group {
+                            permission
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                { outputFile }
+            )
+
+            expect(existsSync(join(tempDir, 'schema.d.ts'))).toBe(false)
+            expect(readFileSync(join(tempDir, 'enums.ts'), 'utf8')).toBe(
+                [
+                    'export enum Permission {',
+                    `\tGroupCreate = 'GroupCreate',`,
+                    `\tGroupEdit = 'GroupEdit',`,
+                    '}',
+                ].join('\n')
             )
         })
     })
