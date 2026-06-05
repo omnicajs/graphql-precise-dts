@@ -7,8 +7,8 @@ import {
 
 const DEFAULT_DOCUMENT_NAME = '*.graphql'
 
-const GENERATED_ENUMS_FILE_NAME = 'enums'
-const GENERATED_SCHEMA_FILE_NAME = 'schema'
+export const GENERATED_ENUMS_FILE_NAME = 'enums'
+export const GENERATED_SCHEMA_FILE_NAME = 'schema'
 
 const normalizePath = (value: string): string => value.split('\\').join('/')
 

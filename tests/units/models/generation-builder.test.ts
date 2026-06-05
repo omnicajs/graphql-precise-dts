@@ -5,12 +5,11 @@ import {
 } from 'vitest'
 
 import { buildGenerationModels } from '../../../src/models/generation-builder'
+import { buildSchema } from 'graphql'
 import { defineNamed } from '../../../src'
 import { makeTestModelContext } from '../helpers/model-context'
-import {
-    buildSchema,
-    parse,
-} from 'graphql'
+import { parse } from 'graphql'
+import { renderType } from '../../../src'
 
 import {
     FRAGMENT_ROOT_KIND,
@@ -19,6 +18,103 @@ import {
 } from '../../../src/kinds'
 
 describe('generation builder', () => {
+    test('builds schema output models from GraphQL schema types', () => {
+        const schema = buildSchema(`
+            interface Node {
+                id: ID!
+            }
+
+            type Query {
+                user(id: ID!, filter: UserFilter): User
+                search: SearchResult!
+            }
+
+            type User implements Node {
+                id: ID!
+                status: UserStatus!
+            }
+
+            type Group {
+                id: ID!
+            }
+
+            input UserFilter {
+                status: UserStatus
+            }
+
+            enum UserStatus {
+                ACTIVE
+                BLOCKED
+            }
+
+            union SearchResult = User | Group
+        `)
+
+        const { schema: schemaOutput, registry } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(schemaOutput.inputTypes.get('UserFilter')).not.toBeUndefined()
+        expect(renderType(schemaOutput.inputTypes.get('UserFilter')!)).toBe([
+            '{',
+            `\tstatus?: UserStatus | null;`,
+            '}',
+        ].join('\n'))
+
+        expect(schemaOutput.interfaceTypes.get('Node')).not.toBeUndefined()
+        expect(renderType(schemaOutput.interfaceTypes.get('Node')!)).toBe([
+            '{',
+            `\tid: string;`,
+            '}',
+        ].join('\n'))
+
+        expect(schemaOutput.objectTypes.get('User')?.interfaces).toEqual([ 'Node' ])
+
+        expect(schemaOutput.unionTypes.get('SearchResult')).not.toBeUndefined()
+        expect(renderType(schemaOutput.unionTypes.get('SearchResult')!)).toBe('User | Group')
+
+        expect(schemaOutput.fieldArgs.get('QueryUserArgs')).not.toBeUndefined()
+        expect(renderType(schemaOutput.fieldArgs.get('QueryUserArgs')!)).toBe([
+            '{',
+            `\tid: string;`,
+            `\tfilter?: UserFilter | null;`,
+            '}',
+        ].join('\n'))
+
+        expect(schemaOutput.enumReferences).toEqual(new Set([ 'UserStatus' ]))
+
+        expect(registry.enums.get('UserStatus')).toEqual([
+            { name: 'ACTIVE', value: 'ACTIVE' },
+            { name: 'BLOCKED', value: 'BLOCKED' },
+        ])
+    })
+
+    test('does not collect enum references from custom scalar TypeScript names', () => {
+        const schema = buildSchema(`
+            scalar DateTime
+
+            enum Permission {
+                GroupCreate
+            }
+
+            type Query {
+                createdAt: DateTime!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema }),
+            { DateTime: defineNamed('Permission') }
+        )
+
+        expect(schemaOutput.objectTypes.get('Query')).not.toBeUndefined()
+        expect(renderType(schemaOutput.objectTypes.get('Query')!.fields)).toContain(`createdAt: Permission;`)
+
+        expect(schemaOutput.enumReferences).toEqual(new Set())
+    })
+
     test('collects registered enums and specified scalars', () => {
         const schema = buildSchema(`
             enum UserStatus {

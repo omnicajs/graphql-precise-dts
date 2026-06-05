@@ -88,8 +88,35 @@ types/graphql-documents.d.ts
 the plugin produces:
 
 - `types/graphql-documents.d.ts` with `declare module '...'` blocks for GraphQL documents;
-- `types/schema.d.ts` with `export type Scalars = ...` when schema declarations are generated;
-- `types/enums.ts` with `export enum MyEnum { ... }` when enum declarations are generated.
+- `types/schema.d.ts` with schema-level TypeScript declarations such as `Scalars`, input object types,
+  object/interface output types, unions, and field argument types;
+- `types/enums.ts` with schema enum declarations when the schema contains enum types.
+
+`schema.d.ts` imports enum types from the sibling `enums.ts` file when schema declarations reference those enums:
+
+```ts
+import type { Permission } from './enums'
+
+export type Scalars = {
+  String: { input: string; output: string; };
+}
+
+export type User = {
+  permission: Permission;
+}
+```
+
+Enum declarations are rendered in `enums.ts`:
+
+```ts
+export enum Permission {
+  GroupCreate = 'GroupCreate',
+  GroupEdit = 'GroupEdit',
+}
+```
+
+The plugin does not write `enums.ts` when the schema does not contain enum declarations.
+GraphQL document declarations import enum types directly from `enums.ts`; they do not import enums from `schema.d.ts`.
 
 By default, schema support files are written next to the generated declaration file. Configure
 `schemaOutputDirectory` to write them elsewhere:
