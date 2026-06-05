@@ -1536,6 +1536,50 @@ describe('plugin __typename support', () => {
         })
     })
 
+    test('writes schema declarations to a configured directory and imports enums from it', async () => {
+        const enumSchema = buildSchema(`
+            type Query {
+                group: Group!
+            }
+
+            type Group {
+                permission: Permission!
+            }
+
+            enum Permission {
+                GroupCreate
+                GroupEdit
+            }
+        `)
+
+        await withTempOutput(async ({ outputFile, tempDir }) => {
+            const result = await plugin(
+                enumSchema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupDetails on Group {
+                            permission
+                        }
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    schemaOutputDirectory: 'generated/schema',
+                },
+                { outputFile }
+            )
+
+            expect(result.content).toContain(`import type { Permission } from './generated/schema/schema'`)
+
+            expect(existsSync(join(tempDir, 'schema.d.ts'))).toBe(false)
+
+            expect(readFileSync(join(tempDir, 'generated/schema/schema.d.ts'), 'utf8')).toBe(
+                `export type Permission = 'GroupCreate' | 'GroupEdit'`
+            )
+        })
+    })
+
     test('renders nullable custom scalar unions without duplicating null', async () => {
         const scalarSchema = buildSchema(`
             scalar DateTime

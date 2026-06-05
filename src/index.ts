@@ -13,20 +13,23 @@ import { emitMissingFragmentDefinitionWarnings } from './lib/documents'
 import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
 import { emitSkippedDocumentWarnings } from './lib/document-errors'
 import { findFragmentDefinitions } from './lib/documents'
-import { join } from 'path'
+import { guardNamedOperations } from './lib/document-errors'
+import { makeDeclarationModuleSpecifier } from './path'
 import { makeDocumentLocationMap } from './lib/documents'
 import { makeDocumentModelBundles } from './plan/document-model-bundles'
 import { makeDocumentModelImportMap } from './plan/document-model-imports'
 import { makeGenerationDirectivePolicies } from './directives/structural-policies'
-import { makeModuleSpecifier } from './path'
+import {
+    makeModuleSpecifier,
+    makeSchemaDeclarationOutputFile,
+    makeSchemaOutputDirectory,
+} from './path'
 import { makeStructuralDirectivePolicies } from './directives/structural-policies'
 import { mkdirSync } from 'fs'
 import { renderDeclarations } from './render/declarations'
 import { renderSchemaDeclaration } from './render/schema'
-import { guardNamedOperations } from './lib/document-errors'
 import { writeFileSync } from 'fs'
 
-const GENERATED_SCHEMA_FILE_NAME = 'schema'
 const EXACT_TYPE_DECLARATION = 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n'
 
 const haveVariables = (operations: RenderableOperationModel[]): boolean => operations.some(op => op.variables.length > 0)
@@ -48,8 +51,10 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
     emitSkippedDocumentWarnings(documents)
     guardNamedOperations(documents)
 
-    const schemaOutputFile = join(dirname(info.outputFile), `${GENERATED_SCHEMA_FILE_NAME}.d.ts`)
-    const schemaModulePath = `./${GENERATED_SCHEMA_FILE_NAME}`
+    const schemaOutputDirectory = makeSchemaOutputDirectory(info.outputFile, config.schemaOutputDirectory)
+    const schemaOutputFile = makeSchemaDeclarationOutputFile(schemaOutputDirectory)
+    const schemaModulePath = makeDeclarationModuleSpecifier(info.outputFile, schemaOutputFile)
+
     const documentModuleSpecifier = (location: string | undefined) => makeModuleSpecifier(
         config.prefix ?? '*/',
         location,

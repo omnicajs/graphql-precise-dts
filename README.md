@@ -4,11 +4,11 @@
 
 `@omnicajs/graphql-precise-dts` is a GraphQL Code Generator plugin that generates TypeScript declaration files for GraphQL documents.
 
-The generated declarations:
+The generated outputs:
 
 - keep fragment and operation types scoped to the corresponding `.graphql` module;
 - generate `TypedDocumentNode` declarations for operations;
-- emit a sibling `schema.d.ts` file with enums and scalar mappings;
+- emit schema support files with scalar mappings (`schema.d.ts`) and enum declarations (`enums.ts`);
 - account for directives that can change the runtime response shape;
 - process directives in two stages:
   - structural policies change whether selections are included, conditional, or forced non-null;
@@ -59,6 +59,7 @@ const config: CodegenConfig = {
         prefix: '~/',
         scope: 'src/',
         relativeToCwd: false,
+        schemaOutputDirectory: 'schema',
         scalars: {
           DateTime: defineString(),
         },
@@ -87,9 +88,25 @@ types/graphql-documents.d.ts
 the plugin produces:
 
 - `types/graphql-documents.d.ts` with `declare module '...'` blocks for GraphQL documents;
-- `types/schema.d.ts` with:
-  - `export type Scalars = ...`
-  - `export type MyEnum = ...`
+- `types/schema.d.ts` with `export type Scalars = ...` when schema declarations are generated;
+- `types/enums.ts` with `export enum MyEnum { ... }` when enum declarations are generated.
+
+By default, schema support files are written next to the generated declaration file. Configure
+`schemaOutputDirectory` to write them elsewhere:
+
+```ts
+{
+  schemaOutputDirectory: 'schema',
+}
+```
+
+For the target above, this writes support files under `types/schema/`:
+
+- `types/schema/schema.d.ts`
+- `types/schema/enums.ts`
+
+Relative `schemaOutputDirectory` values are resolved from the generated declaration file directory.
+Absolute values are used as-is.
 
 Operation declarations are emitted as typed document exports:
 
@@ -208,6 +225,7 @@ type PluginConfig = {
   prefix?: string
   scope?: string
   relativeToCwd?: boolean
+  schemaOutputDirectory?: string
   scalars?: Record<string, TsType | { input?: TsType; output?: TsType }>
   directivePolicies?: Record<string, DirectivePolicy | DirectiveNodePolicies>
 }
@@ -224,6 +242,24 @@ Optional path prefix used to preserve only the scoped part of the document path 
 ### `relativeToCwd`
 
 When enabled, absolute document paths are normalized relative to `process.cwd()` before generating module ids.
+
+### `schemaOutputDirectory`
+
+Optional directory for generated schema support files.
+
+By default, `schema.d.ts` and `enums.ts` are written next to the generated declaration file. When configured,
+relative paths are resolved from the generated declaration file directory, while absolute paths are used directly.
+
+Example:
+
+```ts
+{
+  schemaOutputDirectory: 'schema',
+}
+```
+
+For a generated declaration target such as `types/graphql-documents.d.ts`, this writes support files to
+`types/schema/schema.d.ts` and `types/schema/enums.ts`.
 
 ### `scalars`
 

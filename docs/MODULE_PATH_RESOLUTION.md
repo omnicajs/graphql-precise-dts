@@ -151,6 +151,35 @@ If `process.cwd()` is `/repo`, the module id becomes:
 
 This is useful when the generated declarations should use plain relative module specifiers instead of an alias namespace.
 
+## Schema support output directory
+
+`schemaOutputDirectory` controls where schema support files are written:
+
+```ts
+{
+  schemaOutputDirectory: 'schema',
+}
+```
+
+For a generated declaration target such as:
+
+```txt
+types/graphql-documents.d.ts
+```
+
+the plugin writes support files to:
+
+```txt
+types/schema/schema.d.ts
+types/schema/enums.ts
+```
+
+Relative `schemaOutputDirectory` values are resolved from the generated declaration file directory. Absolute paths are
+used as-is.
+
+This setting does not change generated GraphQL document module ids. It only changes support file locations and the
+relative enum imports emitted inside the generated declaration file.
+
 ## Why the full path is used instead of `basename`
 
 When `scope` does not match, the plugin does not fall back to `basename(documentLocation)`. Using only the file name would make module ids unstable and colliding for common layouts such as:

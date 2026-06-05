@@ -1,9 +1,12 @@
 import {
+    dirname,
     isAbsolute,
+    join,
     relative,
 } from 'path'
 
 const DEFAULT_DOCUMENT_NAME = '*.graphql'
+const GENERATED_SCHEMA_FILE_NAME = 'schema'
 
 const normalizePath = (value: string): string => value.split('\\').join('/')
 
@@ -35,6 +38,32 @@ const makeRelativeModuleSpecifier = (path: string): string => {
 
     return `./${path}`
 }
+
+const stripDeclarationExtension = (path: string): string => path.replace(/\.d\.ts$/, '')
+
+export const makeDeclarationModuleSpecifier = (
+    fromFile: string,
+    toFile: string
+): string => makeRelativeModuleSpecifier(
+    normalizePath(relative(dirname(fromFile), stripDeclarationExtension(toFile)))
+)
+
+export const makeSchemaOutputDirectory = (
+    outputFile: string,
+    schemaOutputDirectory?: string
+): string => {
+    const outputDir = dirname(outputFile)
+
+    if (!schemaOutputDirectory) return outputDir
+
+    return isAbsolute(schemaOutputDirectory)
+        ? schemaOutputDirectory
+        : join(outputDir, schemaOutputDirectory)
+}
+
+export const makeSchemaDeclarationOutputFile = (
+    schemaOutputDirectory: string
+): string => join(schemaOutputDirectory, `${GENERATED_SCHEMA_FILE_NAME}.d.ts`)
 
 export const makeModuleSpecifier = (
     prefix: string,
