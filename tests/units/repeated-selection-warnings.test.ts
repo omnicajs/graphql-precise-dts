@@ -5,7 +5,7 @@ import {
     vi,
 } from 'vitest'
 
-import { emitRepeatedSelectionWarnings } from '../../src/lib/repeated-selection-warnings'
+import { emitRepeatedSelectionWarnings } from '../../src/diagnostics/repeated-selection-warnings'
 import { parse } from 'graphql'
 
 describe('repeated selection warnings', () => {

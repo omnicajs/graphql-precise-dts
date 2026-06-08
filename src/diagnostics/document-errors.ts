@@ -7,7 +7,7 @@ import type {
 import {
     formatNodeLocation,
     makeDocumentLocationMap,
-} from './documents'
+} from '../lib/documents'
 import { visit } from 'graphql'
 
 const UNKNOWN_DOCUMENT_LOCATION = '<unknown document>'
