@@ -32,6 +32,22 @@ export const TS_TYPE_KIND = {
     LITERAL: 'literal',
 } as const
 
+const tsKeywordTypeNames = new Set([
+    'any',
+    'bigint',
+    'boolean',
+    'never',
+    'number',
+    'object',
+    'string',
+    'symbol',
+    'undefined',
+    'unknown',
+    'void',
+])
+
+export const isTsKeywordTypeName = (name: string): boolean => tsKeywordTypeNames.has(name)
+
 const normalizeUnionTypes = (types: TsType[]): TsType[] => {
     const uniqueTypes = new Map<string, TsType>()
 
