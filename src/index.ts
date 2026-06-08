@@ -9,6 +9,7 @@ import type {
 
 import { buildGenerationModels } from './models/generation-builder'
 import { dirname } from 'path'
+import { emitCustomScalarNamedTypeWarnings } from './diagnostics/scalar-name-warnings'
 import { emitMissingFragmentDefinitionWarnings } from './lib/documents'
 import { emitRepeatedSelectionWarnings } from './lib/repeated-selection-warnings'
 import { emitSkippedDocumentWarnings } from './lib/document-errors'
@@ -91,6 +92,8 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         context,
         config.scalars ?? {}
     )
+
+    emitCustomScalarNamedTypeWarnings({ schema: schemaOutput, registry }, config.scalars ?? {})
 
     const schemaDeclaration = renderSchemaDeclaration(schemaOutput)
     const enumsDeclaration = registry.enums.size

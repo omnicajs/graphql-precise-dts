@@ -19,6 +19,7 @@ import {
     defineUnknown,
     intersectionOf,
     isSameTsType,
+    isTsKeywordTypeName,
     makeNullable,
     normalizeTsType,
     renderType,
@@ -81,6 +82,14 @@ describe('ts type', () => {
                 { kind: TS_TYPE_KIND.NULL },
             ],
         })
+    })
+
+    test('detects TypeScript keyword type names', () => {
+        expect(isTsKeywordTypeName('string')).toBe(true)
+        expect(isTsKeywordTypeName('unknown')).toBe(true)
+        expect(isTsKeywordTypeName('never')).toBe(true)
+        expect(isTsKeywordTypeName('Date')).toBe(false)
+        expect(isTsKeywordTypeName('Record')).toBe(false)
     })
 
     test('normalizes arrays recursively', () => {
