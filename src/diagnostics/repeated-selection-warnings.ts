@@ -10,7 +10,7 @@ import type {
 import {
     formatNodeLocation,
     makeDocumentLocationMap,
-} from './documents'
+} from '../lib/documents'
 
 import { Kind } from 'graphql'
 
