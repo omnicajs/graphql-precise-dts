@@ -25,6 +25,9 @@ as the current source of truth for commit wording, scopes, splitting, and lockfi
 - Use past/perfect tense; prefer passive voice when it reads naturally for changelogs.
   Examples: Added ..., Removed ..., Refactored ..., Fixed ..., Updated ....
 - Allowed types: `feat`, `fix`, `build`, `ci`, `perf`, `docs`, `refactor`, `style`, `test`, `chore`.
+- Breaking-change marking is commit-wide: if at least one staged change in a commit is breaking, the commit message must
+use Conventional Commit breaking syntax (`type!:` or `type(scope)!:`) and/or include a `BREAKING CHANGE:` footer.
+Never leave a commit unmarked as non-breaking when it contains any breaking change.
 - This repository is a single package, so scope is optional.
 - Do not invent synthetic scopes just to imitate release automation.
 - Breaking changes: use ! in header or a BREAKING CHANGE footer.
