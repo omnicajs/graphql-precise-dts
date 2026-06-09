@@ -18,6 +18,13 @@ import {
 } from '../../../src'
 import { renderSchemaDeclaration } from '../../../src/render/schema'
 
+const EXACT_TYPE_DECLARATION = 'export type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }'
+const MAYBE_PROMISE_TYPE_DECLARATION = 'export type MaybePromise<T> = T | Promise<T>'
+const SCHEMA_HELPER_DECLARATIONS = [
+    EXACT_TYPE_DECLARATION,
+    MAYBE_PROMISE_TYPE_DECLARATION,
+].join('\n')
+
 const makeSchemaModel = (schema: Partial<SchemaOutputModel>): SchemaOutputModel => ({
     enumReferences: new Set(),
     scalars: new Map(),
@@ -40,6 +47,7 @@ describe('schema render', () => {
         }))
 
         expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
             'export type Scalars = {',
             '\tID: { input: string; output: string; };',
             '\tString: { input: string; output: string; };',
@@ -48,10 +56,10 @@ describe('schema render', () => {
         ].join('\n'))
     })
 
-    test('renders empty output for an empty schema model', () => {
+    test('renders helper declarations for an empty schema model', () => {
         expect(renderSchemaDeclaration(makeSchemaModel({
             scalars: new Map(),
-        }))).toBe('')
+        }))).toBe(SCHEMA_HELPER_DECLARATIONS)
     })
 
     test('sorts primitive scalars ahead of custom scalars in canonical order', () => {
@@ -64,6 +72,7 @@ describe('schema render', () => {
         }))
 
         expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
             'export type Scalars = {',
             '\tID: { input: string; output: string; };',
             '\tFloat: { input: number; output: number; };',
@@ -81,7 +90,8 @@ describe('schema render', () => {
             `import type {`,
             `\tGroupStatus,`,
             `\tUserStatus,`,
-            `} from './enums'`,
+            `} from './enums'\n`,
+            SCHEMA_HELPER_DECLARATIONS,
         ].join('\n'))
     })
 
@@ -96,6 +106,7 @@ describe('schema render', () => {
         }))
 
         expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
             `export type UserFilter = {`,
             `\tgroupStatus?: GroupStatus | null;`,
             `\tstatus?: UserStatus | null;`,
@@ -113,6 +124,7 @@ describe('schema render', () => {
         }))
 
         expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
             `export type Node = {`,
             `\tid: string;`,
             `}`,
@@ -135,6 +147,7 @@ describe('schema render', () => {
         }))
 
         expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
             `export type User = Node & {`,
             `\t__typename?: 'User';`,
             `\tgroupStatus: GroupStatus;`,
@@ -151,7 +164,10 @@ describe('schema render', () => {
             ]),
         }))
 
-        expect(result).toBe(`export type SearchResult = User | Group`)
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            `export type SearchResult = User | Group`,
+        ].join('\n'))
     })
 
     test('renders field args declarations', () => {
@@ -165,6 +181,7 @@ describe('schema render', () => {
         }))
 
         expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
             `export type QueryUserArgs = {`,
             `\tid: string;`,
             `\ttags?: Array<string> | null;`,
@@ -197,6 +214,7 @@ describe('schema render', () => {
 
         expect(result).toBe([
             `import type { UserStatus } from './enums'\n`,
+            SCHEMA_HELPER_DECLARATIONS + '\n',
             `export type Scalars = {`,
             `\tID: { input: string; output: string; };`,
             `}\n`,

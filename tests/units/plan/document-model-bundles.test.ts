@@ -192,6 +192,33 @@ describe('document model bundles', () => {
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "UserStatus" is used both by imported type "UserStatus" and by fragment "UserStatus".')
     })
 
+    test('fails when a fragment export collides with the Exact helper import', () => {
+        const { context, documents, fragments, importMap } = prepareBundleInputs(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user(id: ID!): User
+            }
+        `,
+        `
+            fragment Exact on User {
+                id
+            }
+
+            query GetUser($id: ID!) {
+                user(id: $id) {
+                    ...Exact
+                }
+            }
+        `,
+        { fragments: [ 'Exact' ] })
+
+        expect(() => makeDocumentModelBundles(documents, fragments, context, importMap, {}, {}))
+            .toThrow('Name collision detected in generated declaration exports for "user.graphql": "Exact" is used both by imported type "Exact" and by fragment "Exact".')
+    })
+
     test('fails when an imported type name collides with an operation variables export', () => {
         const { context, documents, fragments, importMap } = prepareBundleInputs(`
             enum GetUserQueryVariables {

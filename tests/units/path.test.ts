@@ -185,10 +185,10 @@ describe('plugin module path resolution', () => {
                 outputInfo
             )
 
-            expect(result.content).toContain(`declare module '~tests/queries/index.graphql' {`)
-            expect(result.content).toContain(`declare module '~tests/mutations/index.graphql' {`)
-            expect(result.content).toContain(`import type { GroupDetails } from '~tests/mutations/index.graphql'`)
-            expect(result.content).not.toContain(`declare module '~tests/index.graphql' {`)
+            expect(result).toContain(`declare module '~tests/queries/index.graphql' {`)
+            expect(result).toContain(`declare module '~tests/mutations/index.graphql' {`)
+            expect(result).toContain(`import type { GroupDetails } from '~tests/mutations/index.graphql'`)
+            expect(result).not.toContain(`declare module '~tests/index.graphql' {`)
         })
     })
 })

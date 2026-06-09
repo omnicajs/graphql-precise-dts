@@ -16,6 +16,14 @@ import {
 
 import { GENERATED_ENUMS_FILE_NAME } from '../path'
 
+const EXACT_TYPE_DECLARATION = 'export type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }'
+const MAYBE_PROMISE_TYPE_DECLARATION = 'export type MaybePromise<T> = T | Promise<T>'
+
+const SCHEMA_HELPER_DECLARATIONS = [
+    EXACT_TYPE_DECLARATION,
+    MAYBE_PROMISE_TYPE_DECLARATION,
+].join('\n')
+
 const primitiveScalarOrder = [
     'ID',
     'String',
@@ -102,6 +110,7 @@ export const renderSchemaDeclaration = (
     schema: SchemaOutputModel
 ) => [
     renderEnumImports(schema.enumReferences),
+    SCHEMA_HELPER_DECLARATIONS,
     renderScalarsDeclaration(schema.scalars),
     ...renderTypeDeclarations(schema.inputTypes),
     ...renderTypeDeclarations(schema.interfaceTypes),

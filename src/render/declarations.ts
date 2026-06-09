@@ -201,15 +201,22 @@ const renderOperationDeclaration = (
     ].map(block => indent(block)).join('\n\n')
 }
 
+const hasOperationVariables = (operations: Map<string, RenderableOperationModel>): boolean =>
+    [ ...operations.values() ].some(operation => operation.variables.length > 0)
+
 export const renderDeclaration = (
     path: string,
     models: RenderableDocumentModels,
-    importsMap: Map<string, string>
+    importsMap: Map<string, string>,
+    schemaModulePath?: string
 ): string => {
     if (!models.fragments.size && !models.operations.size) return ''
 
     const declarationRowsBlocks: string[] = []
 
+    if (schemaModulePath && hasOperationVariables(models.operations)) {
+        declarationRowsBlocks.push(indent(`import type { Exact } from '${schemaModulePath}'`))
+    }
     if (models.operations.size > 0) {
         declarationRowsBlocks.push(indent('import type { TypedDocumentNode } from \'@graphql-typed-document-node/core\''))
     }
@@ -253,13 +260,15 @@ export const renderDeclaration = (
 
 export const renderDeclarations = (
     documentBundles: DocumentModelBundle[],
-    documentModuleSpecifier: (location: string | undefined) => string
+    documentModuleSpecifier: (location: string | undefined) => string,
+    schemaModulePath?: string
 ): string => documentBundles
     .map(({ location, imports, models }) =>
         renderDeclaration(
             documentModuleSpecifier(location),
             models,
-            imports
+            imports,
+            schemaModulePath
         )
     )
     .filter(Boolean)

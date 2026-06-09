@@ -1,15 +1,16 @@
+import type { CollectedDocumentModels } from '../models/types'
 import type { CustomScalarMappingRecord } from '../scalars/types'
 import type { DocumentFile } from '../plugin-types'
 import type { DocumentModelImportMap } from './document-model-imports'
+import type { FragmentModel } from '../models/types'
 import type { GenerationDirectivePolicies } from '../directives/types'
+import type { ModelContext } from '../models/types'
 import type { OperationDefinitionNode } from 'graphql'
-import type { RenderableDocumentModels } from './renderable/types'
-
 import type {
-    CollectedDocumentModels,
-    FragmentModel,
-    ModelContext,
-} from '../models/types'
+    RenderableDocumentModels,
+    RenderableOperationModel
+} from './renderable/types'
+
 
 import { TypeInfo } from 'graphql'
 
@@ -56,6 +57,8 @@ type ExportNameSource = {
     kind: typeof EXPORT_NAME_SOURCE_KIND[keyof typeof EXPORT_NAME_SOURCE_KIND];
     name: string;
 }
+
+const EXACT_TYPE_NAME = 'Exact'
 
 const describeExportNameSource = (source: ExportNameSource): string => {
     switch (source.kind) {
@@ -106,6 +109,10 @@ const validateDocumentBundleExportNames = (
         if (models.fragments.has(name) && !importMap.enums.has(name)) return
         assertUniqueExportName(usedTypeNames, { kind: EXPORT_NAME_SOURCE_KIND.IMPORT, name }, location)
     })
+
+    if ([ ...models.operations.values() ].some(({ variables }) => variables.length > 0)) {
+        assertUniqueExportName(usedTypeNames, { kind: EXPORT_NAME_SOURCE_KIND.IMPORT, name: EXACT_TYPE_NAME }, location)
+    }
 
     models.variableAliases.forEach(({ aliasName }) => {
         assertUniqueExportName(usedTypeNames, { kind: EXPORT_NAME_SOURCE_KIND.VARIABLE_ALIAS, name: aliasName }, location)
@@ -209,6 +216,10 @@ const prepareDocumentModelBundle = (
 ): DocumentModelBundle => {
     const imports = collectDocumentModelImports(models, importMap)
     const importsNamesSet = new Set(imports.keys())
+    if ([ ...models.operations.values() ].some(({ variables }) => variables.length > 0)) {
+        importsNamesSet.add(EXACT_TYPE_NAME)
+    }
+
     const renderableModels = excludeImportedDuplicateOutputAliases(
         prepareRenderableDocumentModels(
             makePlannedDocumentModels(models, [ ...importsNamesSet ], customScalars, directivePolicies)
