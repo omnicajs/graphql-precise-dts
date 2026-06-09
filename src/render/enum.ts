@@ -1,21 +1,30 @@
-import type { EnumValueEntries } from '../models/types'
+import type { EnumModel } from '../models/types'
 
 import { indent } from '../lib/strings'
+import { renderJsDoc } from './jsdoc'
 
 const renderStringLiteral = (value: string): string => `'${value.replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'`
 
-const sortEnumEntries = (enums: Map<string, EnumValueEntries>) => [ ...enums.entries() ]
+const sortEnumEntries = (enums: Map<string, EnumModel>) => [ ...enums.entries() ]
     .sort(([ leftName ], [ rightName ]) => leftName.localeCompare(rightName))
 
 const renderEnumDeclaration = (
     enumName: string,
-    values: EnumValueEntries
+    enumModel: EnumModel
 ): string => [
+    renderJsDoc(enumModel),
     `export enum ${enumName} {`,
-    ...values.map(({ name, value }) => indent(`${name} = ${renderStringLiteral(value)},`)),
-    '}',
-].join('\n')
+    ...enumModel.entries.flatMap(({ name, value, description, deprecationReason }) => {
+        const jsDoc = renderJsDoc({ description, deprecationReason }, '\t')
 
-export const renderEnumsDeclaration = (enums: Map<string, EnumValueEntries>) => sortEnumEntries(enums)
-    .map(([ enumName, values ]) => renderEnumDeclaration(enumName, values))
+        return [
+            ...(jsDoc ? [ jsDoc ] : []),
+            indent(`${name} = ${renderStringLiteral(value)},`),
+        ]
+    }),
+    '}',
+].filter(Boolean).join('\n')
+
+export const renderEnumsDeclaration = (enums: Map<string, EnumModel>) => sortEnumEntries(enums)
+    .map(([ enumName, enumModel ]) => renderEnumDeclaration(enumName, enumModel))
     .join('\n\n')

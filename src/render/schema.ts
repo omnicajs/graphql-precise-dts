@@ -11,8 +11,9 @@ import { isScalarPrimitiveKey } from '../scalars/builder'
 import {
     intersectionTsType,
     namedTsType,
-    renderTsType,
 } from '../ts-type'
+import { renderJsDoc } from './jsdoc'
+import { renderTsType } from '../ts-type'
 
 import { GENERATED_ENUMS_FILE_NAME } from '../path'
 
@@ -50,7 +51,13 @@ const sortScalarEntries = (scalars: Map<string, ScalarModelShape>) => [ ...scala
 const renderScalarEntry = (
     scalarName: string,
     scalar: ScalarModelShape
-): string => indent(`${scalarName}: { input: ${scalar.input}; output: ${scalar.output}; };`)
+): string => [
+    renderJsDoc({
+        description: scalar.description,
+        see: scalar.specifiedByUrl,
+    }, '\t'),
+    indent(`${scalarName}: { input: ${scalar.input}; output: ${scalar.output}; };`),
+].filter(Boolean).join('\n')
 
 const renderScalarsDeclaration = (scalars: Map<string, ScalarModelShape>): string => {
     const scalarEntries = sortScalarEntries(scalars)
@@ -80,7 +87,10 @@ const renderEnumImports = (enumImports: Set<string>): string => {
 const renderTypeDeclaration = (
     typeName: string,
     type: TsType
-): string => `export type ${typeName} = ${renderTsType(type)}`
+): string => [
+    renderJsDoc(type),
+    `export type ${typeName} = ${renderTsType(type)}`,
+].filter(Boolean).join('\n')
 
 const sortEntriesByName = <TValue>(entries: Map<string, TValue>) => [ ...entries.entries() ]
     .sort(([ leftName ], [ rightName ]) => leftName.localeCompare(rightName))
@@ -94,12 +104,15 @@ const renderObjectTypeDeclaration = (
     model: SchemaObjectModel
 ): string => renderTypeDeclaration(
     typeName,
-    model.interfaces.length
-        ? intersectionTsType(
-            ...model.interfaces.map(namedTsType),
-            model.fields
-        )
-        : model.fields
+    {
+        ...model.interfaces.length
+            ? intersectionTsType(
+                ...model.interfaces.map(namedTsType),
+                model.fields
+            )
+            : model.fields,
+        ...(model.description && { description: model.description }),
+    }
 )
 
 const renderObjectTypeDeclarations = (

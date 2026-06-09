@@ -1,10 +1,11 @@
 import type { CustomScalarMappingRecord } from '../scalars/types'
-import type { EnumValueEntries } from './types/type-ref'
+import type { EnumModel } from './types/type-ref'
 import type { FragmentModel } from './types/document'
 import type { GenerationModels } from './generation'
 import type {
     GraphQLArgument,
     GraphQLField,
+    GraphQLInputField,
     GraphQLInputObjectType,
     GraphQLInputType,
     GraphQLInterfaceType,
@@ -13,6 +14,7 @@ import type {
     GraphQLOutputType,
     GraphQLUnionType,
 } from 'graphql'
+import type { JsDoc } from '../render/jsdoc'
 import type { ModelContext } from './types/context'
 import type { NamedObjectField } from '../ts-type'
 import type { ScalarModelShape } from './types/type-ref'
@@ -74,10 +76,23 @@ const createGenerationModels = (): GenerationModels => ({
         fieldArgs: new Map<string, TsType>(),
     },
     registry: {
-        enums: new Map<string, EnumValueEntries>(),
+        enums: new Map<string, EnumModel>(),
         fragments: new Map<string, FragmentModel>(),
     },
 })
+
+const makeJsDoc = (description?: string | null): JsDoc => description ? { description } : {}
+
+const makeScalarReferenceRemark = (
+    type: GraphQLInputType | GraphQLOutputType,
+    usage: 'input' | 'output'
+): string | undefined => {
+    const namedType = getNamedType(type)
+
+    return isScalarType(namedType)
+        ? `Scalar reference: \`Scalars['${namedType.name}']['${usage}']\`.`
+        : undefined
+}
 
 const addCustomScalars = (
     scalars: Map<string, ScalarModelShape>,
@@ -87,16 +102,37 @@ const addCustomScalars = (
     const scalarType = schema.getType(scalarName)
 
     if (isScalarType(scalarType) && !scalars.has(scalarName)) {
-        scalars.set(scalarName, getScalarTsShape(scalarName, customScalars))
+        const description = isScalarPrimitiveKey(scalarType.name)
+            ? scalarType.astNode?.description?.value
+            : scalarType.description
+
+        scalars.set(scalarName, {
+            ...getScalarTsShape(scalarName, customScalars),
+            ...(description && { description }),
+            ...(scalarType.specifiedByURL && { specifiedByUrl: scalarType.specifiedByURL }),
+        })
     }
 })
 
 const addPrimitiveScalars = (
     scalars: Map<string, ScalarModelShape>,
+    schema: Schema,
     usedPrimitiveScalars: Set<keyof Scalars>
 ) => specifiedScalarTypes.forEach(({ name }) => {
     if (usedPrimitiveScalars.has(name as keyof Scalars) && !scalars.has(name)) {
-        scalars.set(name, getScalarPrimitiveShapeTs(name as keyof Scalars))
+        const scalarType = schema.getType(name)
+        const description = isScalarType(scalarType)
+            ? scalarType.astNode?.description?.value
+            : undefined
+        const specifiedByUrl = isScalarType(scalarType)
+            ? scalarType.specifiedByURL
+            : undefined
+
+        scalars.set(name, {
+            ...getScalarPrimitiveShapeTs(name as keyof Scalars),
+            ...(description && { description }),
+            ...(specifiedByUrl && { specifiedByUrl }),
+        })
     }
 })
 
@@ -105,9 +141,13 @@ const makeTypenameField = (typeName: string): NamedObjectField => ({
     ...defineObjectField(defineLiteral(typeName), true),
 })
 
-const makeSchemaObjectType = (fields: NamedObjectField[]): TsType => ({
+const makeSchemaObjectType = (
+    fields: NamedObjectField[],
+    jsDoc: JsDoc = {}
+): TsType => ({
     kind: TS_TYPE_KIND.OBJECT,
     fields,
+    ...jsDoc,
 })
 
 const makeScalarReference = (
@@ -160,25 +200,41 @@ const makeSchemaObjectField = (
     scalars: Map<string, ScalarModelShape>,
     fieldName: string,
     type: GraphQLInputType | GraphQLOutputType,
-    usage: 'input' | 'output'
-): NamedObjectField => ({
-    name: fieldName,
-    ...defineObjectField(
-        makeSchemaTypeReference(enumReferences, scalars, type, usage),
-        isNullableType(type)
-    ),
-})
+    usage: 'input' | 'output',
+    jsDoc: {
+        description?: string | null;
+        deprecationReason?: string | null;
+    } = {}
+): NamedObjectField => {
+    const scalarReferenceRemark = makeScalarReferenceRemark(type, usage)
+
+    return {
+        name: fieldName,
+        ...defineObjectField(
+            makeSchemaTypeReference(enumReferences, scalars, type, usage),
+            isNullableType(type),
+            {
+                ...(jsDoc.description && { description: jsDoc.description }),
+                ...(jsDoc.deprecationReason && { deprecationReason: jsDoc.deprecationReason }),
+                ...(scalarReferenceRemark && { remarks: scalarReferenceRemark }),
+            }
+        ),
+    }
+}
 
 const makeOutputFields = (
     enumReferences: Set<string>,
     scalars: Map<string, ScalarModelShape>,
     typeName: string,
     fields: Record<string, GraphQLField<unknown, unknown>>,
-    withTypename: boolean
+    withTypename: boolean,
+    jsDoc: JsDoc = {}
 ): TsType => makeSchemaObjectType([
     ...(withTypename ? [ makeTypenameField(typeName) ] : []),
-    ...Object.values(fields).map(field => makeSchemaObjectField(enumReferences, scalars, field.name, field.type, 'output')),
-])
+    ...Object.values(fields).map(field =>
+        makeSchemaObjectField(enumReferences, scalars, field.name, field.type, 'output', field)
+    ),
+], jsDoc)
 
 const makeFieldArgsName = (
     typeName: string,
@@ -197,7 +253,9 @@ const addFieldArgs = (
 
     fieldArgs.set(
         makeFieldArgsName(parentTypeName, fieldName),
-        makeSchemaObjectType(args.map(arg => makeSchemaObjectField(enumReferences, scalars, arg.name, arg.type, 'input')))
+        makeSchemaObjectType(args.map(arg =>
+            makeSchemaObjectField(enumReferences, scalars, arg.name, arg.type, 'input', arg)
+        ))
     )
 }
 
@@ -208,9 +266,12 @@ const addInputType = (
     type: GraphQLInputObjectType
 ) => inputTypes.set(
     type.name,
-    makeSchemaObjectType(Object.values(type.getFields()).map(field =>
-        makeSchemaObjectField(enumReferences, scalars, field.name, field.type, 'input')
-    ))
+    makeSchemaObjectType(
+        Object.values(type.getFields()).map((field: GraphQLInputField) =>
+            makeSchemaObjectField(enumReferences, scalars, field.name, field.type, 'input', field)
+        ),
+        makeJsDoc(type.description)
+    )
 )
 
 const addInterfaceType = (
@@ -226,7 +287,14 @@ const addInterfaceType = (
         addFieldArgs(fieldArgs, enumReferences, scalars, type.name, field.name, field.args)
     })
 
-    interfaceTypes.set(type.name, makeOutputFields(enumReferences, scalars, type.name, fields, false))
+    interfaceTypes.set(type.name, makeOutputFields(
+        enumReferences,
+        scalars,
+        type.name,
+        fields,
+        false,
+        makeJsDoc(type.description)
+    ))
 }
 
 const addObjectType = (
@@ -243,8 +311,15 @@ const addObjectType = (
     })
 
     objectTypes.set(type.name, {
-        fields: makeOutputFields(enumReferences, scalars, type.name, fields, true),
+        fields: makeOutputFields(
+            enumReferences,
+            scalars,
+            type.name,
+            fields,
+            true
+        ),
         interfaces: type.getInterfaces().map(({ name }) => name),
+        ...(type.description && { description: type.description }),
     })
 }
 
@@ -254,7 +329,10 @@ const addUnionType = (
 ) => {
     unionTypes.set(
         type.name,
-        unionTsType(...type.getTypes().map(({ name }) => namedTsType(name)))
+        {
+            ...unionTsType(...type.getTypes().map(({ name }) => namedTsType(name))),
+            ...(type.description && { description: type.description }),
+        }
     )
 }
 
@@ -342,16 +420,21 @@ const collectUsedPrimitiveScalars = (
 }
 
 const registerEnums = (
-    enums: Map<string, EnumValueEntries>,
+    enums: Map<string, EnumModel>,
     schema: Schema
 ) => Object.values(schema.getTypeMap()).forEach(type => {
     if (type.name.startsWith('__')) return
 
     if (isEnumType(type) && !enums.has(type.name)) {
-        enums.set(type.name, type.getValues().map(v => ({
-            name: v.name,
-            value: v.value,
-        })))
+        enums.set(type.name, {
+            ...(type.description && { description: type.description }),
+            entries: type.getValues().map(v => ({
+                name: v.name,
+                value: v.value,
+                ...(v.description && { description: v.description }),
+                ...(v.deprecationReason && { deprecationReason: v.deprecationReason }),
+            })),
+        })
     }
 })
 
@@ -376,7 +459,7 @@ export const buildGenerationModels = (
     const usedPrimitiveScalars = collectUsedPrimitiveScalars(context.schema)
 
     addCustomScalars(schema.scalars, context.schema, customScalars)
-    addPrimitiveScalars(schema.scalars, usedPrimitiveScalars)
+    addPrimitiveScalars(schema.scalars, context.schema, usedPrimitiveScalars)
     addSchemaTypes(schema, context.schema)
 
     registerEnums(registry.enums, context.schema)

@@ -1,72 +1,119 @@
+"Root read operations."
 type Query {
+    "Finds a user by identifier."
     user(id: ID!): User
+    "Lists users matching the provided filter."
     users(filter: UsersFilter): [User!]!
+    "Lists groups for the selected user."
     userGroups(id: ID!): [Group!]!
+    "Finds the group owned by the selected user."
     ownerGroup(id: ID!): User
-    groupMembers(groudId: ID!): [User!]!
+    "Lists users that belong to a group."
+    groupMembers("Target group identifier." groudId: ID!): [User!]!
 }
 
+"Root write operations."
 type Mutation {
+    "Creates a user."
     createUser(input: CreateUserInput!): User!
+    "Creates a group."
     addGroup(input: AddGroupInput!): Group!
+    "Removes a group by identifier."
     removeGroup(id: ID!): RemoveGroupPayload!
+    "Changes the owner of a group."
     changeOwner(input: ChangeOwnerInput!): User!
 }
 
+"Root realtime operations."
 type Subscription {
+    "Emitted when a user is created."
     userCreated: UserCreatedPayload!
+    "Emitted when a group owner changes."
     ownerGroupChanged (groupId: ID!): OwnerGroupChangedPayload!
 }
 
-scalar DateTime
+"ISO date-time string."
+scalar DateTime @specifiedBy(url: "https://scalars.graphql.org/andimarek/date-time.html")
 
+"Common user fields."
 interface User {
+    "Stable user identifier."
     id: ID!
+    "Unique username."
     username: String!
+    "Optional first name."
     firstName: String
+    "Optional last name."
     lastName: String
+    "Whether the user is currently online."
     isOnline: Boolean!
+    "Groups the user belongs to."
     groups: [Group!]!
+    "Permissions granted to the user."
     permissions: [Permission!]!
 }
 
+"Permission names supported by the fixture schema."
 enum Permission {
+    "Allows creating groups."
     GroupCreate
+    "Allows editing groups."
     GroupEdit
 }
 
+"Common group fields."
 interface Group {
+    "Stable group identifier."
     id: ID!
+    "Human-readable group name."
     name: String!
+    "User that owns the group."
     owner: User!
+    "User that created the group."
     createdBy: User!
+    "Date when the group was created."
     createdAt: DateTime!
 }
 
+"Filters used when listing users."
 input UsersFilter {
+    "Limits results to users with the selected online state."
     isOnline: Boolean!
 }
 
+"Input for creating a user."
 input CreateUserInput {
+    "Display name."
     name: String!
+    "Unique username."
     username: String!
+    "Optional first name."
     firstName: String
+    "Optional last name."
     lastName: String
 }
 
+"Input for creating a group."
 input AddGroupInput {
+    "Human-readable group name."
     name: String!
+    "Identifier of the user creating the group."
     createdBy: ID!
 }
 
+"Payload returned after removing a group."
 type RemoveGroupPayload {
+    "Identifier of the removed group."
     id: ID!
 }
 
+"Input for changing a group owner."
 input ChangeOwnerInput {
+    "Identifier of the new owner."
     id: ID!
 }
 
+"Payload emitted when a user is created."
 type UserCreatedPayload implements User {
     id: ID!
     username: String!
@@ -78,11 +125,13 @@ type UserCreatedPayload implements User {
     createdAt: DateTime!
 }
 
+"Payload emitted when a group owner changes."
 type OwnerGroupChangedPayload implements Group {
     id: ID!
     name: String!
     owner: User!
     createdBy: User!
     createdAt: DateTime!
+    "Date when the owner was changed."
     changedAt: DateTime!
 }

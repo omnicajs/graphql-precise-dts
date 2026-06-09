@@ -173,9 +173,7 @@ export const buildSelection = (
 
             return {
                 ...selection,
-                ...(generationDirectives.overrideType
-                    ? { overrideTypeTs: normalizeTsType(generationDirectives.overrideType) }
-                    : {}),
+                ...(generationDirectives.overrideType && { overrideTypeTs: normalizeTsType(generationDirectives.overrideType) }),
                 value: buildFieldValue(
                     selection.value,
                     state,

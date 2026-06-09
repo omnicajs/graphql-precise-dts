@@ -1,7 +1,8 @@
 export type { ModelContext } from './types/context'
 
 export type {
-    EnumValueEntries,
+    EnumModel,
+    EnumValueEntry,
     ScalarModelShape,
     TypeRef,
 } from './types/type-ref'

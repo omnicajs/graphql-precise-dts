@@ -18,39 +18,18 @@ import {
 } from '../../../src/kinds'
 
 describe('generation builder', () => {
-    test('builds schema output models from GraphQL schema types', () => {
+    test('builds input type models from GraphQL schema types', () => {
         const schema = buildSchema(`
-            interface Node {
-                id: ID!
+            input UserFilter {
+                status: String
             }
 
             type Query {
-                user(id: ID!, filter: UserFilter): User
-                search: SearchResult!
+                users(filter: UserFilter): [String!]!
             }
-
-            type User implements Node {
-                id: ID!
-                status: UserStatus!
-            }
-
-            type Group {
-                id: ID!
-            }
-
-            input UserFilter {
-                status: UserStatus
-            }
-
-            enum UserStatus {
-                ACTIVE
-                BLOCKED
-            }
-
-            union SearchResult = User | Group
         `)
 
-        const { schema: schemaOutput, registry } = buildGenerationModels(
+        const { schema: schemaOutput } = buildGenerationModels(
             { fragments: [], enums: [] },
             makeTestModelContext({ schema })
         )
@@ -58,36 +37,150 @@ describe('generation builder', () => {
         expect(schemaOutput.inputTypes.get('UserFilter')).not.toBeUndefined()
         expect(renderType(schemaOutput.inputTypes.get('UserFilter')!)).toBe([
             '{',
-            `\tstatus?: UserStatus | null;`,
+            `\t/** @remarks Scalar reference: \`Scalars['String']['input']\`. */`,
+            `\tstatus?: string | null;`,
             '}',
         ].join('\n'))
+    })
+
+    test('builds interface models from GraphQL schema types', () => {
+        const schema = buildSchema(`
+            interface Node {
+                id: ID!
+            }
+
+            type User implements Node {
+                id: ID!
+            }
+
+            type Query {
+                user: User
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
 
         expect(schemaOutput.interfaceTypes.get('Node')).not.toBeUndefined()
         expect(renderType(schemaOutput.interfaceTypes.get('Node')!)).toBe([
             '{',
+            `\t/** @remarks Scalar reference: \`Scalars['ID']['output']\`. */`,
             `\tid: string;`,
             '}',
         ].join('\n'))
+    })
 
+    test('tracks implemented interfaces on object models', () => {
+        const schema = buildSchema(`
+            interface Node {
+                id: ID!
+            }
+
+            type User implements Node {
+                id: ID!
+            }
+
+            type Query {
+                user: User
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(schemaOutput.objectTypes.get('User')).not.toBeUndefined()
         expect(schemaOutput.objectTypes.get('User')?.interfaces).toEqual([ 'Node' ])
+    })
+
+    test('builds union models from GraphQL schema types', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Group {
+                id: ID!
+            }
+
+            union SearchResult = User | Group
+
+            type Query {
+                search: SearchResult!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
 
         expect(schemaOutput.unionTypes.get('SearchResult')).not.toBeUndefined()
         expect(renderType(schemaOutput.unionTypes.get('SearchResult')!)).toBe('User | Group')
+    })
+
+    test('builds field argument models from GraphQL schema types', () => {
+        const schema = buildSchema(`
+            input UserFilter {
+                status: String
+            }
+
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user(id: ID!, filter: UserFilter): User
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
 
         expect(schemaOutput.fieldArgs.get('QueryUserArgs')).not.toBeUndefined()
         expect(renderType(schemaOutput.fieldArgs.get('QueryUserArgs')!)).toBe([
             '{',
+            `\t/** @remarks Scalar reference: \`Scalars['ID']['input']\`. */`,
             `\tid: string;`,
             `\tfilter?: UserFilter | null;`,
             '}',
         ].join('\n'))
+    })
+
+    test('collects enum references and registry enum models from GraphQL schema types', () => {
+        const schema = buildSchema(`
+            enum UserStatus {
+                ACTIVE
+                BLOCKED
+            }
+
+            type User {
+                status: UserStatus!
+            }
+
+            type Query {
+                user: User
+            }
+        `)
+
+        const { schema: schemaOutput, registry } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
 
         expect(schemaOutput.enumReferences).toEqual(new Set([ 'UserStatus' ]))
 
-        expect(registry.enums.get('UserStatus')).toEqual([
-            { name: 'ACTIVE', value: 'ACTIVE' },
-            { name: 'BLOCKED', value: 'BLOCKED' },
-        ])
+        expect(registry.enums.get('UserStatus')).toEqual({
+            entries: [
+                { name: 'ACTIVE', value: 'ACTIVE' },
+                { name: 'BLOCKED', value: 'BLOCKED' },
+            ],
+        })
     })
 
     test('does not collect enum references from custom scalar TypeScript names', () => {
@@ -113,6 +206,169 @@ describe('generation builder', () => {
         expect(renderType(schemaOutput.objectTypes.get('Query')!.fields)).toContain(`createdAt: Permission;`)
 
         expect(schemaOutput.enumReferences).toEqual(new Set())
+    })
+
+    test('keeps GraphQL scalar descriptions in schema output models', () => {
+        const schema = buildSchema(`
+            "ISO date-time string."
+            scalar DateTime @specifiedBy(url: "https://scalars.graphql.org/andimarek/date-time.html")
+
+            type Query {
+                createdAt: DateTime!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema }),
+            { DateTime: defineNamed('Date') }
+        )
+
+        expect(schemaOutput.scalars.get('DateTime')).toMatchObject({
+            input: 'Date',
+            output: 'Date',
+            description: 'ISO date-time string.',
+            specifiedByUrl: 'https://scalars.graphql.org/andimarek/date-time.html',
+        })
+    })
+
+    test('keeps GraphQL input type and field descriptions in schema output models', () => {
+        const schema = buildSchema(`
+            "User search filters."
+            input UserFilter {
+                "Input field UserFilter.status filters users by legacy status."
+                status: String @deprecated(reason: "Use active instead")
+            }
+
+            type Query {
+                users(filter: UserFilter): [String!]!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(schemaOutput.inputTypes.get('UserFilter')).toMatchObject({
+            description: 'User search filters.',
+            kind: 'object',
+            fields: [
+                {
+                    name: 'status',
+                    description: 'Input field UserFilter.status filters users by legacy status.',
+                    deprecationReason: 'Use active instead',
+                    remarks: 'Scalar reference: `Scalars[\'String\'][\'input\']`.',
+                },
+            ],
+        })
+    })
+
+    test('keeps GraphQL argument descriptions in schema output models', () => {
+        const schema = buildSchema(`
+            type Query {
+                users(
+                    "Argument Query.users(filter:) applies user search filters."
+                    filter: String
+                ): [String!]!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(schemaOutput.fieldArgs.get('QueryUsersArgs')).toMatchObject({
+            kind: 'object',
+            fields: [
+                {
+                    name: 'filter',
+                    description: 'Argument Query.users(filter:) applies user search filters.',
+                    remarks: 'Scalar reference: `Scalars[\'String\'][\'input\']`.',
+                },
+            ],
+        })
+    })
+
+    test('keeps GraphQL output field scalar replacement comments in schema output models', () => {
+        const schema = buildSchema(`
+            scalar DateTime
+
+            type Query {
+                createdAt: DateTime!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema }),
+            { DateTime: defineNamed('Date') }
+        )
+
+        expect(schemaOutput.objectTypes.get('Query')).toMatchObject({
+            fields: {
+                kind: 'object',
+                fields: [
+                    { name: '__typename' },
+                    {
+                        name: 'createdAt',
+                        remarks: 'Scalar reference: `Scalars[\'DateTime\'][\'output\']`.',
+                    },
+                ],
+            },
+        })
+    })
+
+    test('keeps GraphQL enum descriptions in registry models', () => {
+        const schema = buildSchema(`
+            "User account statuses."
+            enum UserStatus {
+                ACTIVE
+            }
+
+            type Query {
+                status: UserStatus!
+            }
+        `)
+
+        const { registry } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(registry.enums.get('UserStatus')).toMatchObject({
+            description: 'User account statuses.',
+            entries: [
+                { name: 'ACTIVE', value: 'ACTIVE' },
+            ],
+        })
+    })
+
+    test('keeps GraphQL enum value descriptions and deprecation reasons in registry models', () => {
+        const schema = buildSchema(`
+            enum UserStatus {
+                "Active user."
+                ACTIVE
+                BLOCKED @deprecated(reason: "Use ACTIVE instead")
+            }
+
+            type Query {
+                status: UserStatus!
+            }
+        `)
+
+        const { registry } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(registry.enums.get('UserStatus')).toEqual({
+            entries: [
+                { name: 'ACTIVE', value: 'ACTIVE', description: 'Active user.' },
+                { name: 'BLOCKED', value: 'BLOCKED', deprecationReason: 'Use ACTIVE instead' },
+            ],
+        })
     })
 
     test('collects registered enums and specified scalars', () => {
@@ -161,10 +417,12 @@ describe('generation builder', () => {
             { String: defineNamed('DateIsoString') }
         )
 
-        expect(enums.get('UserStatus')).toEqual([
-            { name: 'ACTIVE', value: 'ACTIVE' },
-            { name: 'BLOCKED', value: 'BLOCKED' },
-        ])
+        expect(enums.get('UserStatus')).toEqual({
+            entries: [
+                { name: 'ACTIVE', value: 'ACTIVE' },
+                { name: 'BLOCKED', value: 'BLOCKED' },
+            ],
+        })
 
         expect(scalars.get('String')).toEqual({
             input: 'DateIsoString',
