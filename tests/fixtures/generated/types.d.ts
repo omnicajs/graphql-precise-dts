@@ -1,5 +1,3 @@
-type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }
-
 declare module '~tests/fixtures/documents/fragments/GroupDetails.graphql' {
 	import type { Permission } from './enums'
 	import type { UserDetails } from '~tests/fixtures/documents/fragments/UserDetails.graphql'
@@ -37,6 +35,8 @@ declare module '~tests/fixtures/documents/fragments/UserWithGroups.graphql' {
 }
 
 declare module '~tests/fixtures/documents/mutations/addGroup.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { GroupDetails } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'
@@ -59,6 +59,8 @@ declare module '~tests/fixtures/documents/mutations/addGroup.graphql' {
 }
 
 declare module '~tests/fixtures/documents/mutations/changeOwner.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
@@ -80,6 +82,8 @@ declare module '~tests/fixtures/documents/mutations/changeOwner.graphql' {
 }
 
 declare module '~tests/fixtures/documents/mutations/createUser.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
@@ -104,6 +108,8 @@ declare module '~tests/fixtures/documents/mutations/createUser.graphql' {
 }
 
 declare module '~tests/fixtures/documents/mutations/removeGroup.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	export type RemoveGroupMutationVariables = Exact<{
@@ -124,6 +130,8 @@ declare module '~tests/fixtures/documents/mutations/removeGroup.graphql' {
 }
 
 declare module '~tests/fixtures/documents/queries/groupMembers.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { UserDetails } from '~tests/fixtures/documents/fragments/UserDetails.graphql'
@@ -143,6 +151,8 @@ declare module '~tests/fixtures/documents/queries/groupMembers.graphql' {
 }
 
 declare module '~tests/fixtures/documents/queries/ownerGroup.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
@@ -162,6 +172,8 @@ declare module '~tests/fixtures/documents/queries/ownerGroup.graphql' {
 }
 
 declare module '~tests/fixtures/documents/queries/user.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
@@ -181,6 +193,8 @@ declare module '~tests/fixtures/documents/queries/user.graphql' {
 }
 
 declare module '~tests/fixtures/documents/queries/userGroups.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { GroupDetails } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'
@@ -200,6 +214,8 @@ declare module '~tests/fixtures/documents/queries/userGroups.graphql' {
 }
 
 declare module '~tests/fixtures/documents/queries/users.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { UserWithGroups } from '~tests/fixtures/documents/fragments/UserWithGroups.graphql'
@@ -221,6 +237,8 @@ declare module '~tests/fixtures/documents/queries/users.graphql' {
 }
 
 declare module '~tests/fixtures/documents/subscriptions/ownerGroupChanged.graphql' {
+	import type { Exact } from './schema'
+
 	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
 	import type { GroupDetails } from '~tests/fixtures/documents/fragments/GroupDetails.graphql'

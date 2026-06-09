@@ -102,6 +102,7 @@ describe('declaration render', () => {
             expect(result).toContain(
                 '\timport type { TypedDocumentNode } from \'@graphql-typed-document-node/core\'\n'
             )
+            expect(result).not.toContain('import type { Exact }')
         })
 
         test('does not add TypedDocumentNode import when operations are absent', () => {

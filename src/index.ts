@@ -1,11 +1,6 @@
-import type { DocumentModelBundle } from './plan/document-model-bundles'
 import type { ModelContext } from './models/types'
 import type { PluginConfig } from './config'
-import type { RenderableOperationModel } from './plan/renderable/types'
-import type {
-    PluginFunction,
-    Types,
-} from '@graphql-codegen/plugin-helpers'
+import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 
 import { buildGenerationModels } from './models/generation-builder'
 import { dirname } from 'path'
@@ -33,17 +28,7 @@ import { renderEnumsDeclaration } from './render/enum'
 import { renderSchemaDeclaration } from './render/schema'
 import { writeFileSync } from 'fs'
 
-const EXACT_TYPE_DECLARATION = 'type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }\n'
-
-const haveVariables = (operations: RenderableOperationModel[]): boolean => operations.some(op => op.variables.length > 0)
-
-const getExactType = (operations: RenderableOperationModel[]): string[] => haveVariables(operations) ? [ EXACT_TYPE_DECLARATION ] : []
-
-const makePrepend = (bundles: DocumentModelBundle[]): string[] => [
-    ...getExactType(bundles.flatMap(({ models }) => [ ...models.operations.values() ])),
-]
-
-export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
+export const plugin: PluginFunction<PluginConfig, string> = (
     schema,
     documents,
     config,
@@ -100,11 +85,9 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         ? renderEnumsDeclaration(registry.enums)
         : ''
 
-    if (schemaDeclaration || enumsDeclaration) {
-        mkdirSync(dirname(schemaOutputFile), { recursive: true })
-    }
+    mkdirSync(dirname(schemaOutputFile), { recursive: true })
+    writeFileSync(schemaOutputFile, schemaDeclaration)
 
-    if (schemaDeclaration) writeFileSync(schemaOutputFile, schemaDeclaration)
     if (enumsDeclaration) writeFileSync(enumsOutputFile, enumsDeclaration)
 
     const documentBundles = makeDocumentModelBundles(
@@ -116,13 +99,11 @@ export const plugin: PluginFunction<PluginConfig, Types.ComplexPluginOutput> = (
         makeGenerationDirectivePolicies(directivePolicies)
     )
 
-    return {
-        prepend: makePrepend(documentBundles),
-        content: renderDeclarations(
-            documentBundles,
-            documentModuleSpecifier
-        ),
-    }
+    return renderDeclarations(
+        documentBundles,
+        documentModuleSpecifier,
+        makeDeclarationModuleSpecifier(info.outputFile, schemaOutputFile)
+    )
 }
 
 export type { DirectivePolicy } from './directives/types'

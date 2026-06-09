@@ -13,7 +13,7 @@ const GENERATED_DECLARATION_KIND = {
     GRAPHQL_TYPE: 'GraphQL type declaration',
     FIELD_ARGUMENTS_HELPER: 'field arguments helper declaration',
     ENUM: 'enum declaration',
-    SCALARS_HELPER: 'Scalars helper declaration',
+    SCHEMA_HELPER: 'schema helper declaration',
 } as const
 
 type GeneratedDeclarationKind = typeof GENERATED_DECLARATION_KIND[keyof typeof GENERATED_DECLARATION_KIND]
@@ -61,8 +61,11 @@ const addGeneratedName = (
 const makeGeneratedNameMap = ({ schema, registry }: GenerationModels): Map<string, Set<GeneratedDeclarationKind>> => {
     const generatedNames = new Map<string, Set<GeneratedDeclarationKind>>()
 
+    addGeneratedName(generatedNames, 'Exact', GENERATED_DECLARATION_KIND.SCHEMA_HELPER)
+    addGeneratedName(generatedNames, 'MaybePromise', GENERATED_DECLARATION_KIND.SCHEMA_HELPER)
+
     if (schema.scalars.size > 0) {
-        addGeneratedName(generatedNames, 'Scalars', GENERATED_DECLARATION_KIND.SCALARS_HELPER)
+        addGeneratedName(generatedNames, 'Scalars', GENERATED_DECLARATION_KIND.SCHEMA_HELPER)
     }
     schema.inputTypes.forEach((_, name) => addGeneratedName(generatedNames, name, GENERATED_DECLARATION_KIND.GRAPHQL_TYPE))
     schema.interfaceTypes.forEach((_, name) => addGeneratedName(generatedNames, name, GENERATED_DECLARATION_KIND.GRAPHQL_TYPE))

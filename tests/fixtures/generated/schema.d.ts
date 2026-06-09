@@ -1,5 +1,8 @@
 import type { Permission } from './enums'
 
+export type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }
+export type MaybePromise<T> = T | Promise<T>
+
 export type Scalars = {
 	ID: { input: string; output: string; };
 	String: { input: string; output: string; };
