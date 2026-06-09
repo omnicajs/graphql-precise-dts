@@ -118,6 +118,14 @@ export enum Permission {
 The plugin does not write `enums.ts` when the schema does not contain enum declarations.
 GraphQL document declarations import enum types directly from `enums.ts`; they do not import enums from `schema.d.ts`.
 
+### Schema JSDoc
+
+Generated schema support files preserve GraphQL SDL descriptions and selected standard directives as JSDoc.
+This includes schema descriptions, `@deprecated(reason: "...")`, scalar `@specifiedBy(url: "...")`, and scalar
+replacement remarks such as ``Scalars['DateTime']['output']``.
+
+See [Schema JSDoc](docs/SCHEMA_JSDOC.md) for supported locations and examples.
+
 By default, schema support files are written next to the generated declaration file. Configure
 `schemaOutputDirectory` to write them elsewhere:
 
@@ -394,6 +402,8 @@ Supported effects:
 ## Additional documentation
 - [Module path resolution](docs/MODULE_PATH_RESOLUTION.md) - path resolution rules and examples
 for generated `declare module` ids.
+- [Schema JSDoc](docs/SCHEMA_JSDOC.md) - generated JSDoc for schema descriptions, deprecations, specified scalars,
+and scalar reference remarks.
 - [Types](docs/TYPES.md) - structural `TsType` model, available helpers, supported operations, and config examples.
 - [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies,
 current policy staging, and `__typename` behavior for conditional and excluded selections.

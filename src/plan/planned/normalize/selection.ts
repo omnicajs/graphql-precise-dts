@@ -204,7 +204,7 @@ const mergeFragmentSpreads = (
         ...existingSelection,
         diagnosticLocation: mergeDiagnosticLocations(existingSelection.diagnosticLocation, duplicateSelection.diagnosticLocation),
         conditional: mergeConditionalFlag(existingSelection.conditional, duplicateSelection.conditional),
-        ...(directiveNames.length ? { directiveNames } : {}),
+        ...(directiveNames.length && { directiveNames }),
     }
 }
 
@@ -237,7 +237,7 @@ const mergeFieldSelections = (
         ...existingSelection,
         diagnosticLocation: mergeDiagnosticLocations(existingSelection.diagnosticLocation, duplicateSelection.diagnosticLocation),
         conditional: mergeConditionalFlag(existingSelection.conditional, duplicateSelection.conditional),
-        ...(directiveNames.length ? { directiveNames } : {}),
+        ...(directiveNames.length && { directiveNames }),
         value: mergeFieldValues(
             existingSelection,
             duplicateSelection

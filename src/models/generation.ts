@@ -1,4 +1,4 @@
-import type { EnumValueEntries } from './types/type-ref'
+import type { EnumModel } from './types/type-ref'
 import type { FragmentModel } from './types/document'
 import type { ScalarModelShape } from './types/type-ref'
 import type { TsType } from '../ts-type'
@@ -6,6 +6,7 @@ import type { TsType } from '../ts-type'
 export type SchemaObjectModel = {
     fields: TsType;
     interfaces: string[];
+    description?: string;
 }
 
 export type SchemaOutputModel = {
@@ -19,7 +20,7 @@ export type SchemaOutputModel = {
 }
 
 export type ReusableModelRegistry = {
-    enums: Map<string, EnumValueEntries>;
+    enums: Map<string, EnumModel>;
     fragments: Map<string, FragmentModel>;
 }
 

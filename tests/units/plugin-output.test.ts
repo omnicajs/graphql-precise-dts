@@ -1668,6 +1668,7 @@ describe('plugin __typename support', () => {
                     'export type Group = {',
                     `\t__typename?: 'Group';`,
                     `\tpermission: Permission;`,
+                    `\t/** @remarks Scalar reference: \`Scalars['DateTime']['output']\`. */`,
                     `\tcreatedAt: string;`,
                     '}\n',
                     'export type Query = {',
@@ -1800,6 +1801,7 @@ describe('plugin __typename support', () => {
                     '}\n',
                     'export type User = {',
                     `\t__typename?: 'User';`,
+                    `\t/** @remarks Scalar reference: \`Scalars['DateTime']['output']\`. */`,
                     `\tcreatedAt: string;`,
                     '}',
                 ].join('\n')

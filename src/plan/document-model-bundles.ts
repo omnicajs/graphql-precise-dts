@@ -6,11 +6,7 @@ import type { FragmentModel } from '../models/types'
 import type { GenerationDirectivePolicies } from '../directives/types'
 import type { ModelContext } from '../models/types'
 import type { OperationDefinitionNode } from 'graphql'
-import type {
-    RenderableDocumentModels,
-    RenderableOperationModel
-} from './renderable/types'
-
+import type { RenderableDocumentModels } from './renderable/types'
 
 import { TypeInfo } from 'graphql'
 

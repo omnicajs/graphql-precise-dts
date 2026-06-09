@@ -56,6 +56,50 @@ describe('schema render', () => {
         ].join('\n'))
     })
 
+    test('renders scalar descriptions as JSDoc', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            scalars: new Map([
+                [ 'DateTime', {
+                    input: 'string',
+                    output: 'Date',
+                    description: 'ISO date-time string.',
+                } ],
+            ]),
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            'export type Scalars = {',
+            '\t/** ISO date-time string. */',
+            '\tDateTime: { input: string; output: Date; };',
+            '}',
+        ].join('\n'))
+    })
+
+    test('renders scalar specifiedBy URLs as JSDoc see tags', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            scalars: new Map([
+                [ 'DateTime', {
+                    input: 'string',
+                    output: 'Date',
+                    description: 'ISO date-time string.',
+                    specifiedByUrl: 'https://scalars.graphql.org/andimarek/date-time.html',
+                } ],
+            ]),
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            'export type Scalars = {',
+            '\t/**',
+            '\t * ISO date-time string.',
+            '\t * @see https://scalars.graphql.org/andimarek/date-time.html',
+            '\t */',
+            '\tDateTime: { input: string; output: Date; };',
+            '}',
+        ].join('\n'))
+    })
+
     test('renders helper declarations for an empty schema model', () => {
         expect(renderSchemaDeclaration(makeSchemaModel({
             scalars: new Map(),
@@ -185,6 +229,40 @@ describe('schema render', () => {
             `export type QueryUserArgs = {`,
             `\tid: string;`,
             `\ttags?: Array<string> | null;`,
+            `}`,
+        ].join('\n'))
+    })
+
+    test('renders GraphQL descriptions and deprecations as JSDoc', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            inputTypes: new Map([
+                [ 'TariffFilter', {
+                    ...defineObject({
+                        tariffType: defineObjectField(
+                            defineNamed('TariffType'),
+                            false,
+                            {
+                                description: 'Current tariff type.',
+                                deprecationReason: 'Use `tariffType === TariffType.Basic` instead',
+                                remarks: 'Scalar reference: `Scalars[\'String\'][\'input\']`.',
+                            }
+                        ),
+                    }),
+                    description: 'Filters tariff search.',
+                } ],
+            ]),
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            `/** Filters tariff search. */`,
+            `export type TariffFilter = {`,
+            `\t/**`,
+            `\t * Current tariff type.`,
+            `\t * @deprecated Use \`tariffType === TariffType.Basic\` instead`,
+            `\t * @remarks Scalar reference: \`Scalars['String']['input']\`.`,
+            `\t */`,
+            `\ttariffType: TariffType;`,
             `}`,
         ].join('\n'))
     })

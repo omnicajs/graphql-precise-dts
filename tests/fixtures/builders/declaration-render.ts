@@ -122,7 +122,7 @@ export const variableObjectValue = (
     kind: VALUE_MODEL_KIND.OBJECT,
     fields,
     ...(typeName && { typeName }),
-    ...(isRecursiveReference ? { isRecursiveReference } : {}),
+    ...(isRecursiveReference && { isRecursiveReference }),
 })
 
 export const unionValue = (

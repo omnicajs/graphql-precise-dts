@@ -1,4 +1,8 @@
-export type TsType =
+import type { JsDoc } from './render/jsdoc'
+
+import { renderJsDoc } from './render/jsdoc'
+
+export type TsType = (
     | { kind: typeof TS_TYPE_KIND.NAMED; name: string }
     | { kind: typeof TS_TYPE_KIND.NULL }
     | { kind: typeof TS_TYPE_KIND.UNKNOWN }
@@ -9,12 +13,13 @@ export type TsType =
     | { kind: typeof TS_TYPE_KIND.OBJECT; fields: NamedObjectField[] }
     | { kind: typeof TS_TYPE_KIND.TUPLE; items: TsType[] }
     | { kind: typeof TS_TYPE_KIND.LITERAL; value: string | number | boolean }
+) & JsDoc
 
 export type NamedObjectField = {
     name: string;
 } & ObjectFieldConfig
 
-export type ObjectFieldConfig = {
+export type ObjectFieldConfig = JsDoc & {
     type: TsType;
     optional: boolean;
 }
@@ -184,9 +189,14 @@ const renderTsTypeWithParentPrecedence = (type: TsType, parentPrecedence = 0): s
             case TS_TYPE_KIND.OBJECT:
                 return [
                     '{',
-                    ...type.fields.map(
-                        field => `\t${field.name}${field.optional ? '?' : ''}: ${renderTsTypeWithParentPrecedence(field.type)};`
-                    ),
+                    ...type.fields.flatMap(field => {
+                        const jsDoc = renderJsDoc(field, '\t')
+
+                        return [
+                            ...(jsDoc ? [ jsDoc ] : []),
+                            `\t${field.name}${field.optional ? '?' : ''}: ${renderTsTypeWithParentPrecedence(field.type)};`,
+                        ]
+                    }),
                     '}',
                 ].join('\n')
             case TS_TYPE_KIND.TUPLE:
@@ -259,9 +269,10 @@ export const defineNumber = (): TsType => namedTsType('number')
 export const defineBoolean = (): TsType => namedTsType('boolean')
 export const defineUnknown = (): TsType => namedTsType('unknown')
 export const defineLiteral = (value: string | number | boolean): TsType => ({ kind: TS_TYPE_KIND.LITERAL, value })
-export const defineObjectField = (type: TsType, optional = false): ObjectFieldConfig => ({
+export const defineObjectField = (type: TsType, optional = false, jsDoc: JsDoc = {}): ObjectFieldConfig => ({
     type,
     optional,
+    ...jsDoc,
 })
 export const defineObject = (fields: { [key: string]: ObjectFieldConfig }): TsType => ({
     kind: TS_TYPE_KIND.OBJECT,
