@@ -208,6 +208,50 @@ describe('declaration render', () => {
             ].join('\n'))
         })
 
+        test('renders unknown operation variable values as unknown and warns once', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+            const definitions = declarationDefinitions(
+                new Map(),
+                new Map([
+                    ['Search', operation(
+                        OperationTypeNode.QUERY,
+                        [],
+                        [
+                            variableField('filter', {
+                                kind: VALUE_MODEL_KIND.UNKNOWN,
+                                reason: 'unsupported',
+                            }),
+                        ],
+                        'Query'
+                    )],
+                ])
+            )
+
+            const result = renderPlannedDeclaration(
+                './documents',
+                prepareRenderableDocumentModels(
+                    makePlannedDocumentModels(
+                        definitions,
+                        [],
+                        definitions.customScalars,
+                        makeGenerationDirectivePolicies(definitions.directivePolicies)
+                    )
+                ),
+                new Map()
+            )
+
+            expect(result).toContain([
+                '\texport type SearchQueryVariables = Exact<{',
+                '\t\tfilter?: unknown | null;',
+                '\t}>',
+            ].join('\n'))
+
+            expect(warn).toHaveBeenCalledTimes(1)
+            expect(warn).toHaveBeenCalledWith('Unknown variable type')
+
+            warn.mockRestore()
+        })
+
         test('renders operation variables without Exact when the operation has no variables', () => {
             const result = renderDeclaration(
                 './documents',
@@ -708,6 +752,35 @@ describe('declaration render', () => {
                 `\t\t__typename?: 'User';`,
                 '\t\tlabels: Array<string | null>;',
                 '\t\tstrictLabels: Array<string> | null;',
+            ].join('\n'))
+        })
+
+        test('unwraps nested non-null field type references', () => {
+            const definitions = declarationDefinitions(new Map([
+                ['StrictUser', fragment([{
+                    kind: SELECTION_MODEL_KIND.FIELD,
+                    name: 'id',
+                    responseName: 'id',
+                    argumentsSignature: '',
+                    conditional: false,
+                    typeRef: {
+                        kind: TYPE_REF_KIND.NON_NULL,
+                        ofType: {
+                            kind: TYPE_REF_KIND.NON_NULL,
+                            ofType: {
+                                kind: TYPE_REF_KIND.NAMED,
+                                name: 'String',
+                            },
+                        },
+                    },
+                    value: scalar(defineString()),
+                }], 'User')],
+            ]))
+
+            expect(renderDeclaration('./documents', definitions, new Map())).toContain([
+                '\texport type StrictUser = {',
+                `\t\t__typename?: 'User';`,
+                '\t\tid: string;',
             ].join('\n'))
         })
 
@@ -1503,6 +1576,78 @@ describe('declaration render', () => {
                     '\t\t};',
                 ].join('\n')
             )
+        })
+
+        test('renders conditional fragment spreads inside collapsed union fields as Partial intersections', () => {
+            const definitions = declarationDefinitions(new Map([
+                ['SearchResult', fragment([
+                    field('search', unionValue([
+                        {
+                            typeName: 'User',
+                            fields: [{
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                                name: 'NodeFields',
+                                onType: 'Node',
+                                conditional: true,
+                                directiveNames: [ 'include' ],
+                            }],
+                        },
+                        {
+                            typeName: 'Group',
+                            fields: [{
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                                name: 'NodeFields',
+                                onType: 'Node',
+                                conditional: true,
+                                directiveNames: [ 'include' ],
+                            }],
+                        },
+                    ]), false),
+                ], 'Query')],
+            ]))
+
+            expect(renderDeclaration('./documents', definitions, new Map())).toContain([
+                '\texport type SearchResult = {',
+                `\t\t__typename?: 'Query';`,
+                '\t\tsearch: {',
+                `\t\t\t__typename: 'User' | 'Group';`,
+                '\t\t} & Partial<NodeFields>;',
+            ].join('\n'))
+        })
+
+        test('renders fragment spreads inside collapsed union fields as required intersections', () => {
+            const definitions = declarationDefinitions(new Map([
+                ['SearchResult', fragment([
+                    field('search', unionValue([
+                        {
+                            typeName: 'User',
+                            fields: [{
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                                name: 'NodeFields',
+                                onType: 'Node',
+                                conditional: false,
+                            }],
+                        },
+                        {
+                            typeName: 'Group',
+                            fields: [{
+                                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                                name: 'NodeFields',
+                                onType: 'Node',
+                                conditional: false,
+                            }],
+                        },
+                    ]), false),
+                ], 'Query')],
+            ]))
+
+            expect(renderDeclaration('./documents', definitions, new Map())).toContain([
+                '\texport type SearchResult = {',
+                `\t\t__typename?: 'Query';`,
+                '\t\tsearch: {',
+                `\t\t\t__typename: 'User' | 'Group';`,
+                '\t\t} & NodeFields;',
+            ].join('\n'))
         })
 
         test('renders union fields without specialized variants as never', () => {

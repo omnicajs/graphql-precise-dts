@@ -15,9 +15,18 @@ describe('enum render', () => {
                     { name: 'BLOCKED', value: 'BLOCKED' },
                 ],
             } ],
+            [ 'UserRole', {
+                entries: [
+                    { name: 'ADMIN', value: 'ADMIN' },
+                ],
+            } ],
         ]))
 
         expect(result).toBe([
+            'export enum UserRole {',
+            `\tADMIN = 'ADMIN',`,
+            '}',
+            '',
             'export enum UserStatus {',
             `\tACTIVE = 'ACTIVE',`,
             `\tBLOCKED = 'BLOCKED',`,

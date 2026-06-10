@@ -73,17 +73,13 @@ const registerOutputObjectOccurrence = (
 }
 
 const buildObjectFieldValue = (
-    value: FieldValue,
+    value: Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>,
     aliasName: string,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedObjectFieldValue => {
-    if (value.kind !== VALUE_MODEL_KIND.OBJECT) {
-        throw new Error('Expected object field value')
-    }
-
     const renderOptions = makeObjectRenderOptions(value.typeNames)
     const signature = makeOutputShapeSignature(value.fields, value.typeNames ?? [], renderOptions)
 
@@ -207,6 +203,7 @@ export const buildOutputAliases = (
 
         const aliasName = nameAllocator(occurrence.suggestedAliasName, signature)
         const representativeNode = occurrence.nodes[0]
+        /* v8 ignore next -- @preserve occurrence nodes are populated by registerOutputObjectOccurrence */
         if (!representativeNode) return
 
         occurrence.nodes.forEach(node => {

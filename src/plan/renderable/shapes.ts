@@ -93,7 +93,8 @@ const prepareFieldValue = (
                     shape: prepareObjectShape(
                         value.fields,
                         value.typeNames ?? [],
-                        value.renderOptions, reportWarning
+                        value.renderOptions,
+                        reportWarning
                     ),
                 }
         case VALUE_MODEL_KIND.UNION:
