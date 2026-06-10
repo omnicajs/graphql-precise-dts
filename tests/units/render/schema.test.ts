@@ -125,6 +125,23 @@ describe('schema render', () => {
         ].join('\n'))
     })
 
+    test('keeps primitive scalars before later custom scalars', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            scalars: new Map([
+                [ 'ID', { input: 'string', output: 'string' } ],
+                [ 'DateTime', { input: 'string', output: 'Date' } ],
+            ]),
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            'export type Scalars = {',
+            '\tID: { input: string; output: string; };',
+            '\tDateTime: { input: string; output: Date; };',
+            '}',
+        ].join('\n'))
+    })
+
     test('renders multiline enum imports', () => {
         const result = renderSchemaDeclaration(makeSchemaModel({
             enumReferences: new Set([ 'UserStatus', 'GroupStatus' ]),
@@ -197,6 +214,71 @@ describe('schema render', () => {
             `\tgroupStatus: GroupStatus;`,
             `\tid: string;`,
             `\tstatus: UserStatus;`,
+            `}`,
+        ].join('\n'))
+    })
+
+    test('renders object type declarations without interfaces', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            objectTypes: new Map([
+                [ 'User', {
+                    interfaces: [],
+                    fields: defineObject({
+                        __typename: defineObjectField(defineLiteral('User'), true),
+                        id: defineObjectField(defineString()),
+                    }),
+                } ],
+            ]),
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            `export type User = {`,
+            `\t__typename?: 'User';`,
+            `\tid: string;`,
+            `}`,
+        ].join('\n'))
+    })
+
+    test('renders object field declarations when descriptions are absent', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            objectTypes: new Map([
+                [ 'User', {
+                    interfaces: [ 'Node' ],
+                    fields: defineObject({
+                        id: defineObjectField(defineString()),
+                    }),
+                } ],
+            ]),
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            `export type User = Node & {`,
+            `\tid: string;`,
+            `}`,
+        ].join('\n'))
+        expect(result).not.toContain('/**')
+    })
+
+    test('renders object type descriptions as JSDoc', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            objectTypes: new Map([
+                [ 'User', {
+                    description: 'Application user.',
+                    interfaces: [],
+                    fields: defineObject({
+                        id: defineObjectField(defineString()),
+                    }),
+                } ],
+            ]),
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            `/** Application user. */`,
+            `export type User = {`,
+            `\tid: string;`,
             `}`,
         ].join('\n'))
     })

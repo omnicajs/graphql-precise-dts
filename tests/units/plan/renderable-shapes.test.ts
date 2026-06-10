@@ -7,11 +7,14 @@ import {
     describe,
     expect,
     test,
+    vi,
 } from 'vitest'
 
 import {
     hasAliasedRootTypenameSelection,
     hasRootSpreadWithSameTypeNames,
+    prepareObjectShape,
+    prepareUnionShape,
     resolveTypenameSelection,
 } from '../../../src/plan/renderable/shapes'
 import { renderStringLiteralUnion } from '../../../src/render/basic'
@@ -124,5 +127,52 @@ describe('declaration shape helpers', () => {
 
     test('renders string literal unions', () => {
         expect(renderStringLiteralUnion([ 'User', 'Guest' ])).toBe(`'User' | 'Guest'`)
+    })
+
+    test('uses default warning reporter when object shapes contain unknown values', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        prepareObjectShape([{
+            kind: SELECTION_MODEL_KIND.FIELD,
+            name: 'mystery',
+            responseName: 'mystery',
+            argumentsSignature: '',
+            conditional: false,
+            typeRef: namedType(),
+            value: {
+                kind: VALUE_MODEL_KIND.UNKNOWN,
+                reason: 'unsupported',
+            },
+        }], [])
+
+        expect(warn).toHaveBeenCalledTimes(1)
+        expect(warn).toHaveBeenCalledWith('Unknown type')
+
+        warn.mockRestore()
+    })
+
+    test('uses default warning reporter when union shapes contain unknown values', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        prepareUnionShape([{
+            typeName: 'User',
+            fields: [{
+                kind: SELECTION_MODEL_KIND.FIELD,
+                name: 'mystery',
+                responseName: 'mystery',
+                argumentsSignature: '',
+                conditional: false,
+                typeRef: namedType(),
+                value: {
+                    kind: VALUE_MODEL_KIND.UNKNOWN,
+                    reason: 'unsupported',
+                },
+            }],
+        }])
+
+        expect(warn).toHaveBeenCalledTimes(1)
+        expect(warn).toHaveBeenCalledWith('Unknown type')
+
+        warn.mockRestore()
     })
 })

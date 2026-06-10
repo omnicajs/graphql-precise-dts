@@ -164,14 +164,17 @@ export const buildVariableAliases = (
 
     return [ ...requiredTypeNames ].flatMap(typeName => {
         const definition = definitions.get(typeName)
-        const preparedDefinition = definition ? buildVariableValue(definition, state, customScalars) : undefined
+        /* v8 ignore next -- @preserve recursive references normally come from collected object definitions */
+        if (!definition) return []
 
-        return preparedDefinition && preparedDefinition.kind === VALUE_MODEL_KIND.OBJECT
-            ? [{
-                typeName,
-                aliasName: getAllocatedVariableAliasName(typeName, state),
-                fields: preparedDefinition.fields,
-            }]
-            : []
+        const preparedDefinition = buildVariableValue(definition, state, customScalars)
+        /* v8 ignore next -- @preserve collected definitions are object values */
+        if (preparedDefinition.kind !== VALUE_MODEL_KIND.OBJECT) return []
+
+        return [{
+            typeName,
+            aliasName: getAllocatedVariableAliasName(typeName, state),
+            fields: preparedDefinition.fields,
+        }]
     })
 }
