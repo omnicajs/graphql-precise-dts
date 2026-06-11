@@ -17,11 +17,17 @@ import type {
     GraphQLOutputType,
 } from 'graphql'
 
+import { posix } from 'path'
+
 import { TypeInfo } from 'graphql'
 
+import { existsSync } from 'fs'
 import {
     getNamedType,
     isEnumType,
+} from 'graphql'
+import { readFileSync } from 'fs'
+import {
     visit,
     visitWithTypeInfo,
 } from 'graphql'
@@ -33,19 +39,29 @@ import {
 } from '../kinds'
 
 export type DocumentModelImportMap = {
-    fragments: Map<string, string>,
+    fragments: Map<string, FragmentImportSource[]>,
     enums: Map<string, string>,
+    documentImports: Map<string, Set<string>>,
+}
+
+export type FragmentImportSource = {
+    location: string | undefined;
+    moduleSpecifier: string;
+    definition?: FragmentDefinitionNode;
 }
 
 type ImportMapCollector = {
     imports: DocumentModelImportMap
     addEnum(typeNode: GraphQLInputType | GraphQLOutputType): void
-    addFragment(name: string, location?: string): void
+    addFragment(node: FragmentDefinitionNode, location?: string): void
+    addDocumentImports(location: string | undefined, imports: string[]): void
 }
 
 type DocumentImportCollector = {
     imports: Map<string, string>
     importMap: DocumentModelImportMap
+    location: string | undefined
+    localFragments: Set<string>
 }
 
 const createImportMapCollector = (
@@ -53,8 +69,9 @@ const createImportMapCollector = (
     moduleLocation: (location?: string) => string
 ): ImportMapCollector => {
     const imports: DocumentModelImportMap = {
-        fragments: new Map<string, string>(),
+        fragments: new Map<string, FragmentImportSource[]>(),
         enums: new Map<string, string>(),
+        documentImports: new Map<string, Set<string>>(),
     }
 
     return {
@@ -65,12 +82,80 @@ const createImportMapCollector = (
                 imports.enums.set(namedType.name, schemaModulePath)
             }
         },
-        addFragment(name, location) {
-            if (!imports.fragments.has(name)) {
-                imports.fragments.set(name, moduleLocation(location))
+        addFragment(node, location) {
+            const name = node.name.value
+            const normalizedLocation = location ? normalizeDocumentLocation(location) : undefined
+            const sources = imports.fragments.get(name) ?? []
+            if (sources.some(source => source.location === normalizedLocation)) return
+
+            const source: FragmentImportSource = {
+                location: normalizedLocation,
+                moduleSpecifier: moduleLocation(location),
             }
+
+            Object.defineProperty(source, 'definition', { value: node })
+            sources.push(source)
+            imports.fragments.set(name, sources)
+        },
+        addDocumentImports(location, documentImports) {
+            if (!location || !documentImports.length) return
+
+            imports.documentImports.set(normalizeDocumentLocation(location), new Set(documentImports))
         },
     }
+}
+
+const normalizeDocumentLocation = (location: string): string => location.split('\\').join('/')
+
+const resolveDocumentImportLocation = (
+    documentLocation: string,
+    importedLocation: string
+): string => {
+    const normalizedImport = normalizeDocumentLocation(importedLocation)
+    if (normalizedImport.startsWith('/')) return posix.normalize(normalizedImport)
+
+    return posix.normalize(posix.join(
+        posix.dirname(normalizeDocumentLocation(documentLocation)),
+        normalizedImport
+    ))
+}
+
+const collectDocumentImportLocations = (
+    documentFile: DocumentFile
+): string[] => {
+    const documentLocation = documentFile.location
+    if (!documentLocation) return []
+
+    const sourceBodies = [
+        documentFile.rawSDL,
+        documentFile.document?.loc?.source.body,
+        documentFile.document?.definitions[0]?.loc?.source.body,
+        existsSync(documentLocation) ? readFileSync(documentLocation, 'utf8') : undefined,
+    ].filter((sourceBody): sourceBody is string => !!sourceBody)
+
+    for (const sourceBody of sourceBodies) {
+        const imports = [ ...sourceBody.matchAll(/^\s*#\s*import\s+["']([^"']+)["']/gm) ]
+            .map(match => resolveDocumentImportLocation(documentLocation, match[1]))
+        if (imports.length) return imports
+    }
+
+    return []
+}
+
+const assertDocumentImportsExist = (
+    documentImports: Map<string, Set<string>>,
+    documentLocations: Set<string>
+) => {
+    documentImports.forEach((imports, location) => {
+        imports.forEach(importLocation => {
+            if (documentLocations.has(importLocation)) return
+
+            throw new Error(
+                `Document "${location}" imports "${importLocation}", but that document was not found among the documents configured for the plugin. `
+                + 'Add the imported document to the GraphQL Code Generator documents list or remove the import.'
+            )
+        })
+    })
 }
 
 const createImportMapVisitor = (
@@ -91,7 +176,7 @@ const createImportMapVisitor = (
         if (inputType) collector.addEnum(inputType)
     },
     FragmentDefinition(node: FragmentDefinitionNode) {
-        collector.addFragment(node.name.value, location)
+        collector.addFragment(node, location)
     },
 })
 
@@ -102,9 +187,17 @@ export const makeDocumentModelImportMap = (
     moduleLocation: (location: string | undefined) => string
 ): DocumentModelImportMap => {
     const collector = createImportMapCollector(schemaModulePath, moduleLocation)
+    const documentLocations = new Set(
+        documents
+            .filter((documentFile): documentFile is DocumentFile & { location: string } =>
+                !!documentFile.document && !!documentFile.location)
+            .map(documentFile => normalizeDocumentLocation(documentFile.location))
+    )
 
     documents.forEach(documentFile => {
         if (!documentFile.document) return
+
+        collector.addDocumentImports(documentFile.location, collectDocumentImportLocations(documentFile))
 
         const typeInfo = new TypeInfo(schema)
         visit(
@@ -116,7 +209,51 @@ export const makeDocumentModelImportMap = (
         )
     })
 
+    assertDocumentImportsExist(collector.imports.documentImports, documentLocations)
+
     return collector.imports
+}
+
+const findFragmentImportPath = (
+    collector: DocumentImportCollector,
+    name: string
+): string | undefined => {
+    const externalSources = collector.importMap.fragments
+        .get(name)
+        ?.filter(source => !source.location || source.location !== collector.location)
+        ?? []
+    const documentImports = collector.location
+        ? collector.importMap.documentImports.get(collector.location)
+        : undefined
+
+    if (documentImports?.size) {
+        const matchingSources = externalSources
+            .filter(source => source.location && documentImports.has(source.location))
+        if (matchingSources.length === 1) return matchingSources[0]?.moduleSpecifier
+
+        if (matchingSources.length > 1) {
+            throw new Error(
+                `Fragment definition "${name}" referenced from "${collector.location ?? '<unknown document>'}" is ambiguous because multiple imported documents define it. `
+                + `Matching imports: ${matchingSources.map(source => `"${source.location}"`).join(', ')}.`
+            )
+        }
+
+        throw new Error(
+            `Fragment definition "${name}" referenced from "${collector.location ?? '<unknown document>'}" was not found in that document's imports. `
+            + `Imported documents: ${[ ...documentImports ].map(importLocation => `"${importLocation}"`).join(', ')}.`
+        )
+    }
+
+    if (externalSources.length) {
+        throw new Error(
+            `Fragment definition "${name}" referenced from "${collector.location ?? '<unknown document>'}" is external, but the document does not declare any #import for it. `
+            + 'Add an explicit #import for the fragment source.'
+        )
+    }
+
+    throw new Error(
+        `Fragment definition "${name}" referenced from "${collector.location ?? '<unknown document>'}" was not found among the documents configured for the plugin.`
+    )
 }
 
 const visitSelectionModels = (
@@ -150,7 +287,9 @@ const visitSelectionModel = (
 ) => {
     switch (selection.kind) {
         case SELECTION_MODEL_KIND.FRAGMENT_SPREAD: {
-            const importPath = collector.importMap.fragments.get(selection.name)
+            if (collector.localFragments.has(selection.name)) return
+
+            const importPath = findFragmentImportPath(collector, selection.name)
             if (importPath && !collector.imports.has(selection.name)) {
                 collector.imports.set(selection.name, importPath)
             }
@@ -196,11 +335,14 @@ const visitFragmentImports = (
 
 export const collectDocumentModelImports = (
     { fragments, operations }: CollectedDocumentModels,
-    importMap: DocumentModelImportMap
+    importMap: DocumentModelImportMap,
+    location?: string
 ): Map<string, string> => {
     const collector: DocumentImportCollector = {
         imports: new Map<string, string>(),
         importMap,
+        location: location ? normalizeDocumentLocation(location) : undefined,
+        localFragments: new Set(fragments.keys()),
     }
 
     fragments.forEach(fragment => visitFragmentImports(collector, fragment))

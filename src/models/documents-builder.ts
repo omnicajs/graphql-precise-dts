@@ -1,5 +1,4 @@
 import type { ModelContext } from './types/context'
-import type { Schema } from '../plugin-types'
 import type { TypeSelectionNode } from './selection'
 import type { VariableField } from './types/value'
 
@@ -20,6 +19,7 @@ import type {
 
 import { TypeInfo } from 'graphql'
 
+import { getRootTypeForOperation } from '../lib/operations'
 import { isUndefined } from '../lib/predicates'
 import { capitalize } from '../lib/strings'
 import { makeSelectionModels } from './selections-builder'
@@ -41,7 +41,6 @@ import {
 } from 'graphql'
 
 import { FRAGMENT_ROOT_KIND } from '../kinds'
-import { OperationTypeNode } from 'graphql'
 
 const makeFragmentUnionRoot = (
     fragmentType: GraphQLAbstractType,
@@ -118,20 +117,6 @@ const makeOperationVariable = (
     optional: isNullableType(type) || hasDefaultValue,
     value: makeVariableValue(type),
 })
-
-const getRootTypeForOperation = (
-    operation: OperationTypeNode,
-    schema: Schema
-) => {
-    switch (operation) {
-        case OperationTypeNode.QUERY:
-            return schema.getQueryType()
-        case OperationTypeNode.MUTATION:
-            return schema.getMutationType()
-        case OperationTypeNode.SUBSCRIPTION:
-            return schema.getSubscriptionType()
-    }
-}
 
 export const makeOperationModel = (
     graphqlDef: OperationDefinitionNode,

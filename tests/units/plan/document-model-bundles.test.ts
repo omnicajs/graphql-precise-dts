@@ -4,7 +4,6 @@ import {
     test,
 } from 'vitest'
 
-import { buildGenerationModels } from '../../../src/models/generation-builder'
 import { makeDocumentModelBundles } from '../../../src/plan/document-model-bundles'
 import { makeTestModelContext } from '../helpers/model-context'
 import {
@@ -16,14 +15,20 @@ const createImportMap = (
     fragments: [string, string][] = [],
     enums: [string, string][] = []
 ) => ({
-    fragments: new Map<string, string>(fragments),
+    fragments: new Map(fragments.map(([name, moduleSpecifier]) => [
+        name,
+        [{
+            location: moduleSpecifier,
+            moduleSpecifier,
+        }],
+    ])),
     enums: new Map<string, string>(enums),
+    documentImports: new Map(),
 })
 
 const prepareBundleInputs = (
     schemaSource: string,
     documentSource: string,
-    registeredNames: { fragments?: string[]; enums?: string[] } = {},
     importMap = createImportMap()
 ) => {
     const schema = buildSchema(schemaSource)
@@ -36,18 +41,10 @@ const prepareBundleInputs = (
         schema,
         documents,
     })
-    const { registry: { fragments } } = buildGenerationModels(
-        {
-            fragments: registeredNames.fragments ?? [],
-            enums: registeredNames.enums ?? [],
-        },
-        context
-    )
 
     return {
         context,
         documents,
-        fragments,
         importMap,
     }
 }
@@ -89,16 +86,13 @@ describe('document model bundles', () => {
             schema,
             documents,
         })
-        const { registry: { fragments } } = buildGenerationModels(
-            { fragments: [ 'UserDetails' ], enums: [] },
-            context
-        )
         const importMap = {
-            fragments: new Map<string, string>(),
+            fragments: new Map(),
             enums: new Map<string, string>(),
+            documentImports: new Map(),
         }
 
-        const bundles = makeDocumentModelBundles(documents, fragments, context, importMap, {}, {})
+        const bundles = makeDocumentModelBundles(documents, context, importMap, {}, {})
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: 'user.graphql' })
@@ -151,16 +145,13 @@ describe('document model bundles', () => {
             schema,
             documents,
         })
-        const { registry: { fragments } } = buildGenerationModels(
-            { fragments: [ 'UserDetails' ], enums: [] },
-            context
-        )
         const importMap = {
-            fragments: new Map<string, string>(),
+            fragments: new Map(),
             enums: new Map<string, string>(),
+            documentImports: new Map(),
         }
 
-        const bundles = makeDocumentModelBundles(documents, fragments, context, importMap, {}, {})
+        const bundles = makeDocumentModelBundles(documents, context, importMap, {}, {})
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: 'user.graphql' })
@@ -169,7 +160,7 @@ describe('document model bundles', () => {
     })
 
     test('fails when a fragment export collides with an imported type name', () => {
-        const { context, documents, fragments, importMap } = prepareBundleInputs(`
+        const { context, documents, importMap } = prepareBundleInputs(`
             enum UserStatus {
                 ACTIVE
             }
@@ -183,17 +174,16 @@ describe('document model bundles', () => {
                 status
             }
         `,
-        { fragments: [ 'UserStatus' ], enums: [ 'UserStatus' ] },
         createImportMap([], [
             [ 'UserStatus', './schema.d.ts' ],
         ]))
 
-        expect(() => makeDocumentModelBundles(documents, fragments, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "UserStatus" is used both by imported type "UserStatus" and by fragment "UserStatus".')
     })
 
     test('fails when a fragment export collides with the Exact helper import', () => {
-        const { context, documents, fragments, importMap } = prepareBundleInputs(`
+        const { context, documents, importMap } = prepareBundleInputs(`
             type User {
                 id: ID!
             }
@@ -212,15 +202,89 @@ describe('document model bundles', () => {
                     ...Exact
                 }
             }
-        `,
-        { fragments: [ 'Exact' ] })
+        `
+        )
 
-        expect(() => makeDocumentModelBundles(documents, fragments, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "Exact" is used both by imported type "Exact" and by fragment "Exact".')
     })
 
+    test('avoids collisions between generated variable aliases and fragment exports', () => {
+        const { context, documents, importMap } = prepareBundleInputs(`
+            input TreeInput {
+                value: String
+                children: [TreeInput!]
+            }
+
+            type Query {
+                noop: Boolean
+            }
+
+            type Mutation {
+                createTree(input: TreeInput!): Boolean!
+            }
+        `,
+        `
+            fragment TreeInputAlias on Query {
+                noop
+            }
+
+            mutation CreateTree($input: TreeInput!) {
+                createTree(input: $input)
+            }
+        `
+        )
+
+        const [ bundle ] = makeDocumentModelBundles(documents, context, importMap, {}, {})
+        const aliasName = bundle.models.variableAliases[0]?.aliasName
+
+        expect(aliasName).toMatch(/^TreeInputAlias_[a-f0-9]{4}$/)
+        expect([ ...bundle.models.fragments.keys() ]).toEqual([ 'TreeInputAlias' ])
+    })
+
+    test('avoids collisions between generated output aliases and fragment exports', () => {
+        const { context, documents, importMap } = prepareBundleInputs(`
+            type Profile {
+                id: ID!
+            }
+
+            type User {
+                id: ID!
+                primaryProfile: Profile!
+                secondaryProfile: Profile!
+            }
+
+            type Query {
+                user: User!
+            }
+        `,
+        `
+            fragment ProfileAlias on User {
+                id
+            }
+
+            query UserProfiles {
+                user {
+                    primaryProfile {
+                        id
+                    }
+                    secondaryProfile {
+                        id
+                    }
+                }
+            }
+        `
+        )
+
+        const [ bundle ] = makeDocumentModelBundles(documents, context, importMap, {}, {})
+        const aliasName = bundle.models.outputAliases[0]?.aliasName
+
+        expect(aliasName).toMatch(/^ProfileAlias_[a-f0-9]{4}$/)
+        expect([ ...bundle.models.fragments.keys() ]).toEqual([ 'ProfileAlias' ])
+    })
+
     test('fails when an imported type name collides with an operation variables export', () => {
-        const { context, documents, fragments, importMap } = prepareBundleInputs(`
+        const { context, documents, importMap } = prepareBundleInputs(`
             enum GetUserQueryVariables {
                 ACTIVE
             }
@@ -240,17 +304,16 @@ describe('document model bundles', () => {
                 }
             }
         `,
-        {},
         createImportMap([], [
             [ 'GetUserQueryVariables', './schema.d.ts' ],
         ]))
 
-        expect(() => makeDocumentModelBundles(documents, fragments, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryVariables" is used both by imported type "GetUserQueryVariables" and by generated variables type "GetUserQueryVariables".')
     })
 
     test('fails when an imported type name collides with an operation payload export', () => {
-        const { context, documents, fragments, importMap } = prepareBundleInputs(`
+        const { context, documents, importMap } = prepareBundleInputs(`
             enum GetUserQueryPayload {
                 ACTIVE
             }
@@ -270,17 +333,16 @@ describe('document model bundles', () => {
                 }
             }
         `,
-        {},
         createImportMap([], [
             [ 'GetUserQueryPayload', './schema.d.ts' ],
         ]))
 
-        expect(() => makeDocumentModelBundles(documents, fragments, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryPayload" is used both by imported type "GetUserQueryPayload" and by generated payload type "GetUserQueryPayload".')
     })
 
     test('fails when a fragment export collides with an operation variables export', () => {
-        const { context, documents, fragments, importMap } = prepareBundleInputs(`
+        const { context, documents, importMap } = prepareBundleInputs(`
             type User {
                 id: ID!
             }
@@ -299,15 +361,15 @@ describe('document model bundles', () => {
                     ...GetUserQueryVariables
                 }
             }
-        `,
-        { fragments: [ 'GetUserQueryVariables' ] })
+        `
+        )
 
-        expect(() => makeDocumentModelBundles(documents, fragments, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryVariables" is used both by fragment "GetUserQueryVariables" and by generated variables type "GetUserQueryVariables".')
     })
 
     test('fails when a fragment export collides with an operation payload export', () => {
-        const { context, documents, fragments, importMap } = prepareBundleInputs(`
+        const { context, documents, importMap } = prepareBundleInputs(`
             type User {
                 id: ID!
             }
@@ -326,15 +388,15 @@ describe('document model bundles', () => {
                     ...GetUserQueryPayload
                 }
             }
-        `,
-        { fragments: [ 'GetUserQueryPayload' ] })
+        `
+        )
 
-        expect(() => makeDocumentModelBundles(documents, fragments, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryPayload" is used both by fragment "GetUserQueryPayload" and by generated payload type "GetUserQueryPayload".')
     })
 
     test('fails when operation variables exports collide after operation name normalization', () => {
-        const { context, documents, fragments, importMap } = prepareBundleInputs(`
+        const { context, documents, importMap } = prepareBundleInputs(`
             type User {
                 id: ID!
             }
@@ -357,7 +419,7 @@ describe('document model bundles', () => {
             }
         `)
 
-        expect(() => makeDocumentModelBundles(documents, fragments, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryVariables" is used both by generated variables type "GetUserQueryVariables" and by generated variables type "GetUserQueryVariables".')
     })
 })

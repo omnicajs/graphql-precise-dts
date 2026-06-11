@@ -204,13 +204,16 @@ const renderOperationDeclaration = (
 const hasOperationVariables = (operations: Map<string, RenderableOperationModel>): boolean =>
     [ ...operations.values() ].some(operation => operation.variables.length > 0)
 
+const hasRenderableModels = ({ fragments, operations }: RenderableDocumentModels): boolean =>
+    fragments.size > 0 || operations.size > 0
+
 export const renderDeclaration = (
     path: string,
     models: RenderableDocumentModels,
     importsMap: Map<string, string>,
     schemaModulePath?: string
 ): string => {
-    if (!models.fragments.size && !models.operations.size) return ''
+    if (!hasRenderableModels(models)) return ''
 
     const declarationRowsBlocks: string[] = []
 

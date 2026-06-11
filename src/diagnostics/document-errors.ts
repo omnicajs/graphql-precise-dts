@@ -1,13 +1,14 @@
 import type { DocumentFile } from '../plugin-types'
+import type { OperationDefinitionNode } from 'graphql'
+import type { Schema } from '../plugin-types'
 import type {
-    OperationDefinitionNode,
     Source,
+    VariableDefinitionNode,
 } from 'graphql'
 
-import {
-    formatNodeLocation,
-    makeDocumentLocationMap,
-} from '../lib/documents'
+import { formatNodeLocation } from '../lib/documents'
+import { getRootTypeForOperation } from '../lib/operations'
+import { makeDocumentLocationMap } from '../lib/documents'
 import { visit } from 'graphql'
 
 const UNKNOWN_DOCUMENT_LOCATION = '<unknown document>'
@@ -33,15 +34,71 @@ export const assertNamedOperation = (
     )
 }
 
-export const guardNamedOperations = (documents: DocumentFile[]) => {
+const assertOperationRootType = (
+    node: OperationDefinitionNode,
+    schema: Schema,
+    documentLocations: WeakMap<Source, string>,
+    location?: string
+) => {
+    if (getRootTypeForOperation(node.operation, schema)) return
+
+    throw new Error(
+        `Root type for ${node.operation} operation "${node.name?.value ?? '<anonymous>'}" was not found in schema at "${getDocumentLocation(node, documentLocations, location)}". `
+        + `Add a ${node.operation} root type to the schema or remove the operation.`
+    )
+}
+
+const assertUniqueOperationVariables = (
+    node: OperationDefinitionNode,
+    operationName: string,
+    documentLocations: WeakMap<Source, string>,
+    location?: string
+) => {
+    const variables = new Map<string, VariableDefinitionNode>()
+
+    node.variableDefinitions?.forEach(variableDefinition => {
+        const variableName = variableDefinition.variable.name.value
+        const existingDefinition = variables.get(variableName)
+        if (existingDefinition) {
+            throw new Error(
+                `Duplicate variable "$${variableName}" detected in operation "${operationName}" at "${formatNodeLocation(variableDefinition, documentLocations) ?? location ?? UNKNOWN_DOCUMENT_LOCATION}". `
+                + `The first definition is in "${formatNodeLocation(existingDefinition, documentLocations) ?? location ?? UNKNOWN_DOCUMENT_LOCATION}". `
+                + 'Variable names must be unique within an operation.'
+            )
+        }
+
+        variables.set(variableName, variableDefinition)
+    })
+}
+
+export const guardNamedOperations = (
+    documents: DocumentFile[],
+    schema: Schema
+) => {
     const documentLocations = makeDocumentLocationMap(documents)
 
     documents.forEach(documentFile => {
         if (!documentFile.document) return
 
+        const operations = new Map<string, OperationDefinitionNode>()
+
         visit(documentFile.document, {
             OperationDefinition(node) {
-                assertNamedOperation(node, documentLocations, documentFile.location)
+                const operationName = assertNamedOperation(node, documentLocations, documentFile.location)
+                assertOperationRootType(node, schema, documentLocations, documentFile.location)
+                assertUniqueOperationVariables(node, operationName, documentLocations, documentFile.location)
+
+                const existingOperation = operations.get(operationName)
+
+                if (existingOperation) {
+                    throw new Error(
+                        `Duplicate operation name "${operationName}" detected in "${getDocumentLocation(node, documentLocations, documentFile.location)}". `
+                        + `The first definition is in "${getDocumentLocation(existingOperation, documentLocations, documentFile.location)}". `
+                        + 'Operation names must be unique within a document so the plugin can generate stable declaration exports.'
+                    )
+                }
+
+                operations.set(operationName, node)
             },
         })
     })

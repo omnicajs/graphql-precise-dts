@@ -347,6 +347,98 @@ describe('plugin directive handling', () => {
         })
     })
 
+    test('fails early when operation names are duplicated in one document', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        query GroupDetails {
+                            group {
+                                id
+                            }
+                        }
+
+                        query GroupDetails {
+                            group {
+                                owner {
+                                    id
+                                }
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow(/Duplicate operation name "GroupDetails" detected in "group\.graphql:\d+:\d+". The first definition is in "group\.graphql:\d+:\d+". Operation names must be unique within a document so the plugin can generate stable declaration exports\./)
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
+    })
+
+    test('fails early when operation variables are duplicated', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        query GroupDetails($id: ID!, $id: String) {
+                            group {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow(/Duplicate variable "\$id" detected in operation "GroupDetails" at "group\.graphql:\d+:\d+". The first definition is in "group\.graphql:\d+:\d+". Variable names must be unique within an operation\./)
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
+    })
+
+    test('fails early when an operation root type is missing from the schema', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        mutation UpdateGroup {
+                            __typename
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow('Root type for mutation operation "UpdateGroup" was not found in schema at "group.graphql:2:25". Add a mutation root type to the schema or remove the operation.')
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
+    })
+
+    test('fails early when a subscription root type is missing from the schema', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        subscription GroupUpdated {
+                            __typename
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow('Root type for subscription operation "GroupUpdated" was not found in schema at "group.graphql:2:25". Add a subscription root type to the schema or remove the operation.')
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
+    })
+
     test('fails when a non-typename field is aliased to __typename', async () => {
         await withTempOutput(async outputInfo => {
             expect(() => plugin(
@@ -443,6 +535,19 @@ describe('plugin directive handling', () => {
         `)
 
         await withTempOutput(async outputInfo => {
+            const usersQuery = `
+                #import "./fragments.graphql"
+
+                query UsersQuery {
+                    primaryUser {
+                        ...UserDetails
+                    }
+
+                    secondaryUser {
+                        ...UserDetails
+                    }
+                }
+            `
             const result = await plugin(
                 userSchema,
                 [{
@@ -454,17 +559,8 @@ describe('plugin directive handling', () => {
                     `),
                 }, {
                     location: 'users.graphql',
-                    document: parse(`
-                        query UsersQuery {
-                            primaryUser {
-                                ...UserDetails
-                            }
-
-                            secondaryUser {
-                                ...UserDetails
-                            }
-                        }
-                    `),
+                    rawSDL: usersQuery,
+                    document: parse(usersQuery),
                 }],
                 { prefix: '~tests/' },
                 outputInfo
@@ -649,6 +745,40 @@ describe('plugin directive handling', () => {
             ))
             expect(warn).toHaveBeenCalledWith(expect.stringMatching(
                 /Repeated fragment spread "OwnerFields" detected in fragment "GroupOwner" at "group\.graphql:\d+:\d+". The plugin merged it, but the spread is redundant. First occurrence: "group\.graphql:\d+:\d+"./
+            ))
+        })
+
+        warn.mockRestore()
+    })
+
+    test('warns when duplicate fragment definitions are declared in the same document', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        await withTempOutput(async ({ outputFile }) => {
+            plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                            }
+                        }
+
+                        fragment GroupOwner on Group {
+                            owner {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                { outputFile }
+            )
+
+            expect(warn).toHaveBeenCalledWith(expect.stringMatching(
+                /Duplicate fragment definition "GroupOwner" detected in "group\.graphql:\d+:\d+". Both definitions target type "Group". The plugin keeps the first definition from "group\.graphql:\d+:\d+" and ignores this duplicate./
             ))
         })
 
@@ -1336,6 +1466,16 @@ describe('plugin __typename support', () => {
         `)
 
         await withTempOutput(async outputInfo => {
+            const userWithGroups = `
+                #import "./user-details.graphql"
+
+                fragment UserWithGroups on User {
+                    ...UserDetails
+                    groups {
+                        id
+                    }
+                }
+            `
             const result = await plugin(
                 nestedSchema,
                 [{
@@ -1347,14 +1487,8 @@ describe('plugin __typename support', () => {
                     `),
                 }, {
                     location: 'user-with-groups.graphql',
-                    document: parse(`
-                        fragment UserWithGroups on User {
-                            ...UserDetails
-                            groups {
-                                id
-                            }
-                        }
-                    `),
+                    rawSDL: userWithGroups,
+                    document: parse(userWithGroups),
                 }],
                 { prefix: '~tests/' },
                 outputInfo
@@ -2176,7 +2310,6 @@ describe('plugin multi-definition documents', () => {
                 `declare module '~tests/user.graphql' {`,
                 `\timport type { Exact } from './schema'\n`,
                 `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'\n`,
-                `\timport type { UserFields } from '~tests/user.graphql'\n`,
                 `\texport type UserFields = {`,
                 `\t\t__typename?: 'User';`,
                 `\t\tid: string;`,
@@ -2187,6 +2320,195 @@ describe('plugin multi-definition documents', () => {
                 `\texport type UserQueryQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: UserFields | null;`,
+                `\t}`,
+            ].join('\n'))
+        })
+    })
+
+    test('renders duplicate fragment names from different documents as separate module declarations', async () => {
+        const duplicateFragmentSchema = buildSchema(`
+            type Query {
+                user: User!
+                group: Group!
+            }
+
+            type User {
+                id: ID!
+                username: String!
+            }
+
+            type Group {
+                id: ID!
+                title: String!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                duplicateFragmentSchema,
+                [{
+                    location: 'user.graphql',
+                    document: parse(`
+                        fragment SharedDetails on User {
+                            id
+                            username
+                        }
+                    `),
+                }, {
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment SharedDetails on Group {
+                            id
+                            title
+                        }
+
+                        query GroupDetails {
+                            group {
+                                ...SharedDetails
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result).toContain([
+                `declare module '~tests/user.graphql' {`,
+                `\texport type SharedDetails = {`,
+                `\t\t__typename?: 'User';`,
+                `\t\tid: string;`,
+                `\t\tusername: string;`,
+                `\t}`,
+                `}`,
+            ].join('\n'))
+            expect(result).toContain([
+                `declare module '~tests/group.graphql' {`,
+                `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'\n`,
+                `\texport type SharedDetails = {`,
+                `\t\t__typename?: 'Group';`,
+                `\t\tid: string;`,
+                `\t\ttitle: string;`,
+                `\t}`,
+            ].join('\n'))
+            expect(result).toContain([
+                `\texport type GroupDetailsQueryPayload = {`,
+                `\t\t__typename?: 'Query';`,
+                `\t\tgroup: SharedDetails;`,
+                `\t}`,
+            ].join('\n'))
+            expect(result).not.toContain(`import type { SharedDetails } from '~tests/user.graphql'`)
+        })
+    })
+
+    test('fails when different document locations resolve to the same declaration module', async () => {
+        const collisionSchema = buildSchema(`
+            type Query {
+                user: User!
+                group: Group!
+            }
+
+            type User {
+                id: ID!
+            }
+
+            type Group {
+                id: ID!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                collisionSchema,
+                [{
+                    location: 'queries/shared.graphql',
+                    document: parse(`
+                        query UserQuery {
+                            user {
+                                id
+                            }
+                        }
+                    `),
+                }, {
+                    location: 'mutations/shared.graphql',
+                    document: parse(`
+                        query GroupQuery {
+                            group {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    scope: 'shared.graphql',
+                },
+                outputInfo
+            )).toThrow('Document module specifier collision detected: "queries/shared.graphql" and "mutations/shared.graphql" both resolve to "~tests/shared.graphql". Adjust the plugin prefix, scope, or document locations so each generated declaration module is unique.')
+        })
+    })
+
+    test('uses the imported fragment source when duplicate external fragment names exist', async () => {
+        const duplicateFragmentSchema = buildSchema(`
+            type Query {
+                group: Group!
+            }
+
+            type User {
+                id: ID!
+                username: String!
+            }
+
+            type Group {
+                id: ID!
+                title: String!
+            }
+        `)
+        const groupQuery = `
+            #import "../fragments/group.graphql"
+
+            query GroupDetails {
+                group {
+                    ...SharedDetails
+                }
+            }
+        `
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                duplicateFragmentSchema,
+                [{
+                    location: 'fragments/user.graphql',
+                    document: parse(`
+                        fragment SharedDetails on User {
+                            id
+                            username
+                        }
+                    `),
+                }, {
+                    location: 'fragments/group.graphql',
+                    document: parse(`
+                        fragment SharedDetails on Group {
+                            id
+                            title
+                        }
+                    `),
+                }, {
+                    location: 'queries/group.graphql',
+                    rawSDL: groupQuery,
+                    document: parse(groupQuery),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )
+
+            expect(result).toContain(`\timport type { SharedDetails } from '~tests/fragments/group.graphql'`)
+            expect(result).not.toContain(`\timport type { SharedDetails } from '~tests/fragments/user.graphql'`)
+
+            expect(result).toContain([
+                `\texport type GroupDetailsQueryPayload = {`,
+                `\t\t__typename?: 'Query';`,
+                `\t\tgroup: SharedDetails;`,
                 `\t}`,
             ].join('\n'))
         })
