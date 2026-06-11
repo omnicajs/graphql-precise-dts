@@ -2,12 +2,16 @@ import type { ModelContext } from './models/types'
 import type { PluginConfig } from './config'
 import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 
+import { assertUniqueDocumentModuleSpecifiers } from './diagnostics/declaration-errors'
 import { buildGenerationModels } from './models/generation-builder'
 import { dirname } from 'path'
-import { emitMissingFragmentDefinitionWarnings } from './diagnostics/document-warnings'
+import { emitCustomScalarNamedTypeWarnings } from './diagnostics/scalar-name-warnings'
+import {
+    emitDuplicateFragmentDefinitionWarnings,
+    emitMissingFragmentDefinitionWarnings,
+} from './diagnostics/document-warnings'
 import { emitRepeatedSelectionWarnings } from './diagnostics/repeated-selection-warnings'
 import { emitSkippedDocumentWarnings } from './diagnostics/document-errors'
-import { emitCustomScalarNamedTypeWarnings } from './diagnostics/scalar-name-warnings'
 import { findFragmentDefinitions } from './lib/documents'
 import { guardNamedOperations } from './diagnostics/document-errors'
 import { makeDeclarationModuleSpecifier } from './path'
@@ -37,7 +41,7 @@ export const plugin: PluginFunction<PluginConfig, string> = (
     if (!info?.outputFile) throw new Error('Output file is missing')
 
     emitSkippedDocumentWarnings(documents)
-    guardNamedOperations(documents)
+    guardNamedOperations(documents, schema)
 
     const schemaOutputDirectory = makeSchemaOutputDirectory(info.outputFile, config.schemaOutputDirectory)
     const schemaOutputFile = makeSchemaDeclarationOutputFile(schemaOutputDirectory)
@@ -58,6 +62,7 @@ export const plugin: PluginFunction<PluginConfig, string> = (
     const directivePolicies = config.directivePolicies ?? {}
 
     emitRepeatedSelectionWarnings(documents)
+    emitDuplicateFragmentDefinitionWarnings(documents)
     emitMissingFragmentDefinitionWarnings(documents, fragmentDefinitions)
 
     const context = {
@@ -92,12 +97,13 @@ export const plugin: PluginFunction<PluginConfig, string> = (
 
     const documentBundles = makeDocumentModelBundles(
         documents,
-        registry.fragments,
         context,
         importMap,
         config.scalars ?? {},
         makeGenerationDirectivePolicies(directivePolicies)
     )
+
+    assertUniqueDocumentModuleSpecifiers(documentBundles, documentModuleSpecifier)
 
     return renderDeclarations(
         documentBundles,

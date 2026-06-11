@@ -2,7 +2,7 @@ import type { CollectedDocumentModels } from '../models/types'
 import type { CustomScalarMappingRecord } from '../scalars/types'
 import type { DocumentFile } from '../plugin-types'
 import type { DocumentModelImportMap } from './document-model-imports'
-import type { FragmentModel } from '../models/types'
+import type { FragmentDefinitionNode } from 'graphql'
 import type { GenerationDirectivePolicies } from '../directives/types'
 import type { ModelContext } from '../models/types'
 import type { OperationDefinitionNode } from 'graphql'
@@ -12,8 +12,12 @@ import { TypeInfo } from 'graphql'
 
 import { collectDocumentModelImports } from './document-model-imports'
 import { excludeImportedDuplicateOutputAliases } from './renderable/imported-aliases'
+import { findDocumentFragmentDefinitions } from '../lib/documents'
 import { getOperationTypeName } from './naming'
-import { makeOperationModel } from '../models/documents-builder'
+import {
+    makeFragmentModel,
+    makeOperationModel,
+} from '../models/documents-builder'
 import { makePlannedDocumentModels } from './planned'
 import { prepareRenderableDocumentModels } from './renderable/prepare-models'
 import { uncapitalize } from '../lib/strings'
@@ -21,6 +25,8 @@ import {
     visit,
     visitWithTypeInfo,
 } from 'graphql'
+
+const normalizeDocumentLocation = (location: string): string => location.split('\\').join('/')
 
 type CollectedDocumentModelBundle = {
     location: string;
@@ -35,7 +41,7 @@ export type DocumentModelBundle = {
 
 type DocumentModelCollector = {
     models: CollectedDocumentModels;
-    addFragment(name: string): void;
+    addFragment(node: FragmentDefinitionNode): void;
     addOperation(node: OperationDefinitionNode): void;
 }
 
@@ -62,14 +68,17 @@ const describeExportNameSource = (source: ExportNameSource): string => {
             return `imported type "${source.name}"`
         case EXPORT_NAME_SOURCE_KIND.FRAGMENT:
             return `fragment "${source.name}"`
+        /* v8 ignore next -- @preserve variable alias collisions are prevented by NameAllocator */
         case EXPORT_NAME_SOURCE_KIND.VARIABLE_ALIAS:
             return `generated variable alias "${source.name}"`
+        /* v8 ignore next -- @preserve output alias collisions are prevented by NameAllocator */
         case EXPORT_NAME_SOURCE_KIND.OUTPUT_ALIAS:
             return `generated output alias "${source.name}"`
         case EXPORT_NAME_SOURCE_KIND.OPERATION_PAYLOAD:
             return `generated payload type "${source.name}"`
         case EXPORT_NAME_SOURCE_KIND.OPERATION_VARIABLES:
             return `generated variables type "${source.name}"`
+        /* v8 ignore next -- @preserve operation value collisions are preceded by operation type-name collisions */
         case EXPORT_NAME_SOURCE_KIND.OPERATION_VALUE:
             return `generated document export "${source.name}"`
     }
@@ -143,10 +152,7 @@ const validateDocumentBundleExportNames = (
     })
 }
 
-const createDocumentModelCollector = (
-    fragments:  Map<string, FragmentModel>,
-    context: ModelContext
-): DocumentModelCollector => {
+const createDocumentModelCollector = (context: ModelContext): DocumentModelCollector => {
     const documentModels: CollectedDocumentModels = {
         fragments: new Map(),
         operations: new Map(),
@@ -154,11 +160,9 @@ const createDocumentModelCollector = (
 
     return {
         models: documentModels,
-        addFragment(name) {
-            const fragmentFromRegistry = fragments.get(name)
-
-            if (!documentModels.fragments.has(name) && fragmentFromRegistry) {
-                documentModels.fragments.set(name, fragmentFromRegistry)
+        addFragment(node) {
+            if (!documentModels.fragments.has(node.name.value)) {
+                documentModels.fragments.set(node.name.value, makeFragmentModel(node, context))
             }
         },
         addOperation(node) {
@@ -173,22 +177,57 @@ const createDocumentModelCollector = (
 }
 
 const createDocumentModelVisitor = (collector: DocumentModelCollector) => ({
-    FragmentDefinition(node: { name: { value: string } }) {
-        collector.addFragment(node.name.value)
+    FragmentDefinition(node: FragmentDefinitionNode) {
+        collector.addFragment(node)
     },
     OperationDefinition(node: OperationDefinitionNode) {
         collector.addOperation(node)
     },
 })
 
+const addFragmentDefinition = (
+    fragmentDefinitions: Map<string, FragmentDefinitionNode>,
+    source: { definition?: FragmentDefinitionNode }
+) => {
+    const definition = source.definition
+    if (definition && !fragmentDefinitions.has(definition.name.value)) {
+        fragmentDefinitions.set(definition.name.value, definition)
+    }
+}
+
+const findDocumentModelFragmentDefinitions = (
+    documentFile: DocumentFile,
+    context: ModelContext,
+    importMap: DocumentModelImportMap
+): Map<string, FragmentDefinitionNode> => {
+    const location = documentFile.location ? normalizeDocumentLocation(documentFile.location) : ''
+    const documentImports = importMap.documentImports.get(location)
+    if (!documentImports?.size) {
+        return findDocumentFragmentDefinitions(documentFile.document, context.fragmentDefinitions)
+    }
+
+    const fragmentDefinitions = findDocumentFragmentDefinitions(documentFile.document)
+
+    importMap.fragments.forEach(sources => {
+        sources
+            .filter(source => source.location && documentImports.has(source.location))
+            .forEach(source => addFragmentDefinition(fragmentDefinitions, source))
+    })
+
+    return fragmentDefinitions
+}
+
 const collectDocumentModelBundle = (
     documentFile: DocumentFile,
-    fragments:  Map<string, FragmentModel>,
-    context: ModelContext
+    context: ModelContext,
+    importMap: DocumentModelImportMap
 ): CollectedDocumentModelBundle | undefined => {
     if (!documentFile.document) return
 
-    const collector = createDocumentModelCollector(fragments, context)
+    const collector = createDocumentModelCollector({
+        ...context,
+        fragmentDefinitions: findDocumentModelFragmentDefinitions(documentFile, context, importMap),
+    })
 
     visit(
         documentFile.document,
@@ -210,7 +249,7 @@ const prepareDocumentModelBundle = (
     customScalars: CustomScalarMappingRecord,
     directivePolicies: GenerationDirectivePolicies
 ): DocumentModelBundle => {
-    const imports = collectDocumentModelImports(models, importMap)
+    const imports = collectDocumentModelImports(models, importMap, location)
     const importsNamesSet = new Set(imports.keys())
     if ([ ...models.operations.values() ].some(({ variables }) => variables.length > 0)) {
         importsNamesSet.add(EXACT_TYPE_NAME)
@@ -234,7 +273,6 @@ const prepareDocumentModelBundle = (
 
 export const makeDocumentModelBundles = (
     documents: DocumentFile[],
-    fragments:  Map<string, FragmentModel>,
     context: ModelContext,
     importMap: DocumentModelImportMap,
     customScalars: CustomScalarMappingRecord,
@@ -243,8 +281,8 @@ export const makeDocumentModelBundles = (
     return documents.flatMap(documentFile => {
         const documentModel = collectDocumentModelBundle(
             documentFile,
-            fragments,
-            context
+            context,
+            importMap
         )
 
         return documentModel ? [ prepareDocumentModelBundle(documentModel, importMap, customScalars, directivePolicies) ] : []

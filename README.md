@@ -186,6 +186,18 @@ exports. This matches TypeScript namespace rules for `type` and `const` declarat
 If a single `.graphql` file contains multiple definitions, the plugin emits all matching fragment and operation
 declarations into the same `declare module '...'` block.
 
+If the same fragment name is defined more than once inside a single `.graphql` file, the plugin emits a warning and
+keeps the first definition from that file. Later definitions with the same fragment name are ignored for that module,
+including definitions that target a different GraphQL type.
+
+The same fragment type name may appear in different `.graphql` files. Each file still gets its own
+`declare module '...'` block, so the duplicated fragment type name is scoped to the module declaration for that
+document. Fragment spreads first resolve to a fragment declared in the same document module. External fragment spreads
+must be backed by that file's `#import` declarations, and the import source is resolved from the imported document.
+Missing `#import` declarations, multiple imported documents that define the same external fragment name, and `#import`
+declarations that point outside the configured documents fail generation with an error instead of emitting an arbitrary
+import.
+
 If a configured document references a fragment that is missing from the plugin `documents` input, the plugin emits
 a warning that names the missing fragment definition and the document that referenced it.
 

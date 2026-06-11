@@ -30,6 +30,25 @@ export const findFragmentDefinitions = (
     return fragments
 }
 
+export const findDocumentFragmentDefinitions = (
+    document: DocumentNode | undefined,
+    fallbackFragments: Map<string, FragmentDefinitionNode> = new Map()
+): Map<string, FragmentDefinitionNode> => {
+    const fragments = new Map<string, FragmentDefinitionNode>()
+
+    document?.definitions.forEach(definition => {
+        if (definition.kind === Kind.FRAGMENT_DEFINITION && !fragments.has(definition.name.value)) {
+            fragments.set(definition.name.value, definition)
+        }
+    })
+
+    fallbackFragments.forEach((definition, name) => {
+        if (!fragments.has(name)) fragments.set(name, definition)
+    })
+
+    return fragments
+}
+
 export const makeDocumentLocationMap = (
     documents: DocumentFile[]
 ): WeakMap<Source, string> => {
