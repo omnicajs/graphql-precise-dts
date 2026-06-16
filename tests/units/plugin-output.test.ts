@@ -356,7 +356,9 @@ describe('plugin directive handling', () => {
                     document: parse(`
                         query GroupDetails {
                             group {
-                                id
+                                owner {
+                                    id
+                                }
                             }
                         }
 
@@ -386,7 +388,9 @@ describe('plugin directive handling', () => {
                     document: parse(`
                         query GroupDetails($id: ID!, $id: String) {
                             group {
-                                id
+                                owner {
+                                    id
+                                }
                             }
                         }
                     `),
@@ -394,6 +398,94 @@ describe('plugin directive handling', () => {
                 { prefix: '~tests/' },
                 outputInfo
             )).toThrow(/Duplicate variable "\$id" detected in operation "GroupDetails" at "group\.graphql:\d+:\d+". The first definition is in "group\.graphql:\d+:\d+". Variable names must be unique within an operation\./)
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
+    })
+
+    test('fails early when a field argument is not defined by the schema', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        query GroupDetails($id: ID) {
+                            group(id: $id) {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow(/Unknown argument "id" detected on field "Query\.group" at "group\.graphql:\d+:\d+". Field arguments must match the GraphQL schema\./)
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
+    })
+
+    test('fails early when a field selection is not defined by the schema', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        query GroupDetails {
+                            group {
+                                missingField
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow(/Unknown field "missingField" detected on type "Group" at "group\.graphql:\d+:\d+". Field selections must match the GraphQL schema\./)
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
+    })
+
+    test('fails early when a fragment type condition is not defined by the schema', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        fragment MissingDetails on MissingType {
+                            id
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow(/Unknown fragment type "MissingType" detected at "group\.graphql:\d+:\d+". Fragment type conditions must reference types from the GraphQL schema\./)
+
+            expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
+        })
+    })
+
+    test('fails early when an inline fragment type condition is not defined by the schema', async () => {
+        await withTempOutput(async outputInfo => {
+            expect(() => plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        query GroupDetails {
+                            group {
+                                ... on MissingType {
+                                    id
+                                }
+                            }
+                        }
+                    `),
+                }],
+                { prefix: '~tests/' },
+                outputInfo
+            )).toThrow(/Unknown inline fragment type "MissingType" detected at "group\.graphql:\d+:\d+". Inline fragment type conditions must reference types from the GraphQL schema\./)
 
             expect(existsSync(join(outputInfo.tempDir, 'schema.d.ts'))).toBe(false)
         })

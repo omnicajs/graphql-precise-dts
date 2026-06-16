@@ -113,7 +113,7 @@ const replaceOperationReferences = (
     resultShape: replaceShapeReferences(operation.resultShape, aliasReplacements),
 })
 
-export const excludeImportedDuplicateOutputAliases = (
+export const deduplicateImportedOutputAliases = (
     models: RenderableDocumentModels,
     importNames: Set<string>
 ): RenderableDocumentModels => {

@@ -4,9 +4,13 @@ import {
     test,
 } from 'vitest'
 
-import { defineString } from '../../../src'
-import { normalizeSelections } from '../../../src/plan/planned/normalize/selection'
 import {
+    defineNumber,
+    defineString,
+} from '../../../src'
+import { normalizeSelections } from '../../../src/plan/planned/normalize/selection-merger'
+import {
+    enumValue,
     field,
     listType,
     namedType,
@@ -115,6 +119,90 @@ describe('selection normalization', () => {
         ])).toThrow(/different field nullability or list structure cannot be merged/)
     })
 
+    test('merges fields with matching list type references', () => {
+        const selections = normalizeSelections([
+            field('groups', scalar(defineString()), false, true),
+            field('groups', scalar(defineString()), false, true),
+        ])
+
+        expect(selections).toEqual([expect.objectContaining({
+            responseName: 'groups',
+            typeRef: listType(false),
+        })])
+    })
+
+    test('throws when duplicate scalar field values have different definitions', () => {
+        expect(() => normalizeSelections([
+            field('id', scalar(defineString()), false),
+            field('id', scalar(defineNumber()), false),
+        ])).toThrow(/different scalar result definitions/)
+    })
+
+    test('throws when duplicate field values have different result shapes', () => {
+        expect(() => normalizeSelections([
+            field('status', scalar(defineString()), false),
+            field('status', enumValue('Status'), false),
+        ])).toThrow(/different result shapes "scalar" and "enum" cannot be merged/)
+    })
+
+    test('merges enum values with the same result type', () => {
+        expect(normalizeSelections([
+            field('role', enumValue('Role'), false),
+            field('role', enumValue('Role'), false),
+        ])).toEqual([expect.objectContaining({
+            responseName: 'role',
+            value: {
+                kind: VALUE_MODEL_KIND.ENUM,
+                name: 'Role',
+            },
+        })])
+    })
+
+    test('rejects enum values with different result types', () => {
+        expect(() => normalizeSelections([
+            field('role', enumValue('Role'), false),
+            field('role', enumValue('Status'), false),
+        ])).toThrow(/different enum result types "Role" and "Status" cannot be merged/)
+    })
+
+    test('merges unknown values with the same reason', () => {
+        expect(normalizeSelections([
+            field('mystery', {
+                kind: VALUE_MODEL_KIND.UNKNOWN,
+                reason: 'unsupported',
+            }, false),
+            field('mystery', {
+                kind: VALUE_MODEL_KIND.UNKNOWN,
+                reason: 'unsupported',
+            }, false),
+        ])).toEqual([expect.objectContaining({
+            responseName: 'mystery',
+            value: {
+                kind: VALUE_MODEL_KIND.UNKNOWN,
+                reason: 'unsupported',
+            },
+        })])
+    })
+
+    test('merges unknown values with different reasons', () => {
+        expect(normalizeSelections([
+            field('mystery', {
+                kind: VALUE_MODEL_KIND.UNKNOWN,
+                reason: 'unsupported',
+            }, false),
+            field('mystery', {
+                kind: VALUE_MODEL_KIND.UNKNOWN,
+                reason: 'missing-type',
+            }, false),
+        ])).toEqual([expect.objectContaining({
+            responseName: 'mystery',
+            value: {
+                kind: VALUE_MODEL_KIND.UNKNOWN,
+                reason: 'unsupported, missing-type',
+            },
+        })])
+    })
+
     test('merges diagnostic locations, conditional flags, directive names and object field values', () => {
         const selections = normalizeSelections([
             {
@@ -148,6 +236,29 @@ describe('selection normalization', () => {
                     expect.objectContaining({ responseName: 'id' }),
                     expect.objectContaining({ responseName: 'name' }),
                 ],
+            },
+        })])
+    })
+
+    test('merges object field values without type names', () => {
+        const selections = normalizeSelections([
+            field('profile', objectValue([
+                field('id', scalar(defineString()), false),
+            ]), false),
+            field('profile', objectValue([
+                field('name', scalar(defineString()), false),
+            ]), false),
+        ])
+
+        expect(selections).toEqual([expect.objectContaining({
+            responseName: 'profile',
+            value: {
+                kind: VALUE_MODEL_KIND.OBJECT,
+                fields: [
+                    expect.objectContaining({ responseName: 'id' }),
+                    expect.objectContaining({ responseName: 'name' }),
+                ],
+                typeNames: [],
             },
         })])
     })
@@ -226,6 +337,10 @@ describe('selection normalization', () => {
                         typeName: 'User',
                         fields: [ field('name', scalar(defineString())) ],
                     },
+                    {
+                        typeName: 'Project',
+                        fields: [ field('key', scalar(defineString()), false) ],
+                    },
                 ]), false),
             },
         ])
@@ -246,6 +361,12 @@ describe('selection normalization', () => {
                         typeName: 'Group',
                         fields: [
                             expect.objectContaining({ responseName: 'slug' }),
+                        ],
+                    },
+                    {
+                        typeName: 'Project',
+                        fields: [
+                            expect.objectContaining({ responseName: 'key' }),
                         ],
                     },
                 ],
@@ -294,6 +415,50 @@ describe('selection normalization', () => {
                 ],
             },
         }])
+    })
+
+    test('merges duplicate fragment spreads using onType when type names are omitted', () => {
+        const selections = normalizeSelections([
+            {
+                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                name: 'OwnerFields',
+                onType: 'User',
+                conditional: true,
+            },
+            {
+                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                name: 'OwnerFields',
+                onType: 'User',
+                conditional: false,
+            },
+        ])
+
+        expect(selections).toEqual([{
+            kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+            name: 'OwnerFields',
+            onType: 'User',
+            conditional: false,
+            diagnosticLocation: undefined,
+        }])
+    })
+
+    test('throws when duplicate fragment spreads target different type names', () => {
+        expect(() => normalizeSelections([
+            {
+                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                name: 'OwnerFields',
+                onType: 'User',
+                conditional: false,
+                diagnosticLocation: 'user.graphql:1:1',
+            },
+            {
+                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                name: 'OwnerFields',
+                onType: 'Group',
+                conditional: false,
+                diagnosticLocation: 'group.graphql:1:1',
+            },
+        ])).toThrow(/Conflicting fragment spreads "OwnerFields"/)
     })
 
     test('deduplicates repeated fragment spreads on the same level', () => {
@@ -356,6 +521,34 @@ describe('selection normalization', () => {
             conditional: false,
             directiveNames: [ 'include', 'client' ],
             diagnosticLocation: 'group.graphql:3:5, group.graphql:7:5',
+        }])
+    })
+
+    test('merges duplicate fragment spreads with type names in different order', () => {
+        const selections = normalizeSelections([
+            {
+                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                name: 'OwnerFields',
+                onType: 'Node',
+                onTypeNames: [ 'User', 'Admin' ],
+                conditional: false,
+            },
+            {
+                kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+                name: 'OwnerFields',
+                onType: 'Node',
+                onTypeNames: [ 'Admin', 'User' ],
+                conditional: false,
+            },
+        ])
+
+        expect(selections).toEqual([{
+            kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
+            name: 'OwnerFields',
+            onType: 'Node',
+            onTypeNames: [ 'User', 'Admin' ],
+            conditional: false,
+            diagnosticLocation: undefined,
         }])
     })
 })

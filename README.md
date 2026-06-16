@@ -201,6 +201,10 @@ import.
 If a configured document references a fragment that is missing from the plugin `documents` input, the plugin emits
 a warning that names the missing fragment definition and the document that referenced it.
 
+If a field selection, field argument, fragment type condition, or inline fragment type condition references something
+that is not present in the GraphQL schema, generation fails with a schema diagnostic instead of emitting declarations
+for an incomplete result shape.
+
 If a selection set repeats the same field or fragment spread directly, the plugin emits a warning with
 source locations for the redundant selections, even when those selections can be merged safely.
 

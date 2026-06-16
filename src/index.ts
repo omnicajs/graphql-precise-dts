@@ -67,9 +67,7 @@ export const plugin: PluginFunction<PluginConfig, string> = (
 
     const context = {
         schema,
-        fragmentDefinitions: fragmentDefinitions instanceof Map
-            ? fragmentDefinitions
-            : findFragmentDefinitions(fragmentDefinitions),
+        fragmentDefinitions,
         documentLocations: makeDocumentLocationMap(documents),
         structuralDirectivePolicies: makeStructuralDirectivePolicies(directivePolicies),
     } satisfies ModelContext

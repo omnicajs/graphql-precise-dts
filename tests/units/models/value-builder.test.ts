@@ -343,6 +343,57 @@ describe('value builder', () => {
         })
     })
 
+    test('reuses cached input object values for repeated input object types', () => {
+        const schema = buildSchema(`
+            input RangeInput {
+                from: String
+                to: String
+            }
+
+            input FilterInput {
+                primary: RangeInput
+                secondary: RangeInput
+            }
+
+            type Query {
+                users: [String!]!
+            }
+        `)
+
+        const inputType = schema.getType('FilterInput')
+        expect(inputType).toBeDefined()
+
+        const value = makeVariableValue(inputType as GraphQLInputType)
+
+        expect(value).toMatchObject({
+            kind: VALUE_MODEL_KIND.OBJECT,
+            typeName: 'FilterInput',
+            fields: [
+                {
+                    name: 'primary',
+                    value: {
+                        kind: VALUE_MODEL_KIND.OBJECT,
+                        typeName: 'RangeInput',
+                    },
+                },
+                {
+                    name: 'secondary',
+                    value: {
+                        kind: VALUE_MODEL_KIND.OBJECT,
+                        typeName: 'RangeInput',
+                    },
+                },
+            ],
+        })
+
+        const objectValue = value as Extract<
+            ReturnType<typeof makeVariableValue>,
+            { kind: typeof VALUE_MODEL_KIND.OBJECT }
+        >
+
+        expect(objectValue.fields[1].value).toBe(objectValue.fields[0].value)
+    })
+
     test('keeps only inline fragments when building union variants', () => {
         const schema = buildSchema(`
             type UserPayload {
@@ -365,6 +416,9 @@ describe('value builder', () => {
             fragment SearchResultDetails on Query {
                 search {
                     __typename
+                    ... {
+                        __typename
+                    }
                     ... on UserPayload {
                         name
                     }
@@ -378,6 +432,9 @@ describe('value builder', () => {
             fragment SearchResultDetails on Query {
                 search {
                     __typename
+                    ... {
+                        __typename
+                    }
                     ... on UserPayload {
                         name
                     }

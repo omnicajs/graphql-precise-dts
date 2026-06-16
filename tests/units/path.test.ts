@@ -113,6 +113,18 @@ describe('plugin module path resolution', () => {
         )).toBe('./queries/index.graphql')
     })
 
+    test('keeps explicit relative module specifiers when prefix is empty', () => {
+        expect(makeModuleSpecifier('', './queries/index.graphql')).toBe('./queries/index.graphql')
+        expect(makeModuleSpecifier('', '../queries/index.graphql')).toBe('../queries/index.graphql')
+    })
+
+    test('keeps parent-relative module specifiers resolved from absolute paths when prefix is empty', () => {
+        expect(makeModuleSpecifier(
+            '',
+            join(process.cwd(), '..', 'queries/index.graphql')
+        )).toBe('../queries/index.graphql')
+    })
+
     test('uses the normalized document path when scope is omitted and relativeToCwd is disabled', () => {
         expect(makeModuleSpecifier(
             '~tests/',
@@ -191,6 +203,38 @@ describe('plugin module path resolution', () => {
 
             expect(result).not.toContain(`import type { GroupDetails } from '~tests/mutations/index.graphql'`)
             expect(result).not.toContain(`declare module '~tests/index.graphql' {`)
+        })
+    })
+
+    test('uses the default document module prefix when plugin prefix is omitted', async () => {
+        const schema = buildSchema(`
+            type Query {
+                group: Group!
+            }
+
+            type Group {
+                id: ID!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'group.graphql',
+                    document: parse(`
+                        query GroupQuery {
+                            group {
+                                id
+                            }
+                        }
+                    `),
+                }],
+                {},
+                outputInfo
+            )
+
+            expect(result).toContain(`declare module '*/group.graphql' {`)
         })
     })
 })

@@ -196,6 +196,98 @@ If the root type is missing, generation fails before writing output files:
 Root type for mutation operation "UpdateUser" was not found in schema at "user.graphql:1:1". Add a mutation root type to the schema or remove the operation.
 ```
 
+### Unknown fields
+
+Field selections must exist on the parent type from the GraphQL schema. If a document selects a field that is not
+defined by the schema, generation fails before writing output files:
+
+```graphql
+type User {
+  id: ID!
+}
+```
+
+```graphql
+fragment UserDetails on User {
+  id
+  missingField
+}
+```
+
+```txt
+Unknown field "missingField" detected on type "User" at "user.graphql:2:3". Field selections must match the GraphQL schema.
+```
+
+### Field argument schema errors
+
+Field arguments must match the field definition from the GraphQL schema. Generation fails when a required field
+argument is missing:
+
+```graphql
+type Query {
+  user(id: ID!): User
+}
+```
+
+```graphql
+query UserDetails {
+  user {
+    id
+  }
+}
+```
+
+```txt
+Required argument "id" is missing on field "Query.user" at "user.graphql:2:3". Required field arguments must be provided.
+```
+
+Generation also fails when a document provides an argument that the schema field does not define:
+
+```graphql
+type Query {
+  group: Group
+}
+```
+
+```graphql
+query UserDetails($id: ID) {
+  group(id: $id) {
+    id
+  }
+}
+```
+
+```txt
+Unknown argument "id" detected on field "Query.group" at "group.graphql:2:9". Field arguments must match the GraphQL schema.
+```
+
+### Unknown fragment type conditions
+
+Fragment and inline fragment type conditions must reference types from the GraphQL schema. If the type is missing,
+generation fails before writing output files:
+
+```graphql
+fragment UserDetails on MissingType {
+  id
+}
+```
+
+```txt
+Unknown fragment type "MissingType" detected at "user.graphql:1:25". Fragment type conditions must reference types from the GraphQL schema.
+```
+
+```graphql
+fragment UserDetails on User {
+  ... on MissingType {
+    id
+  }
+}
+```
+
+```txt
+Unknown inline fragment type "MissingType" detected at "user.graphql:2:10". Inline fragment type conditions must reference types from the GraphQL schema.
+```
+
 ### Reserved `__typename` alias
 
 Aliasing a non-`__typename` field to the response name `__typename` is not supported:

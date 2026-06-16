@@ -165,14 +165,17 @@ const createImportMapVisitor = (
 ) => ({
     EnumValue() {
         const inputType = typeInfo.getInputType()
+        /* v8 ignore next -- @preserve TypeInfo resolves enum literal input types for valid GraphQL documents. */
         if (inputType) collector.addEnum(inputType)
     },
     Field() {
         const fieldDef = typeInfo.getFieldDef()
+        /* v8 ignore next -- @preserve TypeInfo resolves field definitions for valid GraphQL field selections. */
         if (fieldDef) collector.addEnum(fieldDef.type)
     },
     VariableDefinition() {
         const inputType = typeInfo.getInputType()
+        /* v8 ignore next -- @preserve TypeInfo resolves variable input types for valid GraphQL operation definitions. */
         if (inputType) collector.addEnum(inputType)
     },
     FragmentDefinition(node: FragmentDefinitionNode) {
@@ -227,19 +230,20 @@ const findFragmentImportPath = (
         : undefined
 
     if (documentImports?.size) {
+        const location = collector.location as string
         const matchingSources = externalSources
             .filter(source => source.location && documentImports.has(source.location))
         if (matchingSources.length === 1) return matchingSources[0]?.moduleSpecifier
 
         if (matchingSources.length > 1) {
             throw new Error(
-                `Fragment definition "${name}" referenced from "${collector.location ?? '<unknown document>'}" is ambiguous because multiple imported documents define it. `
+                `Fragment definition "${name}" referenced from "${location}" is ambiguous because multiple imported documents define it. `
                 + `Matching imports: ${matchingSources.map(source => `"${source.location}"`).join(', ')}.`
             )
         }
 
         throw new Error(
-            `Fragment definition "${name}" referenced from "${collector.location ?? '<unknown document>'}" was not found in that document's imports. `
+            `Fragment definition "${name}" referenced from "${location}" was not found in that document's imports. `
             + `Imported documents: ${[ ...documentImports ].map(importLocation => `"${importLocation}"`).join(', ')}.`
         )
     }

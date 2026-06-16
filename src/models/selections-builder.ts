@@ -31,6 +31,18 @@ type ResolvedSelectionContext = {
     resolvedDirectives: ResolvedStructuralDirectives;
 }
 
+type SelectionModelKind = typeof SELECTION_MODEL_KIND[keyof typeof SELECTION_MODEL_KIND]
+
+type OfKind<K extends SelectionModelKind> =
+    Omit<ResolvedSelectionContext, 'fieldType'> & {
+    fieldType: Extract<TypeSelectionNode, { kind: K }>;
+}
+
+const isSelectionContextOfKind = <K extends SelectionModelKind>(
+    selectionContext: ResolvedSelectionContext,
+    kind: K
+): selectionContext is OfKind<K> => selectionContext.fieldType.kind === kind
+
 const resolveSelectionContext = (
     selection: SelectionNode,
     fieldType: TypeSelectionNode | undefined,
@@ -54,11 +66,9 @@ const resolveSelectionContext = (
 const makeFieldSelectionModel = (
     selection: Extract<SelectionNode, { kind: Kind.FIELD }>,
     context: ModelContext,
-    selectionContext: ResolvedSelectionContext,
+    selectionContext: OfKind<typeof SELECTION_MODEL_KIND.FIELD>,
     diagnosticOwner: string
 ): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.FIELD }> | undefined => {
-    if (selectionContext.fieldType.kind !== SELECTION_MODEL_KIND.FIELD) return
-
     if (selection.alias?.value === '__typename' && selection.name.value !== '__typename') {
         throw new Error('Aliasing a field to "__typename" is not supported because this name is reserved')
     }
@@ -91,10 +101,8 @@ const makeFieldSelectionModel = (
 const makeFragmentSpreadSelectionModel = (
     selection: Extract<SelectionNode, { kind: Kind.FRAGMENT_SPREAD }>,
     context: ModelContext,
-    selectionContext: ResolvedSelectionContext
+    selectionContext: OfKind<typeof SELECTION_MODEL_KIND.FRAGMENT_SPREAD>
 ): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.FRAGMENT_SPREAD }> | undefined => {
-    if (selectionContext.fieldType.kind !== SELECTION_MODEL_KIND.FRAGMENT_SPREAD) return
-
     const spreadFragment = context.fragmentDefinitions.get(selection.name.value)
     if (!spreadFragment) return
     const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
@@ -112,24 +120,22 @@ const makeFragmentSpreadSelectionModel = (
 const makeInlineFragmentSelectionModel = (
     selection: Extract<SelectionNode, { kind: Kind.INLINE_FRAGMENT }>,
     context: ModelContext,
-    selectionContext: ResolvedSelectionContext,
+    selectionContext: OfKind<typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT>,
     diagnosticOwner: string
 ): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT }> | undefined => {
-    if (selectionContext.fieldType.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT && selectionContext.fieldType.selections) {
-        const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
-        return {
-            kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
-            diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
-            ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
-            selections: makeSelectionModels(
-                [ ...selection.selectionSet.selections ],
-                selectionContext.fieldType.selections,
-                context,
-                diagnosticOwner
-            ),
-            conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
-            ...(directiveNames.length && { directiveNames }),
-        }
+    const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
+    return {
+        kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
+        diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
+        ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
+        selections: makeSelectionModels(
+            [ ...selection.selectionSet.selections ],
+            selectionContext.fieldType.selections,
+            context,
+            diagnosticOwner
+        ),
+        conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
+        ...(directiveNames.length && { directiveNames }),
     }
 }
 
@@ -147,15 +153,27 @@ export const makeSelectionModel = (
 
     if (!selectionContext) return
 
-    if (selection.kind === Kind.FIELD) {
+    if (selection.kind === Kind.FIELD && isSelectionContextOfKind(selectionContext, SELECTION_MODEL_KIND.FIELD)) {
         return makeFieldSelectionModel(selection, context, selectionContext, diagnosticOwner)
     }
 
-    if (selection.kind === Kind.FRAGMENT_SPREAD) {
+    if (
+        selection.kind === Kind.FRAGMENT_SPREAD
+        && isSelectionContextOfKind(selectionContext, SELECTION_MODEL_KIND.FRAGMENT_SPREAD)
+    ) {
         return makeFragmentSpreadSelectionModel(selection, context, selectionContext)
     }
 
-    return makeInlineFragmentSelectionModel(selection, context, selectionContext, diagnosticOwner)
+    /* v8 ignore next -- @preserve Covers V8's synthetic else branch for an inconsistent inline fragment type selection. */
+    if (
+        selection.kind === Kind.INLINE_FRAGMENT
+        && isSelectionContextOfKind(selectionContext, SELECTION_MODEL_KIND.INLINE_FRAGMENT)
+    ) {
+        return makeInlineFragmentSelectionModel(selection, context, selectionContext, diagnosticOwner)
+    }
+
+    /* v8 ignore next -- @preserve Type selections are built from the same AST selection kind. */
+    return
 }
 
 export const makeSelectionModels = (

@@ -11,7 +11,7 @@ import type { RenderableDocumentModels } from './renderable/types'
 import { TypeInfo } from 'graphql'
 
 import { collectDocumentModelImports } from './document-model-imports'
-import { excludeImportedDuplicateOutputAliases } from './renderable/imported-aliases'
+import { deduplicateImportedOutputAliases } from './renderable/deduplicate-imported-output-aliases'
 import { findDocumentFragmentDefinitions } from '../lib/documents'
 import { getOperationTypeName } from './naming'
 import {
@@ -111,6 +111,7 @@ const validateDocumentBundleExportNames = (
     const usedValueNames = new Map<string, ExportNameSource>()
 
     imports.forEach((_, name) => {
+        /* v8 ignore next -- @preserve collectDocumentModelImports skips local fragment spreads; this is defensive for externally supplied import maps. */
         if (models.fragments.has(name) && !importMap.enums.has(name)) return
         assertUniqueExportName(usedTypeNames, { kind: EXPORT_NAME_SOURCE_KIND.IMPORT, name }, location)
     })
@@ -169,6 +170,7 @@ const createDocumentModelCollector = (context: ModelContext): DocumentModelColle
             if (!node.name?.value || documentModels.operations.has(node.name.value)) return
 
             const operationModel = makeOperationModel(node, context)
+            /* v8 ignore next -- @preserve Valid operations produce models when the schema defines the corresponding operation root type. */
             if (operationModel) {
                 documentModels.operations.set(node.name.value, operationModel)
             }
@@ -190,6 +192,7 @@ const addFragmentDefinition = (
     source: { definition?: FragmentDefinitionNode }
 ) => {
     const definition = source.definition
+    /* v8 ignore next -- @preserve Import maps produced by makeDocumentModelImportMap attach fragment definitions before bundle merging. */
     if (definition && !fragmentDefinitions.has(definition.name.value)) {
         fragmentDefinitions.set(definition.name.value, definition)
     }
@@ -255,7 +258,7 @@ const prepareDocumentModelBundle = (
         importsNamesSet.add(EXACT_TYPE_NAME)
     }
 
-    const renderableModels = excludeImportedDuplicateOutputAliases(
+    const renderableModels = deduplicateImportedOutputAliases(
         prepareRenderableDocumentModels(
             makePlannedDocumentModels(models, [ ...importsNamesSet ], customScalars, directivePolicies)
         ),
