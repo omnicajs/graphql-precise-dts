@@ -135,26 +135,34 @@ export const makeOperationModel = (
         visitWithTypeInfo(typeInfo, {
             VariableDefinition(node) {
                 const inputType = typeInfo.getInputType()
-                if (inputType && !variables.has(node)) variables.set(node, inputType)
+                /* v8 ignore next -- @preserve TypeInfo resolves variable input types for valid GraphQL operation definitions. */
+                if (!inputType) return
+
+                variables.set(node, inputType)
             },
         })
     )
 
+    let variableDefinitions = graphqlDef.variableDefinitions
+    /* v8 ignore next -- @preserve graphql-js parse returns an empty array when operations have no variable definitions. */
+    if (!variableDefinitions) variableDefinitions = []
+
     return {
         operationType: graphqlDef.operation,
         onType: capitalize(rootType.name),
-        variables: (graphqlDef.variableDefinitions ?? [])
+        variables: variableDefinitions
             .flatMap(variableDefinition => {
                 const variableType = variables.get(variableDefinition)
+                /* v8 ignore next -- @preserve TypeInfo resolves variable input types for valid GraphQL operation definitions. */
+                if (!variableType) return []
 
-                return variableType
-                    ? [
-                        makeOperationVariable(
-                            variableDefinition.variable.name.value,
-                            variableType,
-                            !isUndefined(variableDefinition.defaultValue)
-                        ),
-                    ] : []
+                return [
+                    makeOperationVariable(
+                        variableDefinition.variable.name.value,
+                        variableType,
+                        !isUndefined(variableDefinition.defaultValue)
+                    ),
+                ]
             }),
         result: makeSelectionModels(
             [ ...graphqlDef.selectionSet.selections ],

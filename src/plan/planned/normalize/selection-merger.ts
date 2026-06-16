@@ -61,6 +61,8 @@ const mergeConditionalFlag = <T extends boolean>(left: T, right: T): T => left &
 
 const mergeDirectiveLists = <T extends string>(left: T[] = [], right: T[] = []): T[] => uniqueValues([ ...left, ...right ])
 
+const sortTypeNames = (typeNames: string[]): string[] => [ ...typeNames ].sort()
+
 const applyParentConditionalToSelections = (
     selections: SelectionModel[],
     parentConditional: boolean
@@ -148,17 +150,10 @@ const fieldValueMergers: FieldValueMergers = {
         typeNames: uniqueValues([ ...(left.typeNames ?? []), ...(right.typeNames ?? []) ]),
     }),
     [VALUE_MODEL_KIND.UNION]: (left, right, context) => mergeUnionFieldValues(left, right, context),
-    [VALUE_MODEL_KIND.UNKNOWN]: (left, right, { existingSelection, duplicateSelection }) => {
-        if (left.reason !== right.reason) {
-            throw makeSelectionConflictError(
-                existingSelection,
-                duplicateSelection,
-                `different unknown result reasons cannot be merged`
-            )
-        }
-
-        return left
-    },
+    [VALUE_MODEL_KIND.UNKNOWN]: (left, right) => ({
+        kind: VALUE_MODEL_KIND.UNKNOWN,
+        reason: uniqueValues([ left.reason, right.reason ]).join(', '),
+    }),
 }
 
 const mergeFieldValues = (
@@ -188,8 +183,8 @@ const mergeFragmentSpreads = (
     existingSelection: FragmentSpreadSelectionModel,
     duplicateSelection: FragmentSpreadSelectionModel
 ): FragmentSpreadSelectionModel => {
-    const existingTypeNames = existingSelection.onTypeNames ?? [ existingSelection.onType ]
-    const duplicateTypeNames = duplicateSelection.onTypeNames ?? [ duplicateSelection.onType ]
+    const existingTypeNames = sortTypeNames(existingSelection.onTypeNames ?? [ existingSelection.onType ])
+    const duplicateTypeNames = sortTypeNames(duplicateSelection.onTypeNames ?? [ duplicateSelection.onType ])
 
     if (existingSelection.onType !== duplicateSelection.onType
         || existingTypeNames.length !== duplicateTypeNames.length

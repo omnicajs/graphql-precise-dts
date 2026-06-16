@@ -5,9 +5,17 @@ import {
 } from 'vitest'
 
 import {
+    mkdirSync,
+    writeFileSync,
+} from 'fs'
+import { join } from 'path'
+
+import {
     collectDocumentModelImports,
     makeDocumentModelImportMap,
 } from '../../../src/plan/document-model-imports'
+
+import { withTempOutput } from '../utils/temp-output'
 
 import {
     declarationDefinitions,
@@ -318,6 +326,34 @@ describe('imports plan', () => {
             .toThrow('Fragment definition "UserDetails" referenced from "queries/users.graphql" is external, but the document does not declare any #import for it.')
     })
 
+    test('uses an unknown document label when an external fragment source is available without a collector location', () => {
+        const models = declarationDefinitions(
+            new Map(),
+            new Map([
+                ['UsersQuery', operation(
+                    OperationTypeNode.QUERY,
+                    [{
+                        kind: 'fragmentSpread',
+                        name: 'UserDetails',
+                        onType: 'User',
+                        conditional: false,
+                    }]
+                )],
+            ])
+        )
+
+        expect(() => collectDocumentModelImports(models, {
+            fragments: new Map([
+                [ 'UserDetails', [{
+                    location: 'fragments/user.graphql',
+                    moduleSpecifier: '~docs/fragments/user.graphql',
+                }] ],
+            ]),
+            enums: new Map(),
+            documentImports: new Map(),
+        })).toThrow('Fragment definition "UserDetails" referenced from "<unknown document>" is external, but the document does not declare any #import for it.')
+    })
+
     test('fails when document imports do not provide the referenced fragment', () => {
         const models = declarationDefinitions(
             new Map(),
@@ -347,6 +383,54 @@ describe('imports plan', () => {
             ]),
         }, 'queries/users.graphql'))
             .toThrow('Fragment definition "UserDetails" referenced from "queries/users.graphql" was not found in that document\'s imports.')
+    })
+
+    test('fails when a referenced fragment is not configured anywhere', () => {
+        const models = declarationDefinitions(
+            new Map(),
+            new Map([
+                ['UsersQuery', operation(
+                    OperationTypeNode.QUERY,
+                    [{
+                        kind: 'fragmentSpread',
+                        name: 'UserDetails',
+                        onType: 'User',
+                        conditional: false,
+                    }]
+                )],
+            ])
+        )
+
+        expect(() => collectDocumentModelImports(models, {
+            fragments: new Map(),
+            enums: new Map(),
+            documentImports: new Map(),
+        }, 'queries/users.graphql'))
+            .toThrow('Fragment definition "UserDetails" referenced from "queries/users.graphql" was not found among the documents configured for the plugin.')
+    })
+
+    test('uses an unknown document label when a referenced fragment is not configured anywhere without a collector location', () => {
+        const models = declarationDefinitions(
+            new Map(),
+            new Map([
+                ['UsersQuery', operation(
+                    OperationTypeNode.QUERY,
+                    [{
+                        kind: 'fragmentSpread',
+                        name: 'UserDetails',
+                        onType: 'User',
+                        conditional: false,
+                    }]
+                )],
+            ])
+        )
+
+        expect(() => collectDocumentModelImports(models, {
+            fragments: new Map(),
+            enums: new Map(),
+            documentImports: new Map(),
+        }))
+            .toThrow('Fragment definition "UserDetails" referenced from "<unknown document>" was not found among the documents configured for the plugin.')
     })
 
     test('collects direct enum imports from operation variables', () => {
@@ -499,6 +583,39 @@ describe('imports plan', () => {
         expect(importMap.documentImports).toEqual(new Map())
     })
 
+    test('collects fragment import sources from documents without locations', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+
+        const importMap = makeDocumentModelImportMap(
+            schema,
+            [{
+                document: parse(`
+                    fragment UserDetails on User {
+                        id
+                    }
+                `),
+            }],
+            './schema',
+            location => `~docs/${location ?? '*.graphql'}`
+        )
+
+        expect(importMap.fragments).toEqual(new Map([
+            [ 'UserDetails', [{
+                location: undefined,
+                moduleSpecifier: '~docs/*.graphql',
+            }] ],
+        ]))
+        expect(importMap.documentImports).toEqual(new Map())
+    })
+
     test('collects document import locations from raw SDL', () => {
         const schema = buildSchema(`
             type User {
@@ -537,6 +654,93 @@ describe('imports plan', () => {
         expect(importMap.documentImports).toEqual(new Map([
             [ 'queries/user.graphql', new Set([ 'fragments/UserDetails.graphql' ]) ],
         ]))
+    })
+
+    test('collects absolute document import locations from raw SDL', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+
+        const importMap = makeDocumentModelImportMap(
+            schema,
+            [{
+                location: '/documents/queries/user.graphql',
+                rawSDL: '#import "/documents/fragments/UserDetails.graphql"',
+                document: parse(`
+                    query UserQuery {
+                        user {
+                            ...UserDetails
+                        }
+                    }
+                `),
+            }, {
+                location: '/documents/fragments/UserDetails.graphql',
+                document: parse(`
+                    fragment UserDetails on User {
+                        id
+                    }
+                `),
+            }],
+            './schema',
+            location => `~docs/${location ?? '*.graphql'}`
+        )
+
+        expect(importMap.documentImports).toEqual(new Map([
+            [ '/documents/queries/user.graphql', new Set([ '/documents/fragments/UserDetails.graphql' ]) ],
+        ]))
+    })
+
+    test('collects document import locations from a document file on disk', async () => {
+        await withTempOutput(async ({ tempDir }) => {
+            const schema = buildSchema(`
+                type User {
+                    id: ID!
+                }
+
+                type Query {
+                    user: User!
+                }
+            `)
+            const queryLocation = join(tempDir, 'queries/user.graphql')
+            const fragmentLocation = join(tempDir, 'fragments/UserDetails.graphql')
+
+            mkdirSync(join(tempDir, 'queries'), { recursive: true })
+            mkdirSync(join(tempDir, 'fragments'), { recursive: true })
+            writeFileSync(queryLocation, '#import "../fragments/UserDetails.graphql"')
+
+            const importMap = makeDocumentModelImportMap(
+                schema,
+                [{
+                    location: queryLocation,
+                    document: parse(`
+                        query UserQuery {
+                            user {
+                                ...UserDetails
+                            }
+                        }
+                    `),
+                }, {
+                    location: fragmentLocation,
+                    document: parse(`
+                        fragment UserDetails on User {
+                            id
+                        }
+                    `),
+                }],
+                './schema',
+                location => `~docs/${location ?? '*.graphql'}`
+            )
+
+            expect(importMap.documentImports).toEqual(new Map([
+                [ queryLocation, new Set([ fragmentLocation ]) ],
+            ]))
+        })
     })
 
     test('fails when a raw SDL import references a document outside the configured documents', () => {

@@ -100,6 +100,35 @@ describe('document model bundles', () => {
         expect([ ...bundles[0].models.operations.keys() ]).toEqual([ 'UserQuery' ])
     })
 
+    test('builds document model bundles for documents without locations', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+        const documents = [{
+            document: parse(`
+                fragment UserDetails on User {
+                    id
+                }
+            `),
+        }]
+        const context = makeTestModelContext({
+            schema,
+            documents,
+        })
+
+        const bundles = makeDocumentModelBundles(documents, context, createImportMap(), {}, {})
+
+        expect(bundles).toHaveLength(1)
+        expect(bundles[0]).toMatchObject({ location: '' })
+        expect([ ...bundles[0].models.fragments.keys() ]).toEqual([ 'UserDetails' ])
+    })
+
     test('skips documents without AST and ignores unnamed or duplicate operations', () => {
         const schema = buildSchema(`
             type User {

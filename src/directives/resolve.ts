@@ -82,12 +82,18 @@ const resolveConditionalDirective = (
 
     if (directive.name.value === CONDITIONAL_DIRECTIVE.SKIP) {
         if (ifValue === true) return SELECTION_STATE.EXCLUDED
-        if (ifValue === undefined) markSelectionConditional(resolved, directive.name.value)
+        if (ifValue === undefined) {
+            markSelectionConditional(resolved, directive.name.value)
+            return SELECTION_STATE.CONDITIONAL
+        }
 
         return
-    } else if (directive.name.value === CONDITIONAL_DIRECTIVE.INCLUDE) {
-        if (ifValue === false) return SELECTION_STATE.EXCLUDED
-        if (ifValue === undefined) markSelectionConditional(resolved, directive.name.value)
+    }
+
+    if (ifValue === false) return SELECTION_STATE.EXCLUDED
+    if (ifValue === undefined) {
+        markSelectionConditional(resolved, directive.name.value)
+        return SELECTION_STATE.CONDITIONAL
     }
 }
 
@@ -199,8 +205,14 @@ const getDirectivePolicyTargetForSelection = (
 export const resolveStructuralSelectionDirectivesForNode = (
     selection: SelectionNode,
     directivePolicies: StructuralDirectivePolicies = {}
-): ResolvedStructuralDirectives => resolveStructuralSelectionDirectives(
-    selection.directives ? [ ...selection.directives ] : [],
-    getDirectivePolicyTargetForSelection(selection),
-    directivePolicies
-)
+): ResolvedStructuralDirectives => {
+    let directives = selection.directives
+    /* v8 ignore next -- @preserve graphql-js parse returns an empty array when selections have no directives. */
+    if (!directives) directives = []
+
+    return resolveStructuralSelectionDirectives(
+        [ ...directives ],
+        getDirectivePolicyTargetForSelection(selection),
+        directivePolicies
+    )
+}

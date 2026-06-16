@@ -22,5 +22,5 @@ export type TypeFragmentSpreadNode = {
 export type TypeFragmentInlineNode = {
     kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT;
     typeCondition?: string;
-    selections?: WeakMap<SelectionNode, TypeSelectionNode>;
+    selections: WeakMap<SelectionNode, TypeSelectionNode>;
 }

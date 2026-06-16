@@ -1,3 +1,5 @@
+import type { StructuralDirectivePolicies } from '../../src/directives/types'
+
 import {
     describe,
     expect,
@@ -14,6 +16,7 @@ import {
     isConditionalSelectionState,
     resolveGenerationSelectionDirectives,
     resolveStructuralSelectionDirectives,
+    resolveStructuralSelectionDirectivesForNode,
     shouldForceNonNull,
 } from '../../src/directives/resolve'
 
@@ -41,6 +44,20 @@ const getSelectionDirectives = (source: string) => {
 }
 
 describe('directives', () => {
+    const getFirstSelection = (source: string) => {
+        const document = parse(source)
+        const definition = document.definitions[0]
+
+        if (!definition || definition.kind !== 'FragmentDefinition') {
+            throw new Error('Fragment definition not found')
+        }
+
+        const selection = definition.selectionSet.selections[0]
+        if (!selection) throw new Error('Selection not found')
+
+        return selection
+    }
+
     test('normalizes flat and scoped directive policies by selection kind', () => {
         expect(makeNormalizedDirectivePolicies({
             review: {
@@ -71,6 +88,19 @@ describe('directives', () => {
         })
     })
 
+    test('keeps defined scoped directive policies during normalization', () => {
+        expect(makeNormalizedDirectivePolicies({
+            required: {
+                field: { effect: 'nonnull' },
+                inlineFragment: undefined,
+            },
+        })).toEqual({
+            required: {
+                field: { effect: 'nonnull' },
+            },
+        })
+    })
+
     test('marks runtime include directives as conditional', () => {
         const directives = getSelectionDirectives(`
             fragment UserCard on User {
@@ -89,6 +119,26 @@ describe('directives', () => {
             state: SELECTION_STATE.CONDITIONAL,
         })
         expect(isConditionalSelectionState(resolved.state)).toBe(true)
+    })
+
+    test('does not apply custom policies after runtime conditional directives are resolved', () => {
+        const directives = getSelectionDirectives(`
+            fragment UserCard on User {
+                email @include(if: $withEmail)
+            }
+        `)
+
+        expect(resolveStructuralSelectionDirectives(
+            directives,
+            SELECTION_MODEL_KIND.FIELD,
+            makeStructuralDirectivePolicies({
+                include: { effect: 'exclude' },
+            })
+        )).toEqual({
+            directives: [ 'include' ],
+            forceNonNull: false,
+            state: SELECTION_STATE.CONDITIONAL,
+        })
     })
 
     test('excludes statically skipped selections', () => {
@@ -224,6 +274,112 @@ describe('directives', () => {
                 required: { effect: 'nonnull' },
             })
         )).toBe(true)
+    })
+
+    test('ignores malformed non-structural policies when resolving structural directives', () => {
+        const directives = getSelectionDirectives(`
+            fragment UserCard on User {
+                id @review
+            }
+        `)
+        const malformedStructuralPolicies = {
+            review: {
+                field: { effect: 'warn' },
+            },
+        } as unknown as StructuralDirectivePolicies
+
+        expect(resolveStructuralSelectionDirectives(
+            directives,
+            SELECTION_MODEL_KIND.FIELD,
+            malformedStructuralPolicies
+        )).toEqual({
+            directives: [],
+            forceNonNull: false,
+            state: SELECTION_STATE.INCLUDED,
+        })
+    })
+
+    test('resolves selections without directives as included by default', () => {
+        const selection = getFirstSelection(`
+            fragment UserCard on User {
+                id
+            }
+        `)
+
+        expect(resolveStructuralSelectionDirectivesForNode(selection)).toEqual({
+            directives: [],
+            forceNonNull: false,
+            state: SELECTION_STATE.INCLUDED,
+        })
+    })
+
+    test('resolves selection node directives using the selection kind target', () => {
+        const selection = getFirstSelection(`
+            fragment UserCard on User {
+                id @required
+            }
+        `)
+
+        expect(resolveStructuralSelectionDirectivesForNode(
+            selection,
+            makeStructuralDirectivePolicies({
+                required: {
+                    field: { effect: 'nonnull' },
+                },
+            })
+        )).toEqual({
+            directives: [],
+            forceNonNull: true,
+            state: SELECTION_STATE.INCLUDED,
+        })
+    })
+
+    test('resolves fragment spread node directives using the fragment spread target', () => {
+        const selection = getFirstSelection(`
+            fragment UserCard on User {
+                ...UserName @required
+            }
+
+            fragment UserName on User {
+                name
+            }
+        `)
+
+        expect(resolveStructuralSelectionDirectivesForNode(
+            selection,
+            makeStructuralDirectivePolicies({
+                required: {
+                    fragmentSpread: { effect: 'nonnull' },
+                },
+            })
+        )).toEqual({
+            directives: [],
+            forceNonNull: true,
+            state: SELECTION_STATE.INCLUDED,
+        })
+    })
+
+    test('resolves inline fragment node directives using the inline fragment target', () => {
+        const selection = getFirstSelection(`
+            fragment UserCard on User {
+                ... on User @required {
+                    name
+                }
+            }
+        `)
+
+        expect(resolveStructuralSelectionDirectivesForNode(
+            selection,
+            makeStructuralDirectivePolicies({
+                required: {
+                    inlineFragment: { effect: 'nonnull' },
+                },
+            })
+        )).toEqual({
+            directives: [],
+            forceNonNull: true,
+            state: SELECTION_STATE.INCLUDED,
+        })
     })
 
     test('uses the default warning message when warn policy message is omitted', () => {

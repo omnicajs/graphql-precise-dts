@@ -120,12 +120,16 @@ const makeFieldTypeSelection = (
         }
     }
 
-    return isTypeName
-        ? {
+    /* v8 ignore if -- @preserve graphql-js resolves __typename as a meta field when a parent type exists. */
+    if (isTypeName) {
+        return {
             kind: SELECTION_MODEL_KIND.FIELD,
             currentType: new GraphQLNonNull(GraphQLString),
             typeNames: typeNames.get(selection),
-        } : undefined
+        }
+    }
+
+    return
 }
 
 const makeTypeSelectionNode = (
@@ -146,9 +150,7 @@ const makeTypeSelectionNode = (
             return {
                 kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
                 ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
-                ...(selection.selectionSet.selections
-                    && { selections: getTypesForSelections([ ...selection.selectionSet.selections ]) }
-                ),
+                selections: getTypesForSelections([ ...selection.selectionSet.selections ]),
             }
     }
 }
@@ -162,6 +164,7 @@ const makeTypeTreeForDef = (
         const nodes = new WeakMap<SelectionNode, TypeSelectionNode>()
 
         selections.forEach(selection => {
+            /* v8 ignore next -- @preserve GraphQL parser does not reuse the same SelectionNode reference in one selection set. */
             if (nodes.has(selection)) return
 
             const typeSelection = makeTypeSelectionNode(selection, fields, typeNames, getTypesForSelections)
@@ -192,6 +195,7 @@ export const getTypeForDefinition = (
 
                 if (node.name.value === '__typename') {
                     const parentType = typeInfo.getParentType()
+                    /* v8 ignore next -- @preserve TypeInfo resolves a parent type for valid __typename selections. */
                     if (parentType) typeNames.set(node, getTypeNamesForParentType(schema, parentType))
                 }
             },

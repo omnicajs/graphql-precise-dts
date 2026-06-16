@@ -1,5 +1,5 @@
 import type { ObjectRenderOptions } from '../types'
-import type { NormalizedSelectionModel } from './selection'
+import type { NormalizedSelectionModel } from './selection-merger'
 import type {
     FieldValue,
     SelectionModel,
@@ -7,7 +7,7 @@ import type {
     VariableValue,
 } from '../../../models/types'
 
-import { normalizeSelections } from './selection'
+import { normalizeSelections } from './selection-merger'
 
 import {
     SELECTION_MODEL_KIND,
@@ -71,9 +71,8 @@ const makeSelectionsShapeSignature = (
     selections: SelectionModel[],
     options: ObjectRenderOptions,
     state: OutputSignatureState
-): string => normalizeSelections(selections)
-    .map(selection => makeSelectionShapeSignature(selection, state))
-    .join('|') + [
+): string => [
+    ...normalizeSelections(selections).map(selection => makeSelectionShapeSignature(selection, state)),
     options.requiredFallbackTypename ? 'required-fallback-typename' : '',
     options.dedupeTypenameWithSpread ? 'dedupe-spread-typename' : '',
     options.dedupeTypenameWithAlias ? 'dedupe-alias-typename' : '',

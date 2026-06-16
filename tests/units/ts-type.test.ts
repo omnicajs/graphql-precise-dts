@@ -215,6 +215,21 @@ describe('ts type', () => {
         })
     })
 
+    test('collapses raw union and intersection types to one normalized type', () => {
+        expect(normalizeTsType({
+            kind: TS_TYPE_KIND.UNION,
+            types: [ defineString(), defineString() ],
+        })).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'string' })
+
+        expect(normalizeTsType({
+            kind: TS_TYPE_KIND.INTERSECTION,
+            types: [ defineNamed('Node'), defineNamed('Node') ],
+        })).toEqual({
+            kind: TS_TYPE_KIND.NAMED,
+            name: 'Node',
+        })
+    })
+
     test('collapses unions and intersections with one unique type and compares canonical shapes', () => {
         expect(unionOf(defineString(), defineString())).toEqual({ kind: TS_TYPE_KIND.NAMED, name: 'string' })
         expect(intersectionOf(defineNamed('Node'), defineNamed('Node'))).toEqual({

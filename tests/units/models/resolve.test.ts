@@ -24,6 +24,7 @@ import {
     filterSelectionsForConcreteType,
     getFragmentTypeNames,
     getTypeForDefinition,
+    makeNonNullTypeRef,
     makeTypeRefForField,
     makeTypeRefForVariable,
     specializeTypenameSelections,
@@ -243,6 +244,33 @@ describe('type resolution for models', () => {
         expect(getNamedType((permissionsTyped as TypeFieldNode).currentType).name).toBe('String')
     })
 
+    test('omits field selections that are not resolved from the schema', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User!
+            }
+        `)
+        const fragment = getFragmentDefinition(`
+            fragment UserDetails on User {
+                id
+                missingField
+            }
+        `)
+
+        const tree = getTypeForDefinition(fragment, schema)
+        const idSelection = getSelectionNode(fragment, 0)
+        const missingSelection = getSelectionNode(fragment, 1)
+
+        expect(tree.get(idSelection)).toMatchObject({
+            kind: SELECTION_MODEL_KIND.FIELD,
+        })
+        expect(tree.has(missingSelection)).toBe(false)
+    })
+
     test('creates nested type refs for non-null and list wrappers', () => {
         const schema = buildSchema(`
             type Query {
@@ -273,6 +301,18 @@ describe('type resolution for models', () => {
                 },
             },
         })
+    })
+
+    test('keeps existing non-null type refs unchanged', () => {
+        const typeRef = {
+            kind: TYPE_REF_KIND.NON_NULL,
+            ofType: {
+                kind: TYPE_REF_KIND.NAMED,
+                name: 'String',
+            },
+        } as const
+
+        expect(makeNonNullTypeRef(typeRef)).toBe(typeRef)
     })
 
     test('creates nested input type refs for non-null and list wrappers', () => {
@@ -390,6 +430,85 @@ describe('type resolution for models', () => {
             'SearchResult',
             'Node',
         ])
+    })
+
+    test('drops inline fragments whose condition type is not present in schema', () => {
+        const schema = buildSchema(`
+            type UserPayload {
+                id: ID!
+            }
+
+            type Query {
+                user: UserPayload!
+            }
+        `)
+        const fragment = getFragmentDefinition(`
+            fragment UserDetails on UserPayload {
+                id
+                ... on MissingType {
+                    id
+                }
+            }
+        `)
+        const userPayload = schema.getType('UserPayload')
+
+        expect(userPayload, 'UserPayload type not found').not.toBeUndefined()
+
+        const filtered = filterSelectionsForConcreteType(
+            schema,
+            userPayload as GraphQLObjectType,
+            [ ...fragment.selectionSet.selections ]
+        )
+
+        expect(filtered.map(selection => selection.kind === 'InlineFragment'
+            ? selection.typeCondition?.name.value
+            : selection.kind)).toEqual([ 'Field' ])
+    })
+
+    test('drops abstract inline fragments that do not apply to the concrete type', () => {
+        const schema = buildSchema(`
+            interface User {
+                id: ID!
+            }
+
+            type UserPayload implements User {
+                id: ID!
+            }
+
+            type Group {
+                id: ID!
+            }
+
+            union SearchResult = UserPayload
+
+            type Query {
+                group: Group!
+            }
+        `)
+        const fragment = getFragmentDefinition(`
+            fragment GroupDetails on Group {
+                id
+                ... on User {
+                    id
+                }
+                ... on SearchResult {
+                    id
+                }
+            }
+        `)
+        const group = schema.getType('Group')
+
+        expect(group, 'Group type not found').not.toBeUndefined()
+
+        const filtered = filterSelectionsForConcreteType(
+            schema,
+            group as GraphQLObjectType,
+            [ ...fragment.selectionSet.selections ]
+        )
+
+        expect(filtered.map(selection => selection.kind === 'InlineFragment'
+            ? selection.typeCondition?.name.value
+            : selection.kind)).toEqual([ 'Field' ])
     })
 
     test('specializes only typename field values for the concrete type', () => {

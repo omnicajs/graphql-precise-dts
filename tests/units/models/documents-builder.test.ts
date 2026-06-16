@@ -157,6 +157,33 @@ describe('documents builder', () => {
         })
     })
 
+    test('builds unnamed operation models without variables', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User
+            }
+        `)
+        const definition = getOperationDefinition(`
+            query {
+                user {
+                    id
+                }
+            }
+        `)
+
+        const model = makeOperationModel(definition, makeTestModelContext({ schema }))
+
+        expect(model).toMatchObject({
+            operationType: 'query',
+            onType: 'Query',
+            variables: [],
+        })
+    })
+
     test('returns undefined for operations without a matching schema root type', () => {
         const schema = buildSchema(`
             type Query {

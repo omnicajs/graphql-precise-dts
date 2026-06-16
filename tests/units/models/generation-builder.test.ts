@@ -122,6 +122,34 @@ describe('generation builder', () => {
         expect(renderType(schemaOutput.unionTypes.get('SearchResult')!)).toBe('User | Group')
     })
 
+    test('keeps GraphQL union descriptions in schema output models', () => {
+        const schema = buildSchema(`
+            type User {
+                id: ID!
+            }
+
+            type Group {
+                id: ID!
+            }
+
+            "Search result item."
+            union SearchResult = User | Group
+
+            type Query {
+                search: SearchResult!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(schemaOutput.unionTypes.get('SearchResult')).toMatchObject({
+            description: 'Search result item.',
+        })
+    })
+
     test('builds field argument models from GraphQL schema types', () => {
         const schema = buildSchema(`
             input UserFilter {
@@ -208,6 +236,25 @@ describe('generation builder', () => {
         expect(schemaOutput.enumReferences).toEqual(new Set())
     })
 
+    test('uses unknown for unmapped custom scalar schema references', () => {
+        const schema = buildSchema(`
+            scalar DateTime
+
+            type Query {
+                createdAt: DateTime!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(schemaOutput.objectTypes.get('Query')).not.toBeUndefined()
+
+        expect(renderType(schemaOutput.objectTypes.get('Query')!.fields)).toContain('createdAt: unknown;')
+    })
+
     test('keeps GraphQL scalar descriptions in schema output models', () => {
         const schema = buildSchema(`
             "ISO date-time string."
@@ -230,6 +277,37 @@ describe('generation builder', () => {
             description: 'ISO date-time string.',
             specifiedByUrl: 'https://scalars.graphql.org/andimarek/date-time.html',
         })
+    })
+
+    test('ignores custom scalar mappings that do not match schema scalar types', () => {
+        const schema = buildSchema(`
+            scalar DateTime
+
+            enum Permission {
+                READ
+            }
+
+            type Query {
+                createdAt: DateTime!
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema }),
+            {
+                DateTime: defineNamed('Date'),
+                MissingScalar: defineNamed('MissingScalar'),
+                Permission: defineNamed('PermissionValue'),
+            }
+        )
+
+        expect(schemaOutput.scalars.get('DateTime')).toEqual({
+            input: 'Date',
+            output: 'Date',
+        })
+        expect(schemaOutput.scalars.has('MissingScalar')).toBe(false)
+        expect(schemaOutput.scalars.has('Permission')).toBe(false)
     })
 
     test('keeps GraphQL input type and field descriptions in schema output models', () => {
@@ -261,6 +339,28 @@ describe('generation builder', () => {
                     remarks: 'Scalar reference: `Scalars[\'String\'][\'input\']`.',
                 },
             ],
+        })
+    })
+
+    test('keeps GraphQL object type descriptions in schema output models', () => {
+        const schema = buildSchema(`
+            "Application user."
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User
+            }
+        `)
+
+        const { schema: schemaOutput } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(schemaOutput.objectTypes.get('User')).toMatchObject({
+            description: 'Application user.',
         })
     })
 

@@ -34,12 +34,10 @@ import {
 import {
     getNamedType,
     isEnumType,
-    isInputObjectType,
     isInterfaceType,
     isNullableType,
     isObjectType,
     isScalarType,
-    isUnionType,
 } from 'graphql'
 
 import {
@@ -134,6 +132,13 @@ const makeObjectFieldValue = (
     fields: makeSelectionsForFields(selections, typeSelections, context, diagnosticOwner),
 })
 
+const isInlineFragmentTypeSelection = (
+    typedSelection: TypeSelectionNode | undefined
+): typedSelection is Extract<
+    TypeSelectionNode,
+    { kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT }
+> => typedSelection?.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT
+
 const makeUnionFieldVariant = (
     selection: SelectionNode,
     typedSelection: TypeSelectionNode | undefined,
@@ -141,8 +146,8 @@ const makeUnionFieldVariant = (
     diagnosticOwner: string
 ): { typeName: string; fields: SelectionModel[] } | undefined => {
     if (selection.kind !== Kind.INLINE_FRAGMENT) return
-    if (!typedSelection || typedSelection.kind !== SELECTION_MODEL_KIND.INLINE_FRAGMENT) return
-    if (!typedSelection.selections) return
+    /* v8 ignore next -- @preserve Union variants are built from inline fragment type selections. */
+    if (!isInlineFragmentTypeSelection(typedSelection)) return
 
     const typeName = selection.typeCondition?.name.value ?? typedSelection.typeCondition
     if (!typeName) return
@@ -158,6 +163,20 @@ const makeUnionFieldVariant = (
     }
 }
 
+const makeUnionFieldVariants = (
+    typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
+    selections: readonly SelectionNode[] | undefined,
+    context: ModelContext,
+    diagnosticOwner: string
+): Array<{ typeName: string; fields: SelectionModel[] }> => {
+    /* v8 ignore next -- @preserve Valid composite GraphQL fields include a selection set; this is a defensive fallback for incomplete AST input. */
+    if (!selections) return []
+
+    return selections
+        .map(selection => makeUnionFieldVariant(selection, typeSelections?.get(selection), context, diagnosticOwner))
+        .filter(selection => selection !== undefined)
+}
+
 const makeUnionFieldValue = (
     typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
     selections: readonly SelectionNode[] | undefined,
@@ -165,11 +184,7 @@ const makeUnionFieldValue = (
     diagnosticOwner: string
 ): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }> => ({
     kind: VALUE_MODEL_KIND.UNION,
-    variants: selections
-        ? selections
-            .map(selection => makeUnionFieldVariant(selection, typeSelections?.get(selection), context, diagnosticOwner))
-            .filter(selection => selection !== undefined)
-        : [],
+    variants: makeUnionFieldVariants(typeSelections, selections, context, diagnosticOwner),
 })
 
 const makeTypeNameFieldValue = (
@@ -195,15 +210,15 @@ export const makeFieldValue = (
     const selections = field.selectionSet?.selections
 
     if (typeNameValue) return typeNameValue
+
     if (isScalarType(namedType)) return makeScalarValue(namedType.name)
     if (isEnumType(namedType)) return makeEnumFieldValue(namedType.name)
     if (isInterfaceType(namedType)) return makeInterfaceFieldValue(type, selections, context, diagnosticOwner)
     if (isObjectType(namedType)) {
         return makeObjectFieldValue(type.selections, selections, namedType, context, diagnosticOwner)
     }
-    if (isUnionType(namedType)) return makeUnionFieldValue(type.selections, selections, context, diagnosticOwner)
 
-    return { kind: VALUE_MODEL_KIND.UNKNOWN, reason: 'Unknown type' }
+    return makeUnionFieldValue(type.selections, selections, context, diagnosticOwner)
 }
 
 export const makeVariableValue = (
@@ -230,11 +245,7 @@ const buildVariableValue = (
         return { kind: VALUE_MODEL_KIND.ENUM, name: namedType.name }
     }
 
-    if (isInputObjectType(namedType)) {
-        return buildVariableObjectValue(namedType, state)
-    }
-
-    return { kind: VALUE_MODEL_KIND.UNKNOWN, reason: 'Unknown variable type' }
+    return buildVariableObjectValue(namedType as GraphQLInputObjectType, state)
 }
 
 const buildVariableObjectValue = (

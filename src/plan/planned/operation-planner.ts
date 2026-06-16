@@ -7,7 +7,7 @@ import type { WarningReporter } from '../warnings'
 
 import { buildSelection } from './output-planner'
 import { buildVariableField } from './variable-planner'
-import { normalizeSelections } from './normalize/selection'
+import { normalizeSelections } from './normalize/selection-merger'
 
 export const buildOperationModel = (
     operation: OperationModel,

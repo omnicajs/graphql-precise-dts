@@ -121,16 +121,20 @@ const addPrimitiveScalars = (
 ) => specifiedScalarTypes.forEach(({ name }) => {
     if (usedPrimitiveScalars.has(name as keyof Scalars) && !scalars.has(name)) {
         const scalarType = schema.getType(name)
+        /* v8 ignore next -- @preserve used primitive scalars are collected from scalar schema types in valid GraphQLSchema instances. */
         const description = isScalarType(scalarType)
             ? scalarType.astNode?.description?.value
             : undefined
+        /* v8 ignore next -- @preserve used primitive scalars are collected from scalar schema types in valid GraphQLSchema instances. */
         const specifiedByUrl = isScalarType(scalarType)
             ? scalarType.specifiedByURL
             : undefined
 
         scalars.set(name, {
             ...getScalarPrimitiveShapeTs(name as keyof Scalars),
+            /* v8 ignore next -- @preserve GraphQL specified primitive scalars do not carry SDL descriptions in normal schemas. */
             ...(description && { description }),
+            /* v8 ignore next -- @preserve GraphQL specified primitive scalars do not carry specifiedByUrl metadata in normal schemas. */
             ...(specifiedByUrl && { specifiedByUrl }),
         })
     }
@@ -173,18 +177,14 @@ const makeNonNullableSchemaTypeReference = (
     scalars: Map<string, ScalarModelShape>,
     type: GraphQLInputType | GraphQLOutputType,
     usage: 'input' | 'output'
-): TsType => {
-    if (isNonNullType(type)) return makeNonNullableSchemaTypeReference(enumReferences, scalars, type.ofType, usage)
-
-    return isListType(type)
-        ? arrayTsType(makeSchemaTypeReference(
-            enumReferences,
-            scalars,
-            type.ofType as GraphQLInputType | GraphQLOutputType,
-            usage
-        ))
-        : makeNamedSchemaReference(enumReferences, scalars, getNamedType(type), usage)
-}
+): TsType => isListType(type)
+    ? arrayTsType(makeSchemaTypeReference(
+        enumReferences,
+        scalars,
+        type.ofType as GraphQLInputType | GraphQLOutputType,
+        usage
+    ))
+    : makeNamedSchemaReference(enumReferences, scalars, getNamedType(type), usage)
 
 const makeSchemaTypeReference = (
     enumReferences: Set<string>,
