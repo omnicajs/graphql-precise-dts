@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.3.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.2.0...v0.3.0) (2026-06-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* External fragment resolution now respects explicit document imports and fails when a referenced fragment is not imported, ambiguous, or imported from a document outside the configured documents.
+* Generated schema support output includes schema-level type declarations and enum imports.
+* Enum declarations were moved from generated schema declarations into a generated enums.ts file. Declaration imports now reference the generated enums module, and empty schema or enum artifacts are omitted.
+
+### Features
+
+* Added configurable schema declaration output directory ([8ba19db](https://github.com/omnicajs/graphql-precise-dts/commit/8ba19db6f02d28bd350fa4240ca47c134bf7e0e6))
+* Added custom scalar name conflict warnings ([3d0c1d8](https://github.com/omnicajs/graphql-precise-dts/commit/3d0c1d863dea44c91d2aacffb32945707a71c562))
+* Added generated enum output file ([978f8d1](https://github.com/omnicajs/graphql-precise-dts/commit/978f8d1140539a036ae91434429a01d8f9f32f86))
+* Added schema JSDoc output ([3d01e90](https://github.com/omnicajs/graphql-precise-dts/commit/3d01e90540fc8c78849835358e64cd5b1c38d73f))
+* Added schema type declaration output ([bfb1a5f](https://github.com/omnicajs/graphql-precise-dts/commit/bfb1a5f8fda3c5ff08a804791e7d6a374e721de1))
+
+
+### Fixes
+
+* Enforced explicit document import resolution ([3bc740c](https://github.com/omnicajs/graphql-precise-dts/commit/3bc740cac33f498b81017c088ecfb97a0d6b2157))
+* Moved declaration helpers into schema output ([3355159](https://github.com/omnicajs/graphql-precise-dts/commit/335515926d8049d0ea4a2ebe65ddd4b1024c31f8))
+
 ## [0.2.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.1.0...v0.2.0) (2026-06-04)
 
 
