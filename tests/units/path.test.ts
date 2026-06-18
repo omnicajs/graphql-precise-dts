@@ -32,6 +32,77 @@ describe('plugin module path resolution', () => {
         )).toBe('./schema/enums')
     })
 
+    test('uses configured wildcard paths for generated declaration module specifiers', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'packages/graphql/generated/schema.d.ts'),
+            {
+                '@example/graphql/generated/*': [ 'packages/graphql/generated/*' ],
+            }
+        )).toBe('@example/graphql/generated/schema')
+    })
+
+    test('uses configured string target paths for generated declaration module specifiers', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'packages/graphql/generated/schema.d.ts'),
+            {
+                '@example/graphql/generated/*': 'packages/graphql/generated/*',
+            }
+        )).toBe('@example/graphql/generated/schema')
+    })
+
+    test('uses configured exact paths for generated declaration module specifiers', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'packages/graphql/generated/enums.ts'),
+            {
+                '@example/graphql/generated/enums': [ 'packages/graphql/generated/enums.ts' ],
+            }
+        )).toBe('@example/graphql/generated/enums')
+    })
+
+    test('uses configured exact string target paths for generated declaration module specifiers', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'packages/graphql/generated/schema.d.ts'),
+            {
+                '@example/graphql/generated/schema': 'packages/graphql/generated/schema.d.ts',
+            }
+        )).toBe('@example/graphql/generated/schema')
+    })
+
+    test('prefers the most specific configured path for generated declaration module specifiers', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'packages/graphql/generated/schema.d.ts'),
+            {
+                '@example/*': [ 'packages/*' ],
+                '@example/graphql/generated/schema': [ 'packages/graphql/generated/schema.d.ts' ],
+            }
+        )).toBe('@example/graphql/generated/schema')
+    })
+
+    test('falls back to relative generated declaration module specifiers when exact paths do not match', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'packages/graphql/generated/schema.d.ts'),
+            {
+                '@example/graphql/generated/schema': [ 'other/generated/schema.d.ts' ],
+            }
+        )).toBe('../../packages/graphql/generated/schema')
+    })
+
+    test('falls back to relative generated declaration module specifiers when paths do not match', () => {
+        expect(makeDeclarationModuleSpecifier(
+            join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts'),
+            join(process.cwd(), 'packages/graphql/generated/schema.d.ts'),
+            {
+                '@example/graphql/generated/*': [ 'other/generated/*' ],
+            }
+        )).toBe('../../packages/graphql/generated/schema')
+    })
+
     test('uses generated declaration directory as schema output directory by default', () => {
         expect(makeSchemaOutputDirectory(
             join(process.cwd(), 'src/generated/graphql-documents.generated.d.ts')
@@ -235,6 +306,53 @@ describe('plugin module path resolution', () => {
             )
 
             expect(result).toContain(`declare module '*/group.graphql' {`)
+        })
+    })
+
+    test('uses configured paths for schema and enum imports in generated declarations', async () => {
+        const schema = buildSchema(`
+            enum Permission {
+                Read
+            }
+
+            type Query {
+                group(permission: Permission!): Group!
+            }
+
+            type Group {
+                permission: Permission!
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const schemaOutputDirectory = join(outputInfo.tempDir, 'packages/graphql/generated')
+            const result = await plugin(
+                schema,
+                [{
+                    location: 'queries/group.graphql',
+                    document: parse(`
+                        query GroupQuery($permission: Permission!) {
+                            group(permission: $permission) {
+                                permission
+                            }
+                        }
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    schemaOutputDirectory,
+                    paths: {
+                        '@example/graphql/generated/*': [ `${schemaOutputDirectory}/*` ],
+                    },
+                },
+                outputInfo
+            )
+
+            expect(result).toContain(`\timport type { Exact } from '@example/graphql/generated/schema'`)
+            expect(result).toContain(`\timport type { Permission } from '@example/graphql/generated/enums'`)
+
+            expect(result).not.toContain(`from '../../packages/graphql/generated/schema'`)
+            expect(result).not.toContain(`from '../../packages/graphql/generated/enums'`)
         })
     })
 })

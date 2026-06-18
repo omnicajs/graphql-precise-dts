@@ -4,7 +4,8 @@ The plugin generates `declare module '...'` blocks and import paths for GraphQL 
 
 - `prefix`: the alias root added to every generated module path;
 - `scope`: an optional path fragment used to cut the document path from a stable point;
-- `relativeToCwd`: an optional flag that makes fallback paths relative to `process.cwd()`.
+- `relativeToCwd`: an optional flag that makes fallback paths relative to `process.cwd()`;
+- `paths`: an optional alias map for imports from document declarations to generated schema support files.
 
 The resolution order is:
 
@@ -179,6 +180,38 @@ used as-is.
 
 This setting does not change generated GraphQL document module ids. It only changes support file locations and the
 relative enum imports emitted inside the generated declaration file.
+
+## Generated schema imports with `paths`
+
+When schema support files are stored separately from the generated document declaration file, relative imports can expose
+the same generated types through a different module id than the one application code uses. Configure `paths` to make
+document declarations import generated schema helpers and enums through the public alias:
+
+> [!WARNING]
+> Important: if application code imports generated schema support modules through an alias, but the plugin config does
+> not define a matching `paths` entry, generated document declarations will fall back to relative imports. TypeScript may
+> then see the same generated file through two different module specifiers, for example a relative path in generated
+> declarations and an alias in application code. This can lead to duplicated module identities, mismatched imports, or
+> declarations that do not line up with the module path used by consumers.
+
+```ts
+{
+  schemaOutputDirectory: '../packages/graphql/generated',
+  paths: {
+    '@example/graphql/generated/*': [ 'packages/graphql/generated/*' ],
+  },
+}
+```
+
+With this config, imports inside document declarations use:
+
+```ts
+import type { Exact } from '@example/graphql/generated/schema'
+import type { Permission } from '@example/graphql/generated/enums'
+```
+
+`paths` entries are matched against generated support file paths after normalizing `.ts` and `.d.ts` extensions. If no
+entry matches, imports fall back to relative module specifiers.
 
 ## Why the full path is used instead of `basename`
 

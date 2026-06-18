@@ -47,7 +47,7 @@ export const plugin: PluginFunction<PluginConfig, string> = (
     const schemaOutputFile = makeSchemaDeclarationOutputFile(schemaOutputDirectory)
 
     const enumsOutputFile = makeEnumsOutputFile(schemaOutputDirectory)
-    const enumsModulePath = makeDeclarationModuleSpecifier(info.outputFile, enumsOutputFile)
+    const enumsModulePath = makeDeclarationModuleSpecifier(info.outputFile, enumsOutputFile, config.paths)
 
     const documentModuleSpecifier = (location: string | undefined) => makeModuleSpecifier(
         config.prefix ?? '*/',
@@ -106,7 +106,7 @@ export const plugin: PluginFunction<PluginConfig, string> = (
     return renderDeclarations(
         documentBundles,
         documentModuleSpecifier,
-        makeDeclarationModuleSpecifier(info.outputFile, schemaOutputFile)
+        makeDeclarationModuleSpecifier(info.outputFile, schemaOutputFile, config.paths)
     )
 }
 
