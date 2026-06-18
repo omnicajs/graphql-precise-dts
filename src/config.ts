@@ -4,6 +4,7 @@ import type { CustomScalarMappingRecord } from './scalars/types'
 export interface PluginConfig {
     prefix?: string;
     scope?: string;
+    paths?: ConfigPaths;
     relativeToCwd?: boolean;
     schemaOutputDirectory?: string;
     scalars?: ConfigScalars;
@@ -11,3 +12,4 @@ export interface PluginConfig {
 }
 
 export type ConfigScalars = CustomScalarMappingRecord
+export type ConfigPaths = Record<string, string | string[]>

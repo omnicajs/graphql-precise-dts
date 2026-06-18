@@ -60,6 +60,9 @@ const config: CodegenConfig = {
         scope: 'src/',
         relativeToCwd: false,
         schemaOutputDirectory: 'schema',
+        paths: {
+          '@app/generated/*': [ 'types/schema/*' ],
+        },
         scalars: {
           DateTime: defineString(),
         },
@@ -275,6 +278,7 @@ Supported plugin config:
 type PluginConfig = {
   prefix?: string
   scope?: string
+  paths?: Record<string, string | string[]>
   relativeToCwd?: boolean
   schemaOutputDirectory?: string
   scalars?: Record<string, TsType | { input?: TsType; output?: TsType }>
@@ -311,6 +315,29 @@ Example:
 
 For a generated declaration target such as `types/graphql-documents.d.ts`, this writes support files to
 `types/schema/schema.d.ts` and `types/schema/enums.ts`.
+
+### `paths`
+
+Optional alias map for imports from generated declaration modules to generated schema support files. The format follows
+`tsconfig`/`jsconfig` `paths` entries:
+
+```ts
+{
+  schemaOutputDirectory: '../packages/graphql/generated',
+  paths: {
+    '@example/graphql/generated/*': [ 'packages/graphql/generated/*' ],
+  },
+}
+```
+
+When a generated support file matches a configured target, document declarations import `Exact` and generated enums
+through the alias, for example `@example/graphql/generated/schema` and `@example/graphql/generated/enums`. If no target
+matches, the plugin keeps the existing relative import behavior.
+
+> [!WARNING]
+> If consumers import generated schema support modules through an alias, configure a matching `paths` entry. Otherwise,
+> generated declarations can fall back to relative imports for the same files, which may make TypeScript see different
+> module specifiers for the same generated types.
 
 ### `scalars`
 
