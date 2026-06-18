@@ -41,6 +41,16 @@ yarn add graphql @graphql-typed-document-node/core
 
 `@graphql-typed-document-node/core` is required because generated declarations import `TypedDocumentNode` from that package.
 
+> [!IMPORTANT]
+> Generated declaration files are resolved by the TypeScript project that includes or publishes them, not necessarily by
+> the workspace where GraphQL Code Generator is configured. Make sure `@graphql-typed-document-node/core` is available
+> from the package or workspace that contains or consumes the generated declarations. In a monorepo, installing it only
+> next to the codegen config may be insufficient if the declarations are emitted into another package.
+>
+> If generated schema support files are imported through an alias by consumer code, configure a matching plugin `paths`
+> entry as well. Otherwise generated declarations can fall back to relative imports for the same files, which may make
+> TypeScript see different module specifiers for the same generated types.
+
 ## Usage
 
 Example GraphQL Code Generator config:
