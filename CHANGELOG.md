@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.4.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.3.1...v0.4.0) (2026-06-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Generated TypeScript identifiers are now normalized through namingConvention before declarations are rendered. Schema type declarations, enum declaration names and members, operation declaration base names, fragment export names, generated aliases, and field argument helper names now use PascalCase by default instead of preserving the original GraphQL spelling. Runtime GraphQL keys are still preserved: response field names, input object field names, field argument names, operation variable names, and __typename literal values keep their schema/document spelling.
+
+### Features
+
+* Added naming convention support ([47b91ce](https://github.com/omnicajs/graphql-precise-dts/commit/47b91ce4ca888d7db97b8e638d475fdbbef199d7))
+
 ### [0.3.1](https://github.com/omnicajs/graphql-precise-dts/compare/v0.3.0...v0.3.1) (2026-06-18)
 
 
