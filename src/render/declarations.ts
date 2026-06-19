@@ -202,6 +202,8 @@ const renderVariableObject = (
 
 const renderOperationDeclaration = (
     operationName: string,
+    operationVariablesTypeName: string,
+    operationPayloadTypeName: string,
     operation: RenderableOperationModel,
     naming: NamingConvention
 ): string => {
@@ -211,9 +213,9 @@ const renderOperationDeclaration = (
         : renderVariableObject(operation.variables, naming)
 
     return [
-        `export type ${operationName}Variables = ${variablesType}`,
-        `export type ${operationName}Payload = ${renderObjectShape(operation.resultShape, naming)}`,
-        `export const ${exportName}: TypedDocumentNode<${operationName}Payload, ${operationName}Variables>`,
+        `export type ${operationVariablesTypeName} = ${variablesType}`,
+        `export type ${operationPayloadTypeName} = ${renderObjectShape(operation.resultShape, naming)}`,
+        `export const ${exportName}: TypedDocumentNode<${operationPayloadTypeName}, ${operationVariablesTypeName}>`,
         `export default ${exportName}`,
     ].map(block => indent(block)).join('\n\n')
 }
@@ -267,6 +269,8 @@ export const renderDeclaration = (
         declarationRowsBlocks.push(
             renderOperationDeclaration(
                 getOperationTypeName(key, operation.operationType, naming),
+                naming.operationVariablesTypeName(key, operation.operationType),
+                naming.operationPayloadTypeName(key, operation.operationType),
                 operation,
                 naming
             )

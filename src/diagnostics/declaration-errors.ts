@@ -120,12 +120,18 @@ export const validateDocumentBundleExportNames = (
 
         assertUniqueExportName(
             usedTypeNames,
-            { kind: DECLARATION_NAME_SOURCE_KIND.OPERATION_VARIABLES, name: `${operationTypeName}Variables` },
+            {
+                kind: DECLARATION_NAME_SOURCE_KIND.OPERATION_VARIABLES,
+                name: naming.operationVariablesTypeName(key, operation.operationType),
+            },
             location
         )
         assertUniqueExportName(
             usedTypeNames,
-            { kind: DECLARATION_NAME_SOURCE_KIND.OPERATION_PAYLOAD, name: `${operationTypeName}Payload` },
+            {
+                kind: DECLARATION_NAME_SOURCE_KIND.OPERATION_PAYLOAD,
+                name: naming.operationPayloadTypeName(key, operation.operationType),
+            },
             location
         )
         assertUniqueExportName(
