@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.5.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.4.0...v0.5.0) (2026-06-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Operation declarations no longer duplicate Query, Mutation, or Subscription suffixes when an operation name already includes its operation type.
+
+### Fixes
+
+* Operation declaration suffixes were normalized ([57bee72](https://github.com/omnicajs/graphql-precise-dts/commit/57bee723158b0a31c6a66b2e69c948b4de545f2d))
+
 ## [0.4.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.3.1...v0.4.0) (2026-06-19)
 
 
