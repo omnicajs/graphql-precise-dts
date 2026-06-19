@@ -1,4 +1,5 @@
 import type { DocumentModelBundle } from '../plan/document-model-bundles'
+import type { NamingConvention } from '../naming'
 import type { TsType } from '../ts-type'
 import type { TypeRef } from '../models/types'
 
@@ -18,6 +19,7 @@ import type {
     RenderableVariableValue,
 } from '../plan/renderable/types'
 
+import { createNamingConvention } from '../naming'
 import { getOperationTypeName } from '../plan/naming'
 import { renderStringLiteralUnion } from './basic'
 import {
@@ -91,19 +93,25 @@ const renderObjectType = (rows: string[], spreads: string[] = []): string => [
     ...spreads,
 ].join(' & ')
 
-const renderObjectShape = ({ typename, rows, spreads }: RenderableObjectShape): string => renderObjectType([
+const renderObjectShape = (
+    { typename, rows, spreads }: RenderableObjectShape,
+    naming: NamingConvention
+): string => renderObjectType([
     ...(typename ? [ renderTypenameRow(typename.typeNames, typename.required) ] : []),
     ...rows.map(field => renderFieldRow(
         field.name,
         renderNullableTypeRef(
             field.typeRef,
-            field.overrideTypeTs ?? renderFieldValue(field.value)
+            field.overrideTypeTs ?? renderFieldValue(field.value, naming)
         ),
         field.conditional
     )),
-], spreads.map(spread => spread.conditional ? `Partial<${spread.name}>` : spread.name))
+], spreads.map(spread => {
+    const name = naming.fragmentName(spread.name)
+    return spread.conditional ? `Partial<${name}>` : name
+}))
 
-const renderUnionShape = (shape: RenderableUnionShape): string => {
+const renderUnionShape = (shape: RenderableUnionShape, naming: NamingConvention): string => {
     if (shape.kind === RENDERABLE_UNION_SHAPE.COLLAPSED) {
         return renderObjectType([
             renderTypenameRow(shape.typename.typeNames, shape.typename.required),
@@ -111,61 +119,69 @@ const renderUnionShape = (shape: RenderableUnionShape): string => {
                 field.name,
                 renderNullableTypeRef(
                     field.typeRef,
-                    field.overrideTypeTs ?? renderFieldValue(field.value)
+                    field.overrideTypeTs ?? renderFieldValue(field.value, naming)
                 ),
                 field.conditional
             )),
-        ], shape.spreads.map(spread => spread.conditional ? `Partial<${spread.name}>` : spread.name))
+        ], shape.spreads.map(spread => {
+            const name = naming.fragmentName(spread.name)
+            return spread.conditional ? `Partial<${name}>` : name
+        }))
     }
 
     if (shape.variants.length < 1) return 'never'
 
-    return shape.variants.map(renderObjectShape).join(' | ')
+    return shape.variants.map(variant => renderObjectShape(variant, naming)).join(' | ')
 }
 
-const renderFieldValue = (field: RenderableFieldValue): RenderableTypeValue => {
+const renderFieldValue = (field: RenderableFieldValue, naming: NamingConvention): RenderableTypeValue => {
     switch (field.kind) {
         case VALUE_MODEL_KIND.SCALAR:
             return field.typeTs
         case VALUE_MODEL_KIND.TYPENAME:
             return renderStringLiteralUnion(field.typeNames)
         case VALUE_MODEL_KIND.ENUM:
-            return field.name
+            return naming.typeName(field.name)
         case VALUE_MODEL_KIND.OBJECT:
             return field.renderStrategy === RENDER_STRATEGY.REFERENCE
                 ? field.referenceName
-                : renderObjectShape(field.shape)
+                : renderObjectShape(field.shape, naming)
         case VALUE_MODEL_KIND.UNION:
-            return renderUnionShape(field.shape)
+            return renderUnionShape(field.shape, naming)
         case VALUE_MODEL_KIND.UNKNOWN:
             return 'unknown'
     }
 }
 
 const renderFragmentRoot = (
-    fragment: RenderableFragmentModel
+    fragment: RenderableFragmentModel,
+    naming: NamingConvention
 ): string => fragment.root.kind === FRAGMENT_ROOT_KIND.UNION
-    ? fragment.root.variants.map(renderObjectShape).join(' | ')
-    : renderObjectShape(fragment.root.shape)
+    ? fragment.root.variants.map(variant => renderObjectShape(variant, naming)).join(' | ')
+    : renderObjectShape(fragment.root.shape, naming)
 
 const renderVariableValue = (
-    value: RenderableVariableValue
+    value: RenderableVariableValue,
+    naming: NamingConvention
 ): RenderableTypeValue => {
     switch (value.kind) {
         case VALUE_MODEL_KIND.SCALAR:
             return value.typeTs
         case VALUE_MODEL_KIND.ENUM:
-            return value.name
+            return naming.typeName(value.name)
         case VALUE_MODEL_KIND.OBJECT:
             return value.renderStrategy === RENDER_STRATEGY.REFERENCE
                 ? value.referenceName
-                : renderVariableObject(value.fields)
+                : renderVariableObject(value.fields, naming)
         case VALUE_MODEL_KIND.UNKNOWN:
             return 'unknown'
     }
 }
 
-const renderVariableObject = (fields: RenderableVariableField[]): string => {
+const renderVariableObject = (
+    fields: RenderableVariableField[],
+    naming: NamingConvention
+): string => {
     if (!fields.length) return '{ [key: string]: never }'
 
     return [
@@ -175,7 +191,7 @@ const renderVariableObject = (fields: RenderableVariableField[]): string => {
                 field.name,
                 renderNullableTypeRef(
                     field.typeRef,
-                    renderVariableValue(field.value)
+                    renderVariableValue(field.value, naming)
                 ),
                 field.optional
             )}`)
@@ -186,16 +202,17 @@ const renderVariableObject = (fields: RenderableVariableField[]): string => {
 
 const renderOperationDeclaration = (
     operationName: string,
-    operation: RenderableOperationModel
+    operation: RenderableOperationModel,
+    naming: NamingConvention
 ): string => {
     const exportName = uncapitalize(operationName)
     const variablesType = operation.variables.length > 0
-        ? `Exact<${renderVariableObject(operation.variables)}>`
-        : renderVariableObject(operation.variables)
+        ? `Exact<${renderVariableObject(operation.variables, naming)}>`
+        : renderVariableObject(operation.variables, naming)
 
     return [
         `export type ${operationName}Variables = ${variablesType}`,
-        `export type ${operationName}Payload = ${renderObjectShape(operation.resultShape)}`,
+        `export type ${operationName}Payload = ${renderObjectShape(operation.resultShape, naming)}`,
         `export const ${exportName}: TypedDocumentNode<${operationName}Payload, ${operationName}Variables>`,
         `export default ${exportName}`,
     ].map(block => indent(block)).join('\n\n')
@@ -211,6 +228,7 @@ export const renderDeclaration = (
     path: string,
     models: RenderableDocumentModels,
     importsMap: Map<string, string>,
+    naming: NamingConvention,
     schemaModulePath?: string
 ): string => {
     if (!hasRenderableModels(models)) return ''
@@ -234,22 +252,23 @@ export const renderDeclaration = (
     }
 
     models.variableAliases.forEach(({ aliasName, fields }: RenderableVariableAlias) => {
-        declarationRowsBlocks.push(indent(`type ${aliasName} = ${renderVariableObject(fields)}`))
+        declarationRowsBlocks.push(indent(`type ${aliasName} = ${renderVariableObject(fields, naming)}`))
     })
 
     models.outputAliases.forEach(({ aliasName, shape }: RenderableOutputAlias) => {
-        declarationRowsBlocks.push(indent(`type ${aliasName} = ${renderObjectShape(shape)}`))
+        declarationRowsBlocks.push(indent(`type ${aliasName} = ${renderObjectShape(shape, naming)}`))
     })
 
     for (const [ key, fragment ] of models.fragments.entries()) {
-        declarationRowsBlocks.push(indent(`export type ${key} = ${renderFragmentRoot(fragment)}`))
+        declarationRowsBlocks.push(indent(`export type ${naming.fragmentName(key)} = ${renderFragmentRoot(fragment, naming)}`))
     }
 
     for (const [ key, operation ] of models.operations.entries()) {
         declarationRowsBlocks.push(
             renderOperationDeclaration(
-                getOperationTypeName(key, operation.operationType),
-                operation
+                getOperationTypeName(key, operation.operationType, naming),
+                operation,
+                naming
             )
         )
     }
@@ -264,13 +283,15 @@ export const renderDeclaration = (
 export const renderDeclarations = (
     documentBundles: DocumentModelBundle[],
     documentModuleSpecifier: (location: string | undefined) => string,
-    schemaModulePath?: string
+    schemaModulePath?: string,
+    naming: NamingConvention = createNamingConvention()
 ): string => documentBundles
     .map(({ location, imports, models }) =>
         renderDeclaration(
             documentModuleSpecifier(location),
             models,
             imports,
+            naming,
             schemaModulePath
         )
     )

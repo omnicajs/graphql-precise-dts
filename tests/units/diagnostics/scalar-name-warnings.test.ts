@@ -30,7 +30,7 @@ const emptyGenerationModels = (): GenerationModels => ({
         interfaceTypes: new Map(),
         objectTypes: new Map(),
         unionTypes: new Map(),
-        fieldArgs: new Map(),
+        fieldArgTypes: [],
     },
     registry: {
         enums: new Map(),
@@ -82,7 +82,11 @@ describe('custom scalar name warnings', () => {
         const reportWarning = vi.fn()
 
         models.schema.scalars.set('SearchFilter', scalarModel())
-        models.schema.fieldArgs.set('GeneratedArgs', defineString())
+        models.schema.fieldArgTypes.push({
+            parentTypeName: 'Generated',
+            fieldName: '',
+            type: defineString(),
+        })
         models.registry.enums.set('GeneratedEnum', {
             entries: [],
         })

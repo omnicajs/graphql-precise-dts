@@ -7,6 +7,19 @@ import {
 import { renderEnumsDeclaration } from '../../../src/render/enum'
 
 describe('enum render', () => {
+    test('fails when enum values collide after naming normalization', () => {
+        expect(() => renderEnumsDeclaration(new Map([
+            [ 'UserStatus', {
+                entries: [
+                    { name: 'IS_ACTIVE', value: 'IS_ACTIVE' },
+                    { name: 'IsActive', value: 'IsActive' },
+                ],
+            } ],
+        ]))).toThrow(
+            'Name collision detected in generated enum declarations: enum value in "UserStatus" "IS_ACTIVE" and "IsActive" both render as "IsActive". Adjust namingConvention so generated enum declaration names are unique.'
+        )
+    })
+
     test('renders sorted enum declarations', () => {
         const result = renderEnumsDeclaration(new Map([
             [ 'UserStatus', {
@@ -24,12 +37,12 @@ describe('enum render', () => {
 
         expect(result).toBe([
             'export enum UserRole {',
-            `\tADMIN = 'ADMIN',`,
+            `\tAdmin = 'ADMIN',`,
             '}',
             '',
             'export enum UserStatus {',
-            `\tACTIVE = 'ACTIVE',`,
-            `\tBLOCKED = 'BLOCKED',`,
+            `\tActive = 'ACTIVE',`,
+            `\tBlocked = 'BLOCKED',`,
             '}',
         ].join('\n'))
     })
@@ -55,9 +68,9 @@ describe('enum render', () => {
         expect(result).toBe([
             'export enum TariffType {',
             `\t/** Basic tariff. */`,
-            `\tBASIC = 'BASIC',`,
+            `\tBasic = 'BASIC',`,
             `\t/** @deprecated Use \`tariffType === TariffType.Basic\` instead */`,
-            `\tLEGACY = 'LEGACY',`,
+            `\tLegacy = 'LEGACY',`,
             '}',
         ].join('\n'))
     })
@@ -75,7 +88,7 @@ describe('enum render', () => {
         expect(result).toBe([
             '/** Available tariff types. */',
             'export enum TariffType {',
-            `\tBASIC = 'BASIC',`,
+            `\tBasic = 'BASIC',`,
             '}',
         ].join('\n'))
     })

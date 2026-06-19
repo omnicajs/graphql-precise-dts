@@ -1,4 +1,5 @@
 import type { CustomScalarMappingRecord } from '../../scalars/types'
+import type { NamingConvention } from '../../naming'
 
 import type {
     FieldValue,
@@ -10,7 +11,6 @@ import type {
     PlannedVariableValue,
 } from './types'
 
-import { capitalize } from '../../lib/strings'
 import { getScalarTsType } from '../../scalars/builder'
 
 import { VALUE_MODEL_KIND } from '../../kinds'
@@ -23,9 +23,12 @@ export const buildScalarValue = (
     typeTs: getScalarTsType(value.name, customScalars, value.usage),
 })
 
-export const getSuggestedOutputAliasName = (value: FieldValue): string => {
+export const getSuggestedOutputAliasName = (
+    value: FieldValue,
+    naming: NamingConvention
+): string => {
     if (value.kind === VALUE_MODEL_KIND.OBJECT && value.typeNames?.length === 1) {
-        return `${capitalize(value.typeNames[0])}Alias`
+        return naming.outputAliasName(value.typeNames[0])
     }
 
     return 'ObjectAlias'

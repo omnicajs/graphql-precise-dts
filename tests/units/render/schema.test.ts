@@ -8,11 +8,14 @@ import {
 
 import {
     arrayOf,
+    defineGeneric,
     defineLiteral,
     defineNamed,
     defineObject,
     defineObjectField,
     defineString,
+    defineTuple,
+    intersectionOf,
     makeNullable,
     unionOf,
 } from '../../../src'
@@ -32,11 +35,116 @@ const makeSchemaModel = (schema: Partial<SchemaOutputModel>): SchemaOutputModel 
     interfaceTypes: new Map(),
     objectTypes: new Map(),
     unionTypes: new Map(),
-    fieldArgs: new Map(),
+    fieldArgTypes: [],
     ...schema,
 })
 
 describe('schema render', () => {
+    test('normalizes schema declaration names', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            enumReferences: new Set([ 'user_status' ]),
+            inputTypes: new Map([
+                [ 'user_filter', defineObject({
+                    user_status: defineObjectField(makeNullable(defineNamed('user_status')), true),
+                }) ],
+            ]),
+            objectTypes: new Map([
+                [ 'user_profile', {
+                    interfaces: [],
+                    fields: defineObject({
+                        __typename: defineObjectField(defineLiteral('user_profile'), true),
+                        user_id: defineObjectField(defineString()),
+                        status: defineObjectField(defineNamed('user_status')),
+                    }),
+                } ],
+            ]),
+            fieldArgTypes: [
+                {
+                    parentTypeName: 'query_root',
+                    fieldName: 'user_profile',
+                    type: defineObject({
+                        filter_by: defineObjectField(makeNullable(defineNamed('user_filter')), true),
+                    }),
+                },
+            ],
+        }))
+
+        expect(result).toBe([
+            `import type { UserStatus } from './enums'\n`,
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            'export type UserFilter = {',
+            '\tuser_status?: UserStatus | null;',
+            '}',
+            '',
+            'export type UserProfile = {',
+            `\t__typename?: 'user_profile';`,
+            '\tuser_id: string;',
+            '\tstatus: UserStatus;',
+            '}',
+            '',
+            'export type QueryRootUserProfileArgs = {',
+            '\tfilter_by?: UserFilter | null;',
+            '}',
+        ].join('\n'))
+    })
+
+    test('preserves schema field keys', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            inputTypes: new Map([
+                [ 'user_filter', defineObject({
+                    filter_by: defineObjectField(makeNullable(defineString()), true),
+                }) ],
+            ]),
+            objectTypes: new Map([
+                [ 'user_profile', {
+                    interfaces: [],
+                    fields: defineObject({
+                        __typename: defineObjectField(defineLiteral('user_profile'), true),
+                        user_id: defineObjectField(defineString()),
+                        display_name: defineObjectField(makeNullable(defineString())),
+                    }),
+                } ],
+            ]),
+            fieldArgTypes: [
+                {
+                    parentTypeName: 'query_root',
+                    fieldName: 'user_profile',
+                    type: defineObject({
+                        filter_by: defineObjectField(makeNullable(defineNamed('user_filter')), true),
+                    }),
+                },
+            ],
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            'export type UserFilter = {',
+            '\tfilter_by?: string | null;',
+            '}',
+            '',
+            'export type UserProfile = {',
+            `\t__typename?: 'user_profile';`,
+            '\tuser_id: string;',
+            '\tdisplay_name: string | null;',
+            '}',
+            '',
+            'export type QueryRootUserProfileArgs = {',
+            '\tfilter_by?: UserFilter | null;',
+            '}',
+        ].join('\n'))
+    })
+
+    test('fails when schema declarations collide after naming normalization', () => {
+        expect(() => renderSchemaDeclaration(makeSchemaModel({
+            inputTypes: new Map([
+                [ 'UserStatus', defineString() ],
+                [ 'user_status', defineString() ],
+            ]),
+        }))).toThrow(
+            'Name collision detected in generated schema declarations: "UserStatus" and "user_status" both render as "UserStatus". Adjust namingConvention so generated schema declaration names are unique.'
+        )
+    })
+
     test('renders sorted scalar declarations', () => {
         const result = renderSchemaDeclaration(makeSchemaModel({
             scalars: new Map([
@@ -298,12 +406,16 @@ describe('schema render', () => {
 
     test('renders field args declarations', () => {
         const result = renderSchemaDeclaration(makeSchemaModel({
-            fieldArgs: new Map([
-                [ 'QueryUserArgs', defineObject({
-                    id: defineObjectField(defineString()),
-                    tags: defineObjectField(makeNullable(arrayOf(defineString())), true),
-                }) ],
-            ]),
+            fieldArgTypes: [
+                {
+                    parentTypeName: 'Query',
+                    fieldName: 'user',
+                    type: defineObject({
+                        id: defineObjectField(defineString()),
+                        tags: defineObjectField(makeNullable(arrayOf(defineString())), true),
+                    }),
+                },
+            ],
         }))
 
         expect(result).toBe([
@@ -311,6 +423,55 @@ describe('schema render', () => {
             `export type QueryUserArgs = {`,
             `\tid: string;`,
             `\ttags?: Array<string> | null;`,
+            `}`,
+        ].join('\n'))
+    })
+
+    test('normalizes schema references in complex field args declarations', () => {
+        const result = renderSchemaDeclaration(makeSchemaModel({
+            inputTypes: new Map([
+                [ 'user_filter', defineObject({ id: defineObjectField(defineString()) }) ],
+                [ 'page_info', defineObject({ cursor: defineObjectField(defineString()) }) ],
+            ]),
+            fieldArgTypes: [
+                {
+                    parentTypeName: 'query_root',
+                    fieldName: 'z_search',
+                    type: defineObject({
+                        array_ref: defineObjectField(arrayOf(defineNamed('user_filter'))),
+                        generic_ref: defineObjectField(defineGeneric('Promise', defineNamed('user_filter'))),
+                        intersection_ref: defineObjectField(intersectionOf(defineNamed('user_filter'), defineNamed('page_info'))),
+                        tuple_ref: defineObjectField(defineTuple(defineNamed('user_filter'), defineNamed('page_info'))),
+                        union_ref: defineObjectField(unionOf(defineNamed('user_filter'), defineNamed('page_info'))),
+                    }),
+                },
+                {
+                    parentTypeName: 'query_root',
+                    fieldName: 'a_search',
+                    type: defineObject({
+                        filter: defineObjectField(defineNamed('user_filter')),
+                    }),
+                },
+            ],
+        }))
+
+        expect(result).toBe([
+            SCHEMA_HELPER_DECLARATIONS + '\n',
+            `export type PageInfo = {`,
+            `\tcursor: string;`,
+            `}\n`,
+            `export type UserFilter = {`,
+            `\tid: string;`,
+            `}\n`,
+            `export type QueryRootASearchArgs = {`,
+            `\tfilter: UserFilter;`,
+            `}\n`,
+            `export type QueryRootZSearchArgs = {`,
+            `\tarray_ref: Array<UserFilter>;`,
+            `\tgeneric_ref: Promise<UserFilter>;`,
+            `\tintersection_ref: UserFilter & PageInfo;`,
+            `\ttuple_ref: [UserFilter, PageInfo];`,
+            `\tunion_ref: UserFilter | PageInfo;`,
             `}`,
         ].join('\n'))
     })
@@ -367,9 +528,13 @@ describe('schema render', () => {
             unionTypes: new Map([
                 [ 'SearchResult', unionOf(defineNamed('User'), defineNamed('Group')) ],
             ]),
-            fieldArgs: new Map([
-                [ 'QueryUserArgs', defineObject({ id: defineObjectField(defineString()) }) ],
-            ]),
+            fieldArgTypes: [
+                {
+                    parentTypeName: 'Query',
+                    fieldName: 'user',
+                    type: defineObject({ id: defineObjectField(defineString()) }),
+                },
+            ],
         }))
 
         expect(result).toBe([

@@ -1,5 +1,6 @@
 import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { NameAllocator } from './name-allocator'
+import type { NamingConvention } from '../../naming'
 
 import type {
     OperationModel,
@@ -15,6 +16,7 @@ import type {
 } from './types'
 
 import { buildScalarValue } from './shared'
+import { createNamingConvention } from '../../naming'
 import { makeVariableShapeSignature } from './normalize/shape-signature'
 
 import { VALUE_MODEL_KIND } from '../../kinds'
@@ -25,20 +27,20 @@ export type VariableBuildState = {
     aliasNames: Map<string, string>;
     aliasSignaturesByTypeName: Map<string, string>;
     nameAllocator: NameAllocator;
+    naming: NamingConvention;
 }
 
-export const createVariableBuildState = (nameAllocator: NameAllocator): VariableBuildState => ({
+export const createVariableBuildState = (
+    nameAllocator: NameAllocator,
+    naming: NamingConvention = createNamingConvention()
+): VariableBuildState => ({
     cache: new Map(),
     inProgress: new Set(),
     aliasNames: new Map(),
     aliasSignaturesByTypeName: new Map(),
     nameAllocator,
+    naming,
 })
-
-const getVariableObjectAliasName = (typeName: string): string => {
-    const inputName = typeName.endsWith('Input') ? typeName : `${typeName}Input`
-    return `${inputName}Alias`
-}
 
 const getAllocatedVariableAliasName = (
     typeName: string,
@@ -48,7 +50,7 @@ const getAllocatedVariableAliasName = (
     if (cachedAliasName) return cachedAliasName
 
     const aliasName = state.nameAllocator(
-        getVariableObjectAliasName(typeName),
+        state.naming.variableAliasName(typeName),
         state.aliasSignaturesByTypeName.get(typeName) ?? typeName
     )
     state.aliasNames.set(typeName, aliasName)

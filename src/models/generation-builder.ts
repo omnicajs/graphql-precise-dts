@@ -21,12 +21,12 @@ import type { ScalarModelShape } from './types/type-ref'
 import type { Scalars } from '../scalars/types'
 import type { Schema } from '../plugin-types'
 import type {
+    SchemaFieldArgTypeModel,
     SchemaObjectModel,
     SchemaOutputModel,
 } from './generation'
 import type { TsType } from '../ts-type'
 
-import { capitalize } from '../lib/strings'
 import {
     getScalarPrimitiveShapeTs,
     getScalarTsShape,
@@ -73,7 +73,7 @@ const createGenerationModels = (): GenerationModels => ({
         interfaceTypes: new Map<string, TsType>(),
         objectTypes: new Map<string, SchemaObjectModel>(),
         unionTypes: new Map<string, TsType>(),
-        fieldArgs: new Map<string, TsType>(),
+        fieldArgTypes: [],
     },
     registry: {
         enums: new Map<string, EnumModel>(),
@@ -236,13 +236,8 @@ const makeOutputFields = (
     ),
 ], jsDoc)
 
-const makeFieldArgsName = (
-    typeName: string,
-    fieldName: string
-): string => `${typeName}${capitalize(fieldName)}Args`
-
-const addFieldArgs = (
-    fieldArgs: Map<string, TsType>,
+const addFieldArgType = (
+    fieldArgTypes: SchemaFieldArgTypeModel[],
     enumReferences: Set<string>,
     scalars: Map<string, ScalarModelShape>,
     parentTypeName: string,
@@ -251,12 +246,13 @@ const addFieldArgs = (
 ) => {
     if (!args.length) return
 
-    fieldArgs.set(
-        makeFieldArgsName(parentTypeName, fieldName),
-        makeSchemaObjectType(args.map(arg =>
+    fieldArgTypes.push({
+        parentTypeName,
+        fieldName,
+        type: makeSchemaObjectType(args.map(arg =>
             makeSchemaObjectField(enumReferences, scalars, arg.name, arg.type, 'input', arg)
-        ))
-    )
+        )),
+    })
 }
 
 const addInputType = (
@@ -276,7 +272,7 @@ const addInputType = (
 
 const addInterfaceType = (
     interfaceTypes: Map<string, TsType>,
-    fieldArgs: Map<string, TsType>,
+    fieldArgTypes: SchemaFieldArgTypeModel[],
     enumReferences: Set<string>,
     scalars: Map<string, ScalarModelShape>,
     type: GraphQLInterfaceType
@@ -284,7 +280,7 @@ const addInterfaceType = (
     const fields = type.getFields()
 
     Object.values(fields).forEach(field => {
-        addFieldArgs(fieldArgs, enumReferences, scalars, type.name, field.name, field.args)
+        addFieldArgType(fieldArgTypes, enumReferences, scalars, type.name, field.name, field.args)
     })
 
     interfaceTypes.set(type.name, makeOutputFields(
@@ -299,7 +295,7 @@ const addInterfaceType = (
 
 const addObjectType = (
     objectTypes: Map<string, SchemaObjectModel>,
-    fieldArgs: Map<string, TsType>,
+    fieldArgTypes: SchemaFieldArgTypeModel[],
     enumReferences: Set<string>,
     scalars: Map<string, ScalarModelShape>,
     type: GraphQLObjectType
@@ -307,7 +303,7 @@ const addObjectType = (
     const fields = type.getFields()
 
     Object.values(fields).forEach(field => {
-        addFieldArgs(fieldArgs, enumReferences, scalars, type.name, field.name, field.args)
+        addFieldArgType(fieldArgTypes, enumReferences, scalars, type.name, field.name, field.args)
     })
 
     objectTypes.set(type.name, {
@@ -347,7 +343,7 @@ const addSchemaTypes = (
             if (isInterfaceType(type)) {
                 addInterfaceType(
                     schemaOutput.interfaceTypes,
-                    schemaOutput.fieldArgs,
+                    schemaOutput.fieldArgTypes,
                     schemaOutput.enumReferences,
                     schemaOutput.scalars,
                     type
@@ -356,7 +352,7 @@ const addSchemaTypes = (
             if (isObjectType(type)) {
                 addObjectType(
                     schemaOutput.objectTypes,
-                    schemaOutput.fieldArgs,
+                    schemaOutput.fieldArgTypes,
                     schemaOutput.enumReferences,
                     schemaOutput.scalars,
                     type

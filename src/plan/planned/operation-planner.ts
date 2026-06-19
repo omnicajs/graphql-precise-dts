@@ -1,5 +1,6 @@
 import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
+import type { NamingConvention } from '../../naming'
 import type { OperationModel } from '../../models/types'
 import type { OutputBuildState, PlannedOperationModel } from './types'
 import type { VariableBuildState } from './variable-planner'
@@ -14,6 +15,7 @@ export const buildOperationModel = (
     outputState: OutputBuildState,
     variableState: VariableBuildState,
     customScalars: CustomScalarMappingRecord,
+    naming: NamingConvention,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedOperationModel => {
@@ -23,7 +25,14 @@ export const buildOperationModel = (
             buildVariableField(variable, variableState, customScalars)
         ),
         result: normalizeSelections(operation.result).map(selection =>
-            buildSelection(selection, outputState, customScalars, directivePolicies, reportWarning)
+            buildSelection(
+                selection,
+                outputState,
+                customScalars,
+                naming,
+                directivePolicies,
+                reportWarning
+            )
         ),
     }
 }

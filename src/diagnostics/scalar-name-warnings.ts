@@ -3,6 +3,7 @@ import type { GenerationModels } from '../models/generation'
 import type { ScalarUsage } from '../scalars/types'
 import type { TsType } from '../ts-type'
 
+import { createNamingConvention } from '../naming'
 import { isSameTsType } from '../ts-type'
 import { isTsKeywordTypeName } from '../ts-type'
 import { resolveCustomScalarTypeTs } from '../scalars/builder'
@@ -60,6 +61,7 @@ const addGeneratedName = (
 
 const makeGeneratedNameMap = ({ schema, registry }: GenerationModels): Map<string, Set<GeneratedDeclarationKind>> => {
     const generatedNames = new Map<string, Set<GeneratedDeclarationKind>>()
+    const naming = createNamingConvention()
 
     addGeneratedName(generatedNames, 'Exact', GENERATED_DECLARATION_KIND.SCHEMA_HELPER)
     addGeneratedName(generatedNames, 'MaybePromise', GENERATED_DECLARATION_KIND.SCHEMA_HELPER)
@@ -71,8 +73,12 @@ const makeGeneratedNameMap = ({ schema, registry }: GenerationModels): Map<strin
     schema.interfaceTypes.forEach((_, name) => addGeneratedName(generatedNames, name, GENERATED_DECLARATION_KIND.GRAPHQL_TYPE))
     schema.objectTypes.forEach((_, name) => addGeneratedName(generatedNames, name, GENERATED_DECLARATION_KIND.GRAPHQL_TYPE))
     schema.unionTypes.forEach((_, name) => addGeneratedName(generatedNames, name, GENERATED_DECLARATION_KIND.GRAPHQL_TYPE))
-    schema.fieldArgs.forEach((_, name) =>
-        addGeneratedName(generatedNames, name, GENERATED_DECLARATION_KIND.FIELD_ARGUMENTS_HELPER)
+    schema.fieldArgTypes.forEach(({ parentTypeName, fieldName }) =>
+        addGeneratedName(
+            generatedNames,
+            naming.fieldArgTypeName(parentTypeName, fieldName),
+            GENERATED_DECLARATION_KIND.FIELD_ARGUMENTS_HELPER
+        )
     )
 
     registry.enums.forEach((_, name) => addGeneratedName(generatedNames, name, GENERATED_DECLARATION_KIND.ENUM))
