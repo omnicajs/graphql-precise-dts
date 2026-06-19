@@ -9,6 +9,12 @@ export type SchemaObjectModel = {
     description?: string;
 }
 
+export type SchemaFieldArgTypeModel = {
+    parentTypeName: string;
+    fieldName: string;
+    type: TsType;
+}
+
 export type SchemaOutputModel = {
     enumReferences: Set<string>;
     scalars: Map<string, ScalarModelShape>;
@@ -16,7 +22,7 @@ export type SchemaOutputModel = {
     interfaceTypes: Map<string, TsType>;
     objectTypes: Map<string, SchemaObjectModel>;
     unionTypes: Map<string, TsType>;
-    fieldArgs: Map<string, TsType>;
+    fieldArgTypes: SchemaFieldArgTypeModel[];
 }
 
 export type ReusableModelRegistry = {

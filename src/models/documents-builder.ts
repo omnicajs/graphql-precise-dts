@@ -21,7 +21,6 @@ import { TypeInfo } from 'graphql'
 
 import { getRootTypeForOperation } from '../lib/operations'
 import { isUndefined } from '../lib/predicates'
-import { capitalize } from '../lib/strings'
 import { makeSelectionModels } from './selections-builder'
 import { makeVariableValue } from './value-builder'
 
@@ -149,7 +148,7 @@ export const makeOperationModel = (
 
     return {
         operationType: graphqlDef.operation,
-        onType: capitalize(rootType.name),
+        onType: rootType.name,
         variables: variableDefinitions
             .flatMap(variableDefinition => {
                 const variableType = variables.get(variableDefinition)

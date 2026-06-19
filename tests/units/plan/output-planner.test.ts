@@ -2,6 +2,7 @@ import {
     describe,
     expect,
     test,
+    vi,
 } from 'vitest'
 
 import {
@@ -9,6 +10,7 @@ import {
     buildOutputAliases,
     createOutputBuildState,
 } from '../../../src/plan/planned/output-planner'
+import { createNamingConvention } from '../../../src/naming'
 import {
     field,
     fragment,
@@ -16,6 +18,9 @@ import {
     scalar,
 } from '../../fixtures/builders/declaration-render'
 import { defineString } from '../../../src'
+
+import { DIRECTIVE_POLICY_EFFECT } from '../../../src/directives/kinds'
+import { SELECTION_MODEL_KIND } from '../../../src/kinds'
 
 describe('output planner', () => {
     test('marks structurally recursive object occurrences when matching shapes are already in progress', () => {
@@ -38,8 +43,8 @@ describe('output planner', () => {
             ], 'Query'),
             state,
             {},
-            {},
-            () => undefined
+            createNamingConvention(),
+            {}
         )
 
         const aliases = buildOutputAliases(state.occurrences, baseName => baseName)
@@ -49,5 +54,34 @@ describe('output planner', () => {
             typeNames: [ 'Tree' ],
         })])
         expect(aliases[0]?.fields).toHaveLength(2)
+    })
+
+    test('uses the default warning reporter', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        buildFragmentModel(
+            fragment([
+                {
+                    ...field('name', scalar(defineString()), false),
+                    directiveNames: [ 'review' ],
+                },
+            ], 'Query'),
+            createOutputBuildState(),
+            {},
+            createNamingConvention(),
+            {
+                review: {
+                    [SELECTION_MODEL_KIND.FIELD]: {
+                        effect: DIRECTIVE_POLICY_EFFECT.WARN,
+                        message: 'Review generated declaration.',
+                    },
+                },
+            }
+        )
+
+        expect(warn).toHaveBeenCalledTimes(1)
+        expect(warn).toHaveBeenCalledWith('Review generated declaration.')
+
+        warn.mockRestore()
     })
 })

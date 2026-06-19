@@ -1,3 +1,5 @@
+import type { NamingConvention } from '../../../src/naming'
+
 import {
     describe,
     expect,
@@ -5,6 +7,7 @@ import {
     vi,
 } from 'vitest'
 
+import { createNamingConvention } from '../../../src/naming'
 import { makeGenerationDirectivePolicies } from '../../../src/directives/structural-policies'
 import { makePlannedDocumentModels } from '../../../src/plan/planned'
 import { prepareRenderableDocumentModels } from '../../../src/plan/renderable/prepare-models'
@@ -48,19 +51,24 @@ import { OperationTypeNode } from 'graphql'
 const renderDeclaration = (
     path: string,
     definitions: ReturnType<typeof declarationDefinitions>,
-    importsMap: Map<string, string>
-): string => renderPlannedDeclaration(
-    path,
-    prepareRenderableDocumentModels(
-        makePlannedDocumentModels(
-            definitions,
-            [ ...importsMap.keys() ],
-            definitions.customScalars,
-            makeGenerationDirectivePolicies(definitions.directivePolicies)
-        )
-    ),
-    importsMap
-)
+    importsMap: Map<string, string>,
+    naming: NamingConvention = createNamingConvention()
+): string => {
+    return renderPlannedDeclaration(
+        path,
+        prepareRenderableDocumentModels(
+            makePlannedDocumentModels(
+                definitions,
+                [ ...importsMap.keys() ],
+                definitions.customScalars,
+                naming,
+                makeGenerationDirectivePolicies(definitions.directivePolicies)
+            )
+        ),
+        importsMap,
+        naming
+    )
+}
 
 describe('declaration render', () => {
     describe('imports and module wrapper', () => {
@@ -234,10 +242,12 @@ describe('declaration render', () => {
                         definitions,
                         [],
                         definitions.customScalars,
+                        createNamingConvention(),
                         makeGenerationDirectivePolicies(definitions.directivePolicies)
                     )
                 ),
-                new Map()
+                new Map(),
+                createNamingConvention()
             )
 
             expect(result).toContain([
@@ -271,6 +281,32 @@ describe('declaration render', () => {
 
             expect(result).toContain(`\texport type UsersListQueryQueryVariables = { [key: string]: never }`)
             expect(result).not.toContain('Exact<{ [key: string]: never }>')
+        })
+
+        test('renders operation declaration names with configured operation naming', () => {
+            const result = renderDeclaration(
+                './documents',
+                declarationDefinitions(
+                    new Map(),
+                    new Map([
+                        ['get_user', operation(
+                            OperationTypeNode.QUERY,
+                            [],
+                            [],
+                            'Query'
+                        )],
+                    ])
+                ),
+                new Map(),
+                createNamingConvention({
+                    operationNames: 'camelCase',
+                })
+            )
+
+            expect(result).toContain(`\texport type getUserQueryVariables = { [key: string]: never }`)
+            expect(result).toContain(`\texport type getUserQueryPayload = {`)
+            expect(result).toContain(`\texport const getUserQuery: TypedDocumentNode<getUserQueryPayload, getUserQueryVariables>`)
+            expect(result).toContain(`\texport default getUserQuery`)
         })
 
         describe('variable aliases', () => {
@@ -2333,18 +2369,10 @@ describe('declaration render', () => {
                 ], 'BrokenFragment')],
             ]))
 
-            const importsMap = new Map<string, string>()
-            const result = renderPlannedDeclaration(
+            const result = renderDeclaration(
                 './documents',
-                prepareRenderableDocumentModels(
-                    makePlannedDocumentModels(
-                        definitions,
-                        [ ...importsMap.keys() ],
-                        definitions.customScalars,
-                        makeGenerationDirectivePolicies(definitions.directivePolicies)
-                    )
-                ),
-                importsMap
+                definitions,
+                new Map()
             )
 
             expect(result).toContain('\t\tmystery: unknown | null;')

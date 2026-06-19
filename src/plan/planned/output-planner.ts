@@ -1,6 +1,7 @@
 import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
 import type { NameAllocator } from './name-allocator'
+import type { NamingConvention } from '../../naming'
 import type { NormalizedSelectionModel } from './normalize/selection-merger'
 import type { WarningReporter } from '../warnings'
 
@@ -22,10 +23,8 @@ import type {
     PlannedSelectionModel,
 } from './types'
 
-import {
-    buildScalarValue,
-    getSuggestedOutputAliasName,
-} from './shared'
+import { buildScalarValue } from './shared'
+import { getSuggestedOutputAliasName } from './shared'
 import { makeOutputShapeSignature } from './normalize/shape-signature'
 import { normalizeSelections } from './normalize/selection-merger'
 import { normalizeTsType } from '../../ts-type'
@@ -77,6 +76,7 @@ const buildObjectFieldValue = (
     aliasName: string,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
+    naming: NamingConvention,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedObjectFieldValue => {
@@ -107,7 +107,7 @@ const buildObjectFieldValue = (
     if (!alreadyInProgress) state.inProgressSignatures.add(signature)
 
     node.fields = normalizeSelections(value.fields).map(selection =>
-        buildSelection(selection, state, customScalars, directivePolicies, reportWarning)
+        buildSelection(selection, state, customScalars, naming, directivePolicies, reportWarning)
     )
 
     if (!alreadyInProgress) state.inProgressSignatures.delete(signature)
@@ -120,6 +120,7 @@ const buildFieldValue = (
     value: FieldValue,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
+    naming: NamingConvention,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedFieldValue => {
@@ -129,9 +130,10 @@ const buildFieldValue = (
         case VALUE_MODEL_KIND.OBJECT:
             return buildObjectFieldValue(
                 value,
-                getSuggestedOutputAliasName(value),
+                getSuggestedOutputAliasName(value, naming),
                 state,
                 customScalars,
+                naming,
                 directivePolicies,
                 reportWarning
             )
@@ -141,7 +143,14 @@ const buildFieldValue = (
                 variants: value.variants.map(variant => ({
                     typeName: variant.typeName,
                     fields: normalizeSelections(variant.fields).map(selection =>
-                        buildSelection(selection, state, customScalars, directivePolicies, reportWarning)
+                        buildSelection(
+                            selection,
+                            state,
+                            customScalars,
+                            naming,
+                            directivePolicies,
+                            reportWarning
+                        )
                     ),
                 })),
             }
@@ -154,6 +163,7 @@ export const buildSelection = (
     selection: NormalizedSelectionModel,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
+    naming: NamingConvention,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedSelectionModel => {
@@ -174,6 +184,7 @@ export const buildSelection = (
                     selection.value,
                     state,
                     customScalars,
+                    naming,
                     directivePolicies,
                     reportWarning
                 ),
@@ -226,6 +237,7 @@ const buildFragmentRoot = (
     root: FragmentRoot,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
+    naming: NamingConvention,
     directivePolicies: GenerationDirectivePolicies,
     reportWarning: WarningReporter
 ): PlannedFragmentRoot => root.kind === FRAGMENT_ROOT_KIND.UNION
@@ -234,14 +246,14 @@ const buildFragmentRoot = (
         variants: root.variants.map(variant => ({
             typeName: variant.typeName,
             fields: normalizeSelections(variant.fields).map(selection =>
-                buildSelection(selection, state, customScalars, directivePolicies, reportWarning)
+                buildSelection(selection, state, customScalars, naming, directivePolicies, reportWarning)
             ),
         })),
     }
     : {
         kind: FRAGMENT_ROOT_KIND.OBJECT,
         fields: normalizeSelections(root.fields).map(selection =>
-            buildSelection(selection, state, customScalars, directivePolicies, reportWarning)
+            buildSelection(selection, state, customScalars, naming, directivePolicies, reportWarning)
         ),
     }
 
@@ -249,9 +261,17 @@ export const buildFragmentModel = (
     fragment: FragmentModel,
     state: OutputBuildState,
     customScalars: CustomScalarMappingRecord,
+    naming: NamingConvention,
     directivePolicies: GenerationDirectivePolicies,
-    reportWarning: WarningReporter
+    reportWarning: WarningReporter = message => console.warn(message)
 ): PlannedFragmentModel => ({
     ...fragment,
-    root: buildFragmentRoot(fragment.root, state, customScalars, directivePolicies, reportWarning),
+    root: buildFragmentRoot(
+        fragment.root,
+        state,
+        customScalars,
+        naming,
+        directivePolicies,
+        reportWarning
+    ),
 })

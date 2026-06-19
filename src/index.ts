@@ -4,6 +4,7 @@ import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
 
 import { assertUniqueDocumentModuleSpecifiers } from './diagnostics/declaration-errors'
 import { buildGenerationModels } from './models/generation-builder'
+import { createNamingConvention } from './naming'
 import { dirname } from 'path'
 import { emitCustomScalarNamedTypeWarnings } from './diagnostics/scalar-name-warnings'
 import {
@@ -56,10 +57,10 @@ export const plugin: PluginFunction<PluginConfig, string> = (
         config.scope
     )
 
-    const importMap = makeDocumentModelImportMap(schema, documents, enumsModulePath, documentModuleSpecifier)
-
     const fragmentDefinitions = findFragmentDefinitions(documents)
     const directivePolicies = config.directivePolicies ?? {}
+    const naming = createNamingConvention(config.namingConvention)
+    const importMap = makeDocumentModelImportMap(schema, documents, enumsModulePath, documentModuleSpecifier)
 
     emitRepeatedSelectionWarnings(documents)
     emitDuplicateFragmentDefinitionWarnings(documents)
@@ -83,9 +84,9 @@ export const plugin: PluginFunction<PluginConfig, string> = (
 
     emitCustomScalarNamedTypeWarnings({ schema: schemaOutput, registry }, config.scalars ?? {})
 
-    const schemaDeclaration = renderSchemaDeclaration(schemaOutput)
+    const schemaDeclaration = renderSchemaDeclaration(schemaOutput, naming)
     const enumsDeclaration = registry.enums.size
-        ? renderEnumsDeclaration(registry.enums)
+        ? renderEnumsDeclaration(registry.enums, naming)
         : ''
 
     mkdirSync(dirname(schemaOutputFile), { recursive: true })
@@ -98,6 +99,7 @@ export const plugin: PluginFunction<PluginConfig, string> = (
         context,
         importMap,
         config.scalars ?? {},
+        naming,
         makeGenerationDirectivePolicies(directivePolicies)
     )
 
@@ -106,10 +108,12 @@ export const plugin: PluginFunction<PluginConfig, string> = (
     return renderDeclarations(
         documentBundles,
         documentModuleSpecifier,
-        makeDeclarationModuleSpecifier(info.outputFile, schemaOutputFile, config.paths)
+        makeDeclarationModuleSpecifier(info.outputFile, schemaOutputFile, config.paths),
+        naming
     )
 }
 
+export type { ConfigNamingConvention } from './config'
 export type { DirectivePolicy } from './directives/types'
 export type {
     NamedObjectField,
@@ -137,4 +141,5 @@ export {
     renderType,
 } from './ts-type'
 
+export { NAMING_STYLE } from './config'
 export { TS_TYPE_KIND } from './ts-type'

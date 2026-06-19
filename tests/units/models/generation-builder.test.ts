@@ -43,6 +43,71 @@ describe('generation builder', () => {
         ].join('\n'))
     })
 
+    test('keeps raw GraphQL names in schema output models', () => {
+        const schema = buildSchema(`
+            schema {
+                query: query_root
+            }
+
+            enum user_status {
+                IS_ACTIVE
+            }
+
+            input user_filter {
+                user_status: user_status
+            }
+
+            type user_profile {
+                user_id: ID!
+                status: user_status!
+            }
+
+            type query_root {
+                user_profile(filter_by: user_filter): user_profile
+            }
+        `)
+
+        const { schema: schemaOutput, registry } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect([ ...schemaOutput.inputTypes.keys() ]).toContain('user_filter')
+        expect([ ...schemaOutput.objectTypes.keys() ]).toContain('user_profile')
+        expect([ ...schemaOutput.objectTypes.keys() ]).toContain('query_root')
+        expect(schemaOutput.fieldArgTypes).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                parentTypeName: 'query_root',
+                fieldName: 'user_profile',
+            }),
+        ]))
+        expect(schemaOutput.enumReferences).toContain('user_status')
+        expect(registry.enums.get('user_status')?.entries).toEqual([
+            { name: 'IS_ACTIVE', value: 'IS_ACTIVE' },
+        ])
+    })
+
+    test('keeps raw enum names in registry models', () => {
+        const schema = buildSchema(`
+            enum user_status {
+                IS_ACTIVE
+            }
+
+            type Query {
+                status: user_status!
+            }
+        `)
+
+        const { registry } = buildGenerationModels(
+            { fragments: [], enums: [] },
+            makeTestModelContext({ schema })
+        )
+
+        expect(registry.enums.get('user_status')?.entries).toEqual([
+            { name: 'IS_ACTIVE', value: 'IS_ACTIVE' },
+        ])
+    })
+
     test('builds interface models from GraphQL schema types', () => {
         const schema = buildSchema(`
             interface Node {
@@ -170,8 +235,12 @@ describe('generation builder', () => {
             makeTestModelContext({ schema })
         )
 
-        expect(schemaOutput.fieldArgs.get('QueryUserArgs')).not.toBeUndefined()
-        expect(renderType(schemaOutput.fieldArgs.get('QueryUserArgs')!)).toBe([
+        const fieldArgType = schemaOutput.fieldArgTypes.find(model =>
+            model.parentTypeName === 'Query' && model.fieldName === 'user'
+        )
+
+        expect(fieldArgType).not.toBeUndefined()
+        expect(renderType(fieldArgType!.type)).toBe([
             '{',
             `\t/** @remarks Scalar reference: \`Scalars['ID']['input']\`. */`,
             `\tid: string;`,
@@ -379,7 +448,9 @@ describe('generation builder', () => {
             makeTestModelContext({ schema })
         )
 
-        expect(schemaOutput.fieldArgs.get('QueryUsersArgs')).toMatchObject({
+        expect(schemaOutput.fieldArgTypes.find(model =>
+            model.parentTypeName === 'Query' && model.fieldName === 'users'
+        )?.type).toMatchObject({
             kind: 'object',
             fields: [
                 {

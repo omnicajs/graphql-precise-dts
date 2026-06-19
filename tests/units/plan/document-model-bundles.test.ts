@@ -1,3 +1,5 @@
+import type { FragmentDefinitionNode } from 'graphql'
+
 import {
     describe,
     expect,
@@ -92,7 +94,7 @@ describe('document model bundles', () => {
             documentImports: new Map(),
         }
 
-        const bundles = makeDocumentModelBundles(documents, context, importMap, {}, {})
+        const bundles = makeDocumentModelBundles(documents, context, importMap, {})
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: 'user.graphql' })
@@ -122,7 +124,7 @@ describe('document model bundles', () => {
             documents,
         })
 
-        const bundles = makeDocumentModelBundles(documents, context, createImportMap(), {}, {})
+        const bundles = makeDocumentModelBundles(documents, context, createImportMap(), {})
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: '' })
@@ -180,7 +182,7 @@ describe('document model bundles', () => {
             documentImports: new Map(),
         }
 
-        const bundles = makeDocumentModelBundles(documents, context, importMap, {}, {})
+        const bundles = makeDocumentModelBundles(documents, context, importMap, {})
 
         expect(bundles).toHaveLength(1)
         expect(bundles[0]).toMatchObject({ location: 'user.graphql' })
@@ -207,8 +209,52 @@ describe('document model bundles', () => {
             [ 'UserStatus', './schema.d.ts' ],
         ]))
 
-        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "UserStatus" is used both by imported type "UserStatus" and by fragment "UserStatus".')
+    })
+
+    test('normalizes imported fragment type names', () => {
+        const { context, documents, importMap } = prepareBundleInputs(`
+            type User {
+                id: ID!
+            }
+
+            type Query {
+                user: User!
+            }
+        `,
+        `
+            # import "./shared.graphql"
+
+            query get_user {
+                user {
+                    ...user_fields
+                }
+            }
+        `,
+        {
+            fragments: new Map([
+                [ 'user_fields', [{
+                    location: 'shared.graphql',
+                    moduleSpecifier: './shared.graphql',
+                    definition: parse(`
+                        fragment user_fields on User {
+                            id
+                        }
+                    `).definitions[0] as FragmentDefinitionNode,
+                }] ],
+            ]),
+            enums: new Map<string, string>(),
+            documentImports: new Map([
+                [ 'user.graphql', new Set([ 'shared.graphql' ]) ],
+            ]),
+        })
+
+        const [ bundle ] = makeDocumentModelBundles(documents, context, importMap, {})
+
+        expect(bundle.imports).toEqual(new Map([
+            [ 'UserFields', './shared.graphql' ],
+        ]))
     })
 
     test('fails when a fragment export collides with the Exact helper import', () => {
@@ -234,7 +280,7 @@ describe('document model bundles', () => {
         `
         )
 
-        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "Exact" is used both by imported type "Exact" and by fragment "Exact".')
     })
 
@@ -264,7 +310,7 @@ describe('document model bundles', () => {
         `
         )
 
-        const [ bundle ] = makeDocumentModelBundles(documents, context, importMap, {}, {})
+        const [ bundle ] = makeDocumentModelBundles(documents, context, importMap, {})
         const aliasName = bundle.models.variableAliases[0]?.aliasName
 
         expect(aliasName).toMatch(/^TreeInputAlias_[a-f0-9]{4}$/)
@@ -305,7 +351,7 @@ describe('document model bundles', () => {
         `
         )
 
-        const [ bundle ] = makeDocumentModelBundles(documents, context, importMap, {}, {})
+        const [ bundle ] = makeDocumentModelBundles(documents, context, importMap, {})
         const aliasName = bundle.models.outputAliases[0]?.aliasName
 
         expect(aliasName).toMatch(/^ProfileAlias_[a-f0-9]{4}$/)
@@ -337,7 +383,7 @@ describe('document model bundles', () => {
             [ 'GetUserQueryVariables', './schema.d.ts' ],
         ]))
 
-        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryVariables" is used both by imported type "GetUserQueryVariables" and by generated variables type "GetUserQueryVariables".')
     })
 
@@ -366,7 +412,7 @@ describe('document model bundles', () => {
             [ 'GetUserQueryPayload', './schema.d.ts' ],
         ]))
 
-        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryPayload" is used both by imported type "GetUserQueryPayload" and by generated payload type "GetUserQueryPayload".')
     })
 
@@ -393,7 +439,7 @@ describe('document model bundles', () => {
         `
         )
 
-        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryVariables" is used both by fragment "GetUserQueryVariables" and by generated variables type "GetUserQueryVariables".')
     })
 
@@ -420,7 +466,7 @@ describe('document model bundles', () => {
         `
         )
 
-        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryPayload" is used both by fragment "GetUserQueryPayload" and by generated payload type "GetUserQueryPayload".')
     })
 
@@ -448,7 +494,7 @@ describe('document model bundles', () => {
             }
         `)
 
-        expect(() => makeDocumentModelBundles(documents, context, importMap, {}, {}))
+        expect(() => makeDocumentModelBundles(documents, context, importMap, {}))
             .toThrow('Name collision detected in generated declaration exports for "user.graphql": "GetUserQueryVariables" is used both by generated variables type "GetUserQueryVariables" and by generated variables type "GetUserQueryVariables".')
     })
 })
