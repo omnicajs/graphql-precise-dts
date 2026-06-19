@@ -35,8 +35,8 @@ export const makePlannedDocumentModels = (
             const operationTypeName = getOperationTypeName(key, operation.operationType, naming)
             return [
                 operationTypeName,
-                `${operationTypeName}Variables`,
-                `${operationTypeName}Payload`,
+                naming.operationVariablesTypeName(key, operation.operationType),
+                naming.operationPayloadTypeName(key, operation.operationType),
             ]
         }),
     ])

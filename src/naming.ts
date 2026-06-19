@@ -22,6 +22,8 @@ export type NamingConvention = {
     operationName(name: string): string;
     fragmentName(name: string): string;
     operationTypeName(operationName: string, operationType: OperationTypeNode): string;
+    operationVariablesTypeName(operationName: string, operationType: OperationTypeNode): string;
+    operationPayloadTypeName(operationName: string, operationType: OperationTypeNode): string;
     fieldArgTypeName(typeName: string, fieldName: string): string;
     variableAliasName(typeName: string): string;
     outputAliasName(typeName: string): string;
@@ -33,10 +35,7 @@ const splitNameWords = (
 ): string[] => {
     const source = transformUnderscore ? value : value.replace(/_/g, ' ')
 
-    return source
-        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-        .split(/[^A-Za-z0-9]+/)
-        .filter(Boolean)
+    return source.match(/[A-Z]+[0-9]*(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]+[0-9]*/g) ?? []
 }
 
 const capitalizeWord = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
@@ -57,6 +56,21 @@ const convertName = (
     if (style === NAMING_STYLE.PASCAL_CASE) return pascalName
 
     return pascalName.charAt(0).toLowerCase() + pascalName.slice(1)
+}
+
+const hasTrailingWords = (
+    value: string,
+    trailingValue: string,
+    transformUnderscore: boolean
+): boolean => {
+    const words = splitNameWords(value, transformUnderscore).map(word => word.toLowerCase())
+    const trailingWords = splitNameWords(trailingValue, transformUnderscore).map(word => word.toLowerCase())
+
+    if (!words.length || !trailingWords.length || trailingWords.length > words.length) return false
+
+    return trailingWords.every((word, index) =>
+        words[words.length - trailingWords.length + index] === word
+    )
 }
 
 const normalizeNamingConvention = (
@@ -86,6 +100,34 @@ export const createNamingConvention = (
 ): NamingConvention => {
     const convention = normalizeNamingConvention(config)
     const convert = (value: string, style: NamingStyleConfig) => convertName(value, style, convention.transformUnderscore)
+    const operationParts = (
+        operationName: string,
+        operationType: OperationTypeNode,
+        ...suffixes: string[]
+    ): [string, ...string[]] => [
+        operationName,
+        ...(
+            hasTrailingWords(operationName, operationType, convention.transformUnderscore)
+                ? []
+                : [ operationType ]
+        ),
+        ...suffixes,
+    ]
+    const convertOperationParts = (operationName: string, ...suffixes: string[]): string => {
+        if (convention.operationNames === NAMING_STYLE.KEEP) {
+            return operationName + convert(suffixes.join('_'), NAMING_STYLE.PASCAL_CASE)
+        }
+
+        if (splitNameWords(operationName, convention.transformUnderscore).length > 0) {
+            return convert([ operationName, ...suffixes ].join('_'), convention.operationNames)
+        }
+
+        if (convention.operationNames === NAMING_STYLE.SNAKE_CASE) {
+            return [ operationName, convert(suffixes.join('_'), convention.operationNames) ].join('_')
+        }
+
+        return operationName + convert(suffixes.join('_'), NAMING_STYLE.PASCAL_CASE)
+    }
 
     return {
         typeName: name => convert(name, convention.typeNames),
@@ -93,7 +135,13 @@ export const createNamingConvention = (
         operationName: name => convert(name, convention.operationNames),
         fragmentName: name => convert(name, convention.fragmentNames),
         operationTypeName(operationName, operationType) {
-            return `${convert(operationName, convention.operationNames)}${convert(operationType, convention.typeNames)}`
+            return convertOperationParts(...operationParts(operationName, operationType))
+        },
+        operationVariablesTypeName(operationName, operationType) {
+            return convertOperationParts(...operationParts(operationName, operationType, 'variables'))
+        },
+        operationPayloadTypeName(operationName, operationType) {
+            return convertOperationParts(...operationParts(operationName, operationType, 'payload'))
         },
         fieldArgTypeName(typeName, fieldName) {
             if (convention.typeNames === NAMING_STYLE.KEEP) return `${typeName}${fieldName}Args`

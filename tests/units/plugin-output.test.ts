@@ -662,14 +662,14 @@ describe('plugin directive handling', () => {
                 `declare module '~tests/users.graphql' {`,
                 `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'\n`,
                 `\timport type { UserDetails } from '~tests/fragments.graphql'\n`,
-                `\texport type UsersQueryQueryVariables = { [key: string]: never }\n`,
-                `\texport type UsersQueryQueryPayload = {`,
+                `\texport type UsersQueryVariables = { [key: string]: never }\n`,
+                `\texport type UsersQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tprimaryUser: UserDetails;`,
                 `\t\tsecondaryUser: UserDetails;`,
                 `\t}\n`,
-                `\texport const usersQueryQuery: TypedDocumentNode<UsersQueryQueryPayload, UsersQueryQueryVariables>\n`,
-                `\texport default usersQueryQuery`,
+                `\texport const usersQuery: TypedDocumentNode<UsersQueryPayload, UsersQueryVariables>\n`,
+                `\texport default usersQuery`,
                 `}`,
             ].join('\n'))
         })
@@ -742,7 +742,7 @@ describe('plugin directive handling', () => {
             )
 
             expect(result).toContain([
-                `\texport type UserQueryQueryPayload = {`,
+                `\texport type UserQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: {`,
                 `\t\t\t__typename?: 'User';`,
@@ -1232,7 +1232,7 @@ describe('plugin directive handling', () => {
             ].join('\n'))
 
             expect(result).toContain([
-                `\texport type GroupOwnerQueryQueryPayload = {`,
+                `\texport type GroupOwnerQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tgroup: GroupOwner;`,
                 `\t}`,
@@ -1773,7 +1773,7 @@ describe('plugin __typename support', () => {
 
             expect(result).toContain(`\timport type { Exact } from './schema'`)
             expect(result).toContain([
-                `\texport type UserQueryQueryPayload = {`,
+                `\texport type UserQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: {`,
                 `\t\t\t__typename?: 'User';`,
@@ -1782,12 +1782,12 @@ describe('plugin __typename support', () => {
                 `\t\t} | null;`,
             ].join('\n'))
             expect(result).toContain([
-                `\texport type UserQueryQueryVariables = Exact<{`,
+                `\texport type UserQueryVariables = Exact<{`,
                 `\t\tid: string;`,
                 `\t}>`,
             ].join('\n'))
-            expect(result).toContain(`\texport const userQueryQuery: TypedDocumentNode<UserQueryQueryPayload, UserQueryQueryVariables>`)
-            expect(result).toContain(`\texport default userQueryQuery`)
+            expect(result).toContain(`\texport const userQuery: TypedDocumentNode<UserQueryPayload, UserQueryVariables>`)
+            expect(result).toContain(`\texport default userQuery`)
         })
     })
 
@@ -2409,7 +2409,7 @@ describe('plugin multi-definition documents', () => {
                 `\t}`,
             ].join('\n'))
             expect(result).toContain([
-                `\texport type UserQueryQueryPayload = {`,
+                `\texport type UserQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: UserFields | null;`,
                 `\t}`,

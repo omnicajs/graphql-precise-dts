@@ -23,6 +23,8 @@ import {
     unionOf,
 } from '../../../src'
 
+import { NAMING_STYLE } from '../../../src'
+
 import {
     declarationDefinitions,
     enumValue,
@@ -155,7 +157,7 @@ describe('declaration render', () => {
             )
 
             expect(result).toContain([
-                `\texport type GetUserQueryQueryPayload = {`,
+                `\texport type GetUserQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
                 `\t\tuser: {`,
                 `\t\t\tid: string;`,
@@ -163,7 +165,7 @@ describe('declaration render', () => {
                 `\t}`,
             ].join('\n'))
             expect(result).toContain([
-                `\texport type GetUserQueryQueryVariables = Exact<{`,
+                `\texport type GetUserQueryVariables = Exact<{`,
                 `\t\tid: string;`,
                 `\t\tfilter?: {`,
                 `\t\t\tstatus?: UserStatus | null;`,
@@ -171,10 +173,10 @@ describe('declaration render', () => {
                 `\t}>`,
             ].join('\n'))
             expect(result).toContain([
-                `\texport const getUserQueryQuery: TypedDocumentNode<GetUserQueryQueryPayload, GetUserQueryQueryVariables>`,
+                `\texport const getUserQuery: TypedDocumentNode<GetUserQueryPayload, GetUserQueryVariables>`,
             ].join('\n'))
             expect(result).toContain([
-                `\texport default getUserQueryQuery`,
+                `\texport default getUserQuery`,
             ].join('\n'))
         })
 
@@ -279,7 +281,7 @@ describe('declaration render', () => {
                 new Map()
             )
 
-            expect(result).toContain(`\texport type UsersListQueryQueryVariables = { [key: string]: never }`)
+            expect(result).toContain(`\texport type UsersListQueryVariables = { [key: string]: never }`)
             expect(result).not.toContain('Exact<{ [key: string]: never }>')
         })
 
@@ -307,6 +309,32 @@ describe('declaration render', () => {
             expect(result).toContain(`\texport type getUserQueryPayload = {`)
             expect(result).toContain(`\texport const getUserQuery: TypedDocumentNode<getUserQueryPayload, getUserQueryVariables>`)
             expect(result).toContain(`\texport default getUserQuery`)
+        })
+
+        test('renders operation declaration suffixes with configured operation naming', () => {
+            const result = renderDeclaration(
+                './documents',
+                declarationDefinitions(
+                    new Map(),
+                    new Map([
+                        ['fetchMGBots', operation(
+                            OperationTypeNode.QUERY,
+                            [],
+                            [],
+                            'Query'
+                        )],
+                    ])
+                ),
+                new Map(),
+                createNamingConvention(NAMING_STYLE.SNAKE_CASE)
+            )
+
+            expect(result).toContain(`\texport type fetch_mg_bots_query_variables = { [key: string]: never }`)
+            expect(result).toContain(`\texport type fetch_mg_bots_query_payload = {`)
+            expect(result).toContain(
+                `\texport const fetch_mg_bots_query: TypedDocumentNode<fetch_mg_bots_query_payload, fetch_mg_bots_query_variables>`
+            )
+            expect(result).toContain(`\texport default fetch_mg_bots_query`)
         })
 
         describe('variable aliases', () => {

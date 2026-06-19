@@ -71,6 +71,23 @@ Object form:
 The short string form configures `typeNames`, `enumValues`, `operationNames`, and `fragmentNames`. Runtime GraphQL keys
 are not configurable, so GraphQL response objects and variable objects always keep their original keys.
 
+## Supported Style Examples
+
+The same source name can render differently depending on the configured style:
+
+| Source | `keep` | `pascalCase` | `camelCase` | `snakeCase` |
+| --- | --- | --- | --- | --- |
+| `user_profile` | `user_profile` | `UserProfile` | `userProfile` | `user_profile` |
+| `userProfileID` | `userProfileID` | `UserProfileId` | `userProfileId` | `user_profile_id` |
+| `IS_ACTIVE` | `IS_ACTIVE` | `IsActive` | `isActive` | `is_active` |
+
+Uppercase acronym runs are treated as words, then normalized according to the selected style. For example,
+`fetchHTTP2Bots` becomes `FetchHttp2Bots`, `fetchHttp2Bots`, or `fetch_http2_bots`.
+
+Names that do not contain word characters are preserved instead of normalized. For example, `___` stays `___`.
+
+`namingConvention` controls generated TypeScript identifiers, so supported styles must render valid TypeScript names.
+
 ## What Each Category Controls
 
 | Category | Applies to | Default |
@@ -88,12 +105,46 @@ categories:
 | Generated name | Derived from |
 | --- | --- |
 | operation payload, variables, and document base names | `operationNames` |
-| operation type suffixes, such as `Query`, `Mutation`, and `Subscription` | `typeNames` |
+| operation type suffixes, such as `Query`, `Mutation`, and `Subscription` | `operationNames` |
 | field argument helper names, such as `QueryRootUserProfileArgs` | `typeNames` |
 | variable alias names, such as `UserFilterInputAlias` | `typeNames` |
 | output alias names, such as `UserProfileAlias` | `typeNames` |
 
 For example, `query_root.user_profile` arguments become `QueryRootUserProfileArgs` by default.
+
+Operation names that already end with their operation type do not receive the suffix twice:
+
+```graphql
+query FetchUserQuery {
+  user {
+    id
+  }
+}
+```
+
+renders operation exports with the `FetchUserQuery` base name, not `FetchUserQueryQuery`.
+
+When `operationNames` is `keep`, the source operation name is preserved, while plugin-added suffixes use PascalCase:
+
+```ts
+{
+  namingConvention: {
+    operationNames: NAMING_STYLE.KEEP,
+  },
+}
+```
+
+For an operation named `get_user`, generated operation exports use names such as `get_userQuery`,
+`get_userQueryVariables`, and `get_userQueryPayload`.
+
+If an operation name has no word characters, the source name is preserved before plugin-added suffixes:
+
+| `operationNames` | Operation name | Query base name |
+| --- | --- | --- |
+| `pascalCase` | `___` | `___Query` |
+| `camelCase` | `___` | `___Query` |
+| `snakeCase` | `___` | `____query` |
+| `keep` | `___` | `___Query` |
 
 ## Examples
 
