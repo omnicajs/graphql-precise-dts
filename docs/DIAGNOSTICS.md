@@ -344,6 +344,33 @@ Generation fails if two distinct declarations still resolve to the same exported
 Name collision detected in generated declaration exports for "user.graphql": "UserStatus" is used both by imported type "UserStatus" and by fragment "UserStatus".
 ```
 
+### Generated schema declaration name collisions
+
+Before rendering schema declarations, the plugin validates generated schema type names and field argument helper names.
+
+Generation fails if different schema declarations render to the same TypeScript name after applying
+`namingConvention`, for example:
+
+```txt
+Name collision detected in generated schema declarations: "UserStatus" and "user_status" both render as "UserStatus". Adjust namingConvention so generated schema declaration names are unique.
+```
+
+### Generated enum declaration name collisions
+
+Before rendering enum declarations, the plugin validates generated enum type names and enum member names.
+
+Generation fails if different enum types render to the same TypeScript enum declaration name, for example:
+
+```txt
+Name collision detected in generated enum declarations: enum "UserStatus" and "user_status" both render as "UserStatus". Adjust namingConvention so generated enum declaration names are unique.
+```
+
+Generation also fails if different values inside the same enum render to the same enum member name:
+
+```txt
+Name collision detected in generated enum declarations: enum value in "UserStatus" "IS_ACTIVE" and "is_active" both render as "IsActive". Adjust namingConvention so generated enum declaration names are unique.
+```
+
 ### Generated document module specifier collisions
 
 Before rendering declarations, the plugin validates that every rendered document bundle resolves to a unique

@@ -57,7 +57,11 @@ Example GraphQL Code Generator config:
 
 ```ts
 import type { CodegenConfig } from '@graphql-codegen/cli'
-import { defineString } from '@omnicajs/graphql-precise-dts'
+
+import {
+  NAMING_STYLE,
+  defineString,
+} from '@omnicajs/graphql-precise-dts'
 
 const config: CodegenConfig = {
   schema: 'src/schema.graphql',
@@ -76,6 +80,7 @@ const config: CodegenConfig = {
         scalars: {
           DateTime: defineString(),
         },
+        namingConvention: NAMING_STYLE.PASCAL_CASE,
       },
     },
   },
@@ -292,7 +297,25 @@ type PluginConfig = {
   relativeToCwd?: boolean
   schemaOutputDirectory?: string
   scalars?: Record<string, TsType | { input?: TsType; output?: TsType }>
+  namingConvention?: NAMING_STYLE | NamingConventionConfig
   directivePolicies?: Record<string, DirectivePolicy | DirectiveNodePolicies>
+}
+
+const NAMING_STYLE = {
+  KEEP: 'keep',
+  PASCAL_CASE: 'pascalCase',
+  CAMEL_CASE: 'camelCase',
+  SNAKE_CASE: 'snakeCase',
+} as const
+
+type NAMING_STYLE = typeof NAMING_STYLE[keyof typeof NAMING_STYLE]
+
+type NamingConventionConfig = {
+  typeNames?: NAMING_STYLE
+  enumValues?: NAMING_STYLE
+  operationNames?: NAMING_STYLE
+  fragmentNames?: NAMING_STYLE
+  transformUnderscore?: boolean
 }
 ```
 
@@ -405,6 +428,70 @@ Object-shaped custom types are declared through keyed field maps:
 }
 ```
 
+### `namingConvention`
+
+Controls how generated TypeScript names are normalized.
+
+By default, the plugin normalizes generated TypeScript identifiers that are not runtime GraphQL object keys.
+Schema type names, enum member identifiers, operation declaration base names, and fragment export names use `pascalCase`.
+Field names, input field names, field argument names, and operation variable names are preserved exactly as they appear
+in GraphQL.
+
+Default behavior:
+
+```ts
+{
+  namingConvention: {
+    typeNames: 'pascalCase',
+    enumValues: 'pascalCase',
+    operationNames: 'pascalCase',
+    fragmentNames: 'pascalCase',
+    transformUnderscore: true,
+  },
+}
+```
+
+You can pass a short style string:
+
+```ts
+{
+  namingConvention: 'pascalCase',
+}
+```
+
+or use the exported constants:
+
+```ts
+{
+  namingConvention: NAMING_STYLE.PASCAL_CASE,
+}
+```
+
+The short form applies to generated schema type names, enum values, operation names, and fragment names. Runtime
+GraphQL keys are not configurable and are always preserved.
+
+Use object form when categories need different rules:
+
+```ts
+{
+  namingConvention: {
+    typeNames: 'pascalCase',
+    enumValues: NAMING_STYLE.KEEP,
+    operationNames: 'pascalCase',
+    fragmentNames: 'pascalCase',
+  },
+}
+```
+
+With the default `transformUnderscore: true`, GraphQL names such as `user_profile`, `user_filter`, and
+`IS_ACTIVE` render as `UserProfile`, `UserFilter`, and `IsActive` for generated TypeScript identifiers.
+
+Field names, input field names, field argument names, and operation variable names are intentionally not configurable
+because they represent runtime GraphQL keys. If a schema field is named `first_name`, the response JSON contains
+`first_name`, not `firstName`.
+
+See [Naming](docs/NAMING.md) for the full mapping table and examples.
+
 ### `directivePolicies`
 
 Defines how custom directives affect the generated response shape.
@@ -458,6 +545,7 @@ for generated `declare module` ids.
 - [Schema JSDoc](docs/SCHEMA_JSDOC.md) - generated JSDoc for schema descriptions, deprecations, specified scalars,
 and scalar reference remarks.
 - [Types](docs/TYPES.md) - structural `TsType` model, available helpers, supported operations, and config examples.
+- [Naming](docs/NAMING.md) - naming convention defaults, per-category config, and runtime key caveats.
 - [Directives](docs/DIRECTIVES.md) - built-in directive semantics, custom directive policies,
 current policy staging, and `__typename` behavior for conditional and excluded selections.
 - [Diagnostics](docs/DIAGNOSTICS.md) - warnings, errors, and automatic recovery behavior reported during generation.
