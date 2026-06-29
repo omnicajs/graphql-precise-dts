@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.5.1](https://github.com/omnicajs/graphql-precise-dts/compare/v0.5.0...v0.5.1) (2026-06-29)
+
+
+### Fixes
+
+* Imported fragment aliases were deduplicated across naming styles ([6c340cc](https://github.com/omnicajs/graphql-precise-dts/commit/6c340cc168c73c804dfe7adf298997792dcaa5a1))
+
 ## [0.5.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.4.0...v0.5.0) (2026-06-19)
 
 

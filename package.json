@@ -1,7 +1,7 @@
 {
     "name": "@omnicajs/graphql-precise-dts",
     "description": "GraphQL files type declaration generator",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "license": "MIT",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
