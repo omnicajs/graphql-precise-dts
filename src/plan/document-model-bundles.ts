@@ -163,6 +163,9 @@ const prepareDocumentModelBundle = (
             moduleSpecifier,
         ])
     )
+    const importedFragmentNames = new Set(
+        [ ...imports.keys() ].filter(name => importMap.fragments.has(name))
+    )
     const importsNamesSet = new Set(renderImports.keys())
     if ([ ...models.operations.values() ].some(({ variables }) => variables.length > 0)) {
         importsNamesSet.add(EXACT_TYPE_NAME)
@@ -172,7 +175,7 @@ const prepareDocumentModelBundle = (
         prepareRenderableDocumentModels(
             makePlannedDocumentModels(models, [ ...importsNamesSet ], customScalars, naming, directivePolicies)
         ),
-        importsNamesSet
+        importedFragmentNames
     )
 
     validateDocumentBundleExportNames(location, renderImports, renderableModels, naming)

@@ -24,6 +24,8 @@ import {
     parse,
 } from 'graphql'
 
+import { NAMING_STYLE } from '../../src'
+
 const SCHEMA_HELPER_DECLARATIONS = [
     'export type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }',
     'export type MaybePromise<T> = T | Promise<T>',
@@ -614,7 +616,27 @@ describe('plugin directive handling', () => {
         })
     })
 
-    test('uses imported fragment type instead of duplicate output alias', async () => {
+    test.each([
+        {
+            style: NAMING_STYLE.PASCAL_CASE,
+            fragmentTypeName: 'UserDetails',
+        },
+        {
+            style: NAMING_STYLE.CAMEL_CASE,
+            fragmentTypeName: 'userDetails',
+        },
+        {
+            style: NAMING_STYLE.SNAKE_CASE,
+            fragmentTypeName: 'user_details',
+        },
+        {
+            style: NAMING_STYLE.KEEP,
+            fragmentTypeName: 'User_Details',
+        },
+    ])('uses $style imported fragment type instead of duplicate output alias', async ({
+        style,
+        fragmentTypeName,
+    }) => {
         const userSchema = buildSchema(`
             type Query {
                 primaryUser: User!
@@ -632,11 +654,11 @@ describe('plugin directive handling', () => {
 
                 query UsersQuery {
                     primaryUser {
-                        ...UserDetails
+                        ...User_Details
                     }
 
                     secondaryUser {
-                        ...UserDetails
+                        ...User_Details
                     }
                 }
             `
@@ -645,7 +667,7 @@ describe('plugin directive handling', () => {
                 [{
                     location: 'fragments.graphql',
                     document: parse(`
-                        fragment UserDetails on User {
+                        fragment User_Details on User {
                             id
                         }
                     `),
@@ -654,24 +676,109 @@ describe('plugin directive handling', () => {
                     rawSDL: usersQuery,
                     document: parse(usersQuery),
                 }],
-                { prefix: '~tests/' },
+                {
+                    prefix: '~tests/',
+                    namingConvention: { fragmentNames: style },
+                },
                 outputInfo
             )
 
             expect(result).toContain([
                 `declare module '~tests/users.graphql' {`,
                 `\timport type { TypedDocumentNode } from '@graphql-typed-document-node/core'\n`,
-                `\timport type { UserDetails } from '~tests/fragments.graphql'\n`,
+                `\timport type { ${fragmentTypeName} } from '~tests/fragments.graphql'\n`,
                 `\texport type UsersQueryVariables = { [key: string]: never }\n`,
                 `\texport type UsersQueryPayload = {`,
                 `\t\t__typename?: 'Query';`,
-                `\t\tprimaryUser: UserDetails;`,
-                `\t\tsecondaryUser: UserDetails;`,
+                `\t\tprimaryUser: ${fragmentTypeName};`,
+                `\t\tsecondaryUser: ${fragmentTypeName};`,
                 `\t}\n`,
                 `\texport const usersQuery: TypedDocumentNode<UsersQueryPayload, UsersQueryVariables>\n`,
                 `\texport default usersQuery`,
                 `}`,
             ].join('\n'))
+            expect(result).not.toContain('type UserAlias')
+        })
+    })
+
+    test.each([
+        {
+            style: NAMING_STYLE.PASCAL_CASE,
+            enumName: 'USER_ALIAS',
+            enumTypeName: 'UserAlias',
+        },
+        {
+            style: NAMING_STYLE.CAMEL_CASE,
+            enumName: 'USER_ALIAS',
+            enumTypeName: 'userAlias',
+        },
+        {
+            style: NAMING_STYLE.SNAKE_CASE,
+            enumName: 'USER_ALIAS',
+            enumTypeName: 'user_alias',
+        },
+        {
+            style: NAMING_STYLE.KEEP,
+            enumName: 'UserAlias',
+            enumTypeName: 'UserAlias',
+        },
+    ])('reserves $style imported enum type name when allocating output aliases', async ({
+        style,
+        enumName,
+        enumTypeName,
+    }) => {
+        const userSchema = buildSchema(`
+            type Query {
+                primaryUser: User!
+                secondaryUser: User!
+                status: ${enumName}!
+            }
+
+            type User {
+                id: ID!
+            }
+
+            enum ${enumName} {
+                ACTIVE
+            }
+        `)
+
+        await withTempOutput(async outputInfo => {
+            const result = await plugin(
+                userSchema,
+                [{
+                    location: 'users.graphql',
+                    document: parse(`
+                        query UsersQuery {
+                            primaryUser {
+                                id
+                            }
+
+                            secondaryUser {
+                                id
+                            }
+
+                            status
+                        }
+                    `),
+                }],
+                {
+                    prefix: '~tests/',
+                    namingConvention: { typeNames: style },
+                },
+                outputInfo
+            )
+
+            expect(result).toContain(`\timport type { ${enumTypeName} } from './enums'`)
+            expect(result).not.toContain(`\ttype ${enumTypeName} = {`)
+
+            const outputAliasMatch = result.match(new RegExp(`\\ttype (${enumTypeName}_[0-9a-f]{4,8}) = \\{`))
+            expect(outputAliasMatch).not.toBeNull()
+
+            const outputAliasName = outputAliasMatch![1]
+            expect(result).toContain(`\t\tprimaryUser: ${outputAliasName};`)
+            expect(result).toContain(`\t\tsecondaryUser: ${outputAliasName};`)
+            expect(result).toContain(`\t\tstatus: ${enumTypeName};`)
         })
     })
 
