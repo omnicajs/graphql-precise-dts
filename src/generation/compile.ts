@@ -1,7 +1,7 @@
 import type { CustomScalarMappingRecord } from '../scalars/types'
-import type { EnumModel } from './types/type-ref'
-import type { FragmentModel } from './types/document'
-import type { GenerationModels } from './generation'
+import type { EnumModel } from '../models/types/type-ref'
+import type { FragmentModel } from '../models/types/document'
+import type { GenerationModels } from '../models/generation'
 import type {
     GraphQLArgument,
     GraphQLField,
@@ -15,24 +15,24 @@ import type {
     GraphQLUnionType,
 } from 'graphql'
 import type { JsDoc } from '../render/jsdoc'
-import type { ModelContext } from './types/context'
-import type { NamedObjectField } from '../ts-type'
-import type { ScalarModelShape } from './types/type-ref'
+import type { ModelContext } from '../models/types/context'
+import type { NamedObjectField } from '../config/scalars'
+import type { ScalarModelShape } from '../models/types/type-ref'
 import type { Scalars } from '../scalars/types'
 import type { Schema } from '../plugin-types'
 import type {
     SchemaFieldArgTypeModel,
     SchemaObjectModel,
     SchemaOutputModel,
-} from './generation'
-import type { TsType } from '../ts-type'
+} from '../models/generation'
+import type { TsType } from '../config/scalars'
 
 import {
     getScalarPrimitiveShapeTs,
     getScalarTsShape,
     isScalarPrimitiveKey,
 } from '../scalars/builder'
-import { makeFragmentModel } from './documents-builder'
+import { makeFragmentModel } from '../models/documents-builder'
 
 import {
     arrayTsType,
@@ -41,7 +41,7 @@ import {
     defineLiteral,
     defineObjectField,
     unionTsType,
-} from '../ts-type'
+} from '../config/scalars'
 
 import {
     getNamedType,
@@ -56,7 +56,7 @@ import {
     isUnionType,
 } from 'graphql'
 
-import { TS_TYPE_KIND } from '../ts-type'
+import { TS_TYPE_KIND } from '../config/scalars'
 
 import { specifiedScalarTypes } from 'graphql'
 

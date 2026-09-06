@@ -5,14 +5,14 @@ import type { DocumentModelImportMap } from './document-model-imports'
 import type { FragmentDefinitionNode } from 'graphql'
 import type { GenerationDirectivePolicies } from '../directives/types'
 import type { ModelContext } from '../models/types'
-import type { NamingConvention } from '../naming'
+import type { NamingConvention } from '../generation/naming'
 import type { OperationDefinitionNode } from 'graphql'
 import type { RenderableDocumentModels } from './renderable/types'
 
 import { TypeInfo } from 'graphql'
 
 import { collectDocumentModelImports } from './document-model-imports'
-import { createNamingConvention } from '../naming'
+import { createNamingConvention } from '../generation/naming'
 import { deduplicateImportedOutputAliases } from './renderable/deduplicate-imported-output-aliases'
 import { findDocumentFragmentDefinitions } from '../lib/documents'
 import {

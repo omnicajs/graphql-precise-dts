@@ -1,5 +1,5 @@
 import type { OperationTypeNode } from 'graphql'
-import type { TsType } from '../../ts-type'
+import type { TsType } from '../../config/scalars'
 import type {
     FieldValue,
     TypeRef,

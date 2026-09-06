@@ -1,14 +1,14 @@
 import type { CustomScalarMappingRecord } from '../scalars/types'
 import type { GenerationModels } from '../models/generation'
 import type { ScalarUsage } from '../scalars/types'
-import type { TsType } from '../ts-type'
+import type { TsType } from '../config/scalars'
 
-import { createNamingConvention } from '../naming'
-import { isSameTsType } from '../ts-type'
-import { isTsKeywordTypeName } from '../ts-type'
+import { createNamingConvention } from '../generation/naming'
+import { isSameTsType } from '../config/scalars'
+import { isTsKeywordTypeName } from '../config/scalars'
 import { resolveCustomScalarTypeTs } from '../scalars/builder'
 
-import { TS_TYPE_KIND } from '../ts-type'
+import { TS_TYPE_KIND } from '../config/scalars'
 
 const GENERATED_DECLARATION_KIND = {
     GRAPHQL_TYPE: 'GraphQL type declaration',

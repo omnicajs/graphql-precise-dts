@@ -1,6 +1,6 @@
 import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
-import type { NamingConvention } from '../../naming'
+import type { NamingConvention } from '../../generation/naming'
 import type { OperationModel } from '../../models/types'
 import type { OutputBuildState, PlannedOperationModel } from './types'
 import type { VariableBuildState } from './variable-planner'

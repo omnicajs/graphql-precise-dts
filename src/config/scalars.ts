@@ -1,6 +1,6 @@
-import type { JsDoc } from './render/jsdoc'
+import type { JsDoc } from '../render/jsdoc'
 
-import { renderJsDoc } from './render/jsdoc'
+import { renderJsDoc } from '../render/jsdoc'
 
 export type TsType = (
     | { kind: typeof TS_TYPE_KIND.NAMED; name: string }

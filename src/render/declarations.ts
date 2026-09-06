@@ -1,6 +1,6 @@
 import type { DocumentModelBundle } from '../plan/document-model-bundles'
-import type { NamingConvention } from '../naming'
-import type { TsType } from '../ts-type'
+import type { NamingConvention } from '../generation/naming'
+import type { TsType } from '../config/scalars'
 import type { TypeRef } from '../models/types'
 
 import type {
@@ -19,17 +19,17 @@ import type {
     RenderableVariableValue,
 } from '../plan/renderable/types'
 
-import { createNamingConvention } from '../naming'
+import { createNamingConvention } from '../generation/naming'
 import { getOperationTypeName } from '../plan/naming'
 import { renderStringLiteralUnion } from './basic'
 import {
     makeNullableTsType,
     renderTsType,
-} from '../ts-type'
+} from '../config/scalars'
 import {
     indent,
     uncapitalize,
-} from '../lib/strings'
+} from '../strings'
 
 import {
     RENDER_STRATEGY,

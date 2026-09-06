@@ -24,7 +24,7 @@ import {
     normalizeTsType,
     renderType,
     unionOf,
-} from '../../src/ts-type'
+} from '../../src/config/scalars'
 
 import { TS_TYPE_KIND } from '../../src'
 

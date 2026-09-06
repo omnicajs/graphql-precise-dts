@@ -10,7 +10,7 @@ import {
     buildOutputAliases,
     createOutputBuildState,
 } from '../../../src/plan/planned/output-planner'
-import { createNamingConvention } from '../../../src/naming'
+import { createNamingConvention } from '../../../src/generation/naming'
 import {
     field,
     fragment,

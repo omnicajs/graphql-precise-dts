@@ -1,7 +1,7 @@
 import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
 import type { NameAllocator } from './name-allocator'
-import type { NamingConvention } from '../../naming'
+import type { NamingConvention } from '../../generation/naming'
 import type { NormalizedSelectionModel } from './normalize/selection-merger'
 import type { WarningReporter } from '../warnings'
 
@@ -27,7 +27,7 @@ import { buildScalarValue } from './shared'
 import { getSuggestedOutputAliasName } from './shared'
 import { makeOutputShapeSignature } from './normalize/shape-signature'
 import { normalizeSelections } from './normalize/selection-merger'
-import { normalizeTsType } from '../../ts-type'
+import { normalizeTsType } from '../../config/scalars'
 import { resolveGenerationSelectionDirectives } from '../../directives/resolve'
 
 import {

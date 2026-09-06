@@ -1,9 +1,9 @@
 import type { EnumModel } from '../models/types'
-import type { NamingConvention } from '../naming'
+import type { NamingConvention } from '../generation/naming'
 
 import { assertUniqueRenderedEnums } from '../diagnostics/enum-errors'
-import { createNamingConvention } from '../naming'
-import { indent } from '../lib/strings'
+import { createNamingConvention } from '../generation/naming'
+import { indent } from '../strings'
 import { renderJsDoc } from './jsdoc'
 
 const renderStringLiteral = (value: string): string => `'${value.replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'`

@@ -2,13 +2,13 @@ import type {
     ResolvedStructuralDirectives,
     StructuralDirectivePolicies,
 } from '../directives/types'
-import type { ModelContext } from './types/context'
-import type { SelectionModel } from './types/selection'
+import type { ModelContext } from '../models/types/context'
+import type { SelectionModel } from '../models/types/selection'
 import type { SelectionNode } from 'graphql'
-import type { TypeSelectionNode } from './selection'
+import type { TypeSelectionNode } from '../models/selection'
 
 import { formatNodeLocation } from '../lib/documents'
-import { makeFieldValue } from './value-builder'
+import { makeFieldValue } from './values'
 import { print } from 'graphql'
 
 import {
@@ -20,7 +20,7 @@ import {
     getFragmentTypeNames,
     makeNonNullTypeRef,
     makeTypeRefForField,
-} from './resolve'
+} from '../models/resolve'
 
 import { SELECTION_MODEL_KIND } from '../kinds'
 import { SELECTION_STATE } from '../directives/kinds'

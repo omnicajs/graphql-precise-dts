@@ -1,13 +1,13 @@
 import type { CollectedDocumentModels } from '../../models/types'
 import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { GenerationDirectivePolicies } from '../../directives/types'
-import type { NamingConvention } from '../../naming'
+import type { NamingConvention } from '../../generation/naming'
 import type { PlannedDocumentModels } from './types'
 import type { WarningReporter } from '../warnings'
 
 import { buildOperationModel } from './operation-planner'
 import { createNameAllocator } from './name-allocator'
-import { createNamingConvention } from '../../naming'
+import { createNamingConvention } from '../../generation/naming'
 import { getOperationTypeName } from '../naming'
 import {
     buildVariableAliases,

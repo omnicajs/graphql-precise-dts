@@ -1,5 +1,5 @@
 import type { CustomScalarMappingRecord } from '../../scalars/types'
-import type { NamingConvention } from '../../naming'
+import type { NamingConvention } from '../../generation/naming'
 
 import type {
     FieldValue,

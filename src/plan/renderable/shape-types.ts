@@ -1,4 +1,4 @@
-import type { TsType } from '../../ts-type'
+import type { TsType } from '../../config/scalars'
 import type { TypeRef } from '../../models/types'
 
 import type {

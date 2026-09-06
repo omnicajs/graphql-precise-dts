@@ -1,4 +1,4 @@
-import type { TsType } from '../ts-type'
+import type { TsType } from '../config/scalars'
 import type {
     CustomScalarMapping,
     CustomScalarMappingRecord,
@@ -13,7 +13,7 @@ import {
     namedTsType,
     normalizeTsType,
     renderTsType,
-} from '../ts-type'
+} from '../config/scalars'
 
 const scalarPrimitiveTypesMap = {
     ID: { input: 'string', output: 'string' },

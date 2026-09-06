@@ -8,7 +8,7 @@ import {
     capitalize,
     indent,
     uncapitalize,
-} from '../../../src/lib/strings'
+} from '../../../src/strings'
 
 describe('string helpers', () => {
     test('capitalizes the first character', () => {

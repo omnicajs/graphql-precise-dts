@@ -16,7 +16,7 @@ import {
     makeSelectionModel,
     makeSelectionModels,
     makeSelectionsForFields,
-} from '../../../src/models/selections-builder'
+} from '../../../src/generation/selections'
 
 import {
     getDocumentFragmentDefinition,

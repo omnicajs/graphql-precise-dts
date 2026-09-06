@@ -1,5 +1,5 @@
 import type { EnumModel } from '../models/types'
-import type { NamingConvention } from '../naming'
+import type { NamingConvention } from '../generation/naming'
 
 const assertUniqueRenderedName = (
     usedNames: Map<string, string>,

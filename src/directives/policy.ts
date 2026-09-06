@@ -1,5 +1,5 @@
 import type { ConstValues } from '../lib/types'
-import type { TsType } from '../ts-type'
+import type { TsType } from '../config/scalars'
 
 import { DIRECTIVE_POLICY_EFFECT } from './kinds'
 import { SELECTION_MODEL_KIND } from '../kinds'

@@ -1,10 +1,10 @@
 import type {
     ConfigNamingConvention,
     NAMING_STYLE as NamingStyleConfig,
-} from './config'
+} from '../config'
 import type { OperationTypeNode } from 'graphql'
 
-import { NAMING_STYLE } from './config'
+import { NAMING_STYLE } from '../config'
 
 const DEFAULT_TYPE_NAME_STYLE = NAMING_STYLE.PASCAL_CASE
 

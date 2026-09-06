@@ -1,7 +1,7 @@
-import type { NamingConvention } from '../naming'
+import type { NamingConvention } from '../generation/naming'
 import type { OperationTypeNode } from 'graphql'
 
-import { capitalize } from '../lib/strings'
+import { capitalize } from '../strings'
 
 export const getOperationTypeName = (
     operationName: string,
