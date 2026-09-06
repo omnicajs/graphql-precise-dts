@@ -1818,6 +1818,7 @@ __metadata:
     vite: "npm:^7.3.2"
     vite-plugin-dts: "npm:^4.5.4"
     vitest: "npm:^4.0.18"
+    zod: "npm:^4.5.4"
   peerDependencies:
     "@graphql-codegen/plugin-helpers": ^6.1.0
   languageName: unknown
@@ -8093,5 +8094,12 @@ __metadata:
   version: 2.1.2
   resolution: "yoctocolors@npm:2.1.2"
   checksum: 10c0/b220f30f53ebc2167330c3adc86a3c7f158bcba0236f6c67e25644c3188e2571a6014ffc1321943bb619460259d3d27eb4c9cc58c2d884c1b195805883ec7066
+  languageName: node
+  linkType: hard
+
+"zod@npm:^4.5.4":
+  version: 4.5.4
+  resolution: "zod@npm:4.5.4"
+  checksum: 10c0/511a2a4d1a6f875dfdd70a1586989a8b14ef126776cd6218a2c760b9f65f14ef389ec20d92ee1aa4fcb4566d4ff3fa012956044f9dc503510d82e4c756a8ba92
   languageName: node
   linkType: hard
