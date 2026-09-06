@@ -1,7 +1,7 @@
 # Naming
 
 Naming changes generated TypeScript identifiers. GraphQL response keys, argument
-names, input keys, variables, and enum member names keep their runtime spelling.
+names, input keys, variables, and serialized enum values keep their runtime spelling.
 A field alias determines its response key at every selection level.
 
 ## Configuration
@@ -12,20 +12,22 @@ Set `schemas.<id>.naming` in the project API or `naming` in the Codegen adapter:
 naming: 'pascalCase'
 ```
 
-A style applies to type, operation, and fragment names. The object form controls
-the three categories separately:
+A shorthand style applies to types, operations, fragments, and enum members.
+The object form controls the four categories separately:
 
 ```ts
 naming: {
   typeNames: 'pascalCase',
   operationNames: 'camelCase',
   fragmentNames: 'keep',
+  enumMembers: 'pascalCase',
 }
 ```
 
 Supported styles are `keep`, `pascalCase`, `camelCase`, and `snakeCase`.
 `typeNames` defaults to `pascalCase`; omitted operation and fragment styles
-inherit `typeNames`. There is no runtime-key naming policy.
+inherit `typeNames`. Omitted `enumMembers` defaults to `keep`, independently of
+`typeNames`. Response and input keys have no naming policy.
 
 ## Operation names
 
@@ -51,11 +53,18 @@ The response contains `payload`, `userId`, and `displayName`. Naming configurati
 does not change these keys. A `kind: __typename` selection retains `kind` as its
 response key and uses concrete GraphQL type names as string literal values.
 
+Import the operation from its [document module ID](MODULE_PATH_RESOLUTION.md),
+then use its exported payload or infer the result from its `TypedDocumentNode`.
+Neither the physical output filename nor a TypeScript module alias renames
+response fields. Only the aliases written in the GraphQL selection do that.
+
 ## Schema and enum names
 
 `typeNames` controls schema type identifiers and field-argument type identifiers.
-Enum type names follow this policy, while enum member names and serialized values
-are preserved. Distinct GraphQL names that normalize to conflicting declarations
+Enum type names follow this policy. `enumMembers: 'pascalCase'` turns
+`ReviewState.IN_REVIEW` into `ReviewState.InReview`; its value remains `'IN_REVIEW'`.
+Use `keep` to retain GraphQL member names. Colliding or invalid transformed member
+names fail before publication. Distinct GraphQL names that normalize to conflicting declarations
 produce an error rather than silently sharing a TypeScript type.
 
 Type and value namespaces are checked separately. Module imports, fragment

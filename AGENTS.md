@@ -13,9 +13,10 @@
   user specifies otherwise.
 - Run `yarn check:peer-deps:fix` after installing packages.
 - After a series of code edits, run `yarn lint:fix` before handing off or preparing commits.
-- Run `yarn tests` before handoff or commit preparation when changed files can affect
+- Run `yarn test` before handoff or commit preparation when changed files can affect
   runtime behavior.
-- Run `yarn test:types` and `yarn test:units` if the changes do not affect the generated output of the plugin.
+- Run `yarn test:types` and `yarn test:runtime` if the changes do not affect the generated output of the plugin.
+- Declaration `.test-d.ts` tests must consume checked-in `tests/fixtures/cases/**/expected/` artifacts; runtime tests generate into temporary workspaces and compare with those same artifacts. Ordinary test runs must never update expectations.
 - Do not edit generated artifacts under `dist/` or reports under `coverage/` unless the task explicitly requires it.
 
 ## Reporting
@@ -36,8 +37,10 @@ for the corresponding GraphQL operations.
   - `src/` - runtime implementation;
   - `tests/` - vitest test suite;
   - `tests/scenarios/` - public API scenarios;
+  - `tests/cases/` - generated declaration contracts checked by TypeScript;
+  - `tests/fixtures/` - fixture helpers (`workspace.ts`, `generation.ts`) and saved inputs/expectations in `cases/`;
   - `tests/integrations/` - CLI and Codegen integration checks;
-  - `tests/**/*.test-d.ts` - public type checks;
+  - `tests/**/*.test-d.ts` - public type checks; case tests run in isolated Vitest projects;
   - `tests/package*` - built package and real-process checks.
 - Coverage output directory: `coverage/`.
 
@@ -67,14 +70,20 @@ yarn test:package
 - Type-level tests:
 ```bash
 yarn test:types
+yarn test:types:api
+yarn test:types:cases
+```
+- Generated declaration cases:
+```bash
+yarn test:cases
 ```
 - Public runtime scenarios:
 ```bash
-yarn test:units
+yarn test:runtime
 ```
 - Type checks, runtime scenarios, and package checks:
 ```bash
-yarn tests
+yarn test
 ```
 - Coverage:
 ```bash
@@ -84,7 +93,7 @@ yarn test:coverage
 ### Suggested Validation Order For Code Changes
 ```bash
 yarn lint
-yarn tests
+yarn test
 yarn test:coverage
 ```
 

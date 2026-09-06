@@ -66,6 +66,21 @@ repairing caches, or cleaning output trees. Difference kinds are `missing`,
 `changed`, `stale`, `modified`, and `unowned`. When compilation reports an error,
 filesystem comparison is skipped; an empty differences list alone is not success.
 
+For a CI check, require both a clean diagnostic result and no differences:
+
+```ts
+import { checkDeclarations } from '@omnicajs/graphql-precise-dts'
+
+const result = await checkDeclarations(config)
+const valid = !result.diagnostics.some(item => item.severity === 'error')
+  && result.differences.length === 0
+if (!valid) process.exitCode = 1
+```
+
+An uncaught configuration or filesystem error also fails the process. The CLI
+equivalent is `graphql-precise-dts check --config graphql-dts.config.ts`.
+Regenerate intentionally when outputs need updating; check mode is read-only.
+
 ## CLI and Codegen
 
 CLI diagnostics go to stderr. `generate` exits with code 1 on errors and code 0
@@ -77,5 +92,5 @@ The Codegen adapter writes warnings through `console.warn` and throws an error
 containing error diagnostics. GraphQL Code Generator owns writing the returned
 aggregate declaration file.
 
-See the [generation flow](../docs-dev/en/FLOW.md) and
-[public testing guide](../docs-dev/en/TESTING.md).
+See the [generation flow](https://github.com/omnicajs/graphql-precise-dts/blob/main/docs-dev/en/FLOW.md) and
+[public testing guide](https://github.com/omnicajs/graphql-precise-dts/blob/main/docs-dev/en/TESTING.md).

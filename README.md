@@ -1,5 +1,6 @@
 # graphql-precise-dts
 
+[![npm version](https://img.shields.io/npm/v/%40omnicajs%2Fgraphql-precise-dts)](https://www.npmjs.com/package/@omnicajs/graphql-precise-dts)
 [![codecov](https://codecov.io/gh/omnicajs/graphql-precise-dts/graph/badge.svg)](https://codecov.io/gh/omnicajs/graphql-precise-dts)
 
 `@omnicajs/graphql-precise-dts` generates precise TypeScript declarations for
@@ -43,13 +44,16 @@ export default defineConfig({
   root: import.meta.dirname,
   cache: { directory: '.cache/graphql-precise-dts' },
   execution: { mode: 'sequential' },
+  resolve: { alias: { src: '@app/graphql' } },
   schemas: {
     core: {
       file: 'schema.graphql',
       typesModule: '@app/graphql/schema',
+      enumsModule: '@app/graphql/enums',
       outputs: {
         root: 'generated/schema',
         types: 'schema.d.ts',
+        enums: 'enums.ts',
       },
     },
   },
@@ -76,7 +80,24 @@ graphql-precise-dts check
 graphql-precise-dts list
 ```
 
-All commands accept `--config <file>`. `generate` publishes changed declarations and ownership manifests. `check` runs the same validation and rendering plan, compares it with the filesystem, and never creates, updates, or removes files. `list` prints configured project IDs in deterministic order.
+The example emits `generated/schema/schema.d.ts`, `generated/schema/enums.ts`,
+and one declaration per selected document under `generated/operations/`.
+Connect them to the application's [TypeScript configuration](docs/MODULE_PATH_RESOLUTION.md#typescript-consumer-configuration).
+The declarations provide types for document imports; the application still needs
+a GraphQL document loader or build integration.
+
+Without `--config`, the CLI searches the current directory for
+`graphql-dts.config.ts`, `.mts`, `.js`, then `.mjs`, in that order.
+All commands accept `--config <file>` to select a custom location. Relative paths
+are resolved from the current working directory; absolute paths are accepted.
+
+```bash
+graphql-precise-dts generate --config config/graphql.ts
+graphql-precise-dts check --config config/graphql.ts
+graphql-precise-dts list --config /workspace/config/graphql.ts
+```
+
+`generate` publishes changed declarations and ownership manifests. `check` runs the same validation and rendering plan, compares it with the filesystem, and never creates, updates, or removes files. `list` prints configured project IDs in deterministic order.
 
 Schema snapshots are cached by default under `<root>/.graphql-precise-dts/cache` and invalidated by schema contents, schema semantics, generator version, GraphQL version, or cache format. Set `cache.directory` to relocate this persistent cache or `cache.enabled: false` to disable it. `check` can read a compatible cache entry but never creates or repairs one.
 
@@ -158,8 +179,19 @@ const scalars = {
 ```
 
 Naming styles are `keep`, `pascalCase`, `camelCase`, and `snakeCase`. Use `naming`
-as a style or an object with `typeNames`, `operationNames`, and `fragmentNames`.
-Response keys, variable names, and other runtime GraphQL keys are preserved.
+as a style or an object with `typeNames`, `operationNames`, `fragmentNames`, and
+`enumMembers`. For `ReviewState.InReview = 'IN_REVIEW'`, set
+`naming: { enumMembers: 'pascalCase' }`.
+Response keys, variable names, and serialized enum values are preserved.
+
+Declaration trees contain file modules and can overlay source documents with
+TypeScript `rootDirs`; aliased imports also need a `paths` fallback to the tree.
+See [module resolution](docs/MODULE_PATH_RESOLUTION.md).
+
+For clients that add unaliased `__typename` to abstract selections, use
+`schemas.<id>.typename: 'abstract'` to retain discriminator-based narrowing.
+The default `'optional'` does not assume a client transform; see
+[typename policy](docs/DIRECTIVES.md#abstract-selections-and-typename).
 
 Built-in `@skip` and `@include` directives affect selection presence. Custom
 `directives` policies support `ignore`, `conditional`, `warn`, and the field-only
@@ -181,32 +213,12 @@ query FetchUser($id: ID!) {
 This operation describes `payload` and `displayName` response keys. Provider
 identity belongs to its document; missing or ambiguous providers are diagnostics.
 
-## Documentation and development
+## Usage guides
 
-Source code lives in `src/`; public scenarios and integration checks live in
-`tests/`. Declarations are generated in temporary test workspaces and compared
-with committed expectations in `tests/fixtures/cases/`.
-
-```bash
-yarn lint:fix
-yarn tests
-yarn test:coverage
-```
-
-`yarn tests` runs public type checks, runtime scenarios, and built-package checks.
-`yarn test:types`, `yarn test:units`, and `yarn test:package` run these groups
-individually. See the testing guide for coverage scope and measurement limits.
-
-- [Developer documentation: English / Русский](docs-dev/README.md)
+- [User guide and recipes](docs/README.md)
 - [Module paths](docs/MODULE_PATH_RESOLUTION.md)
 - [Structural TypeScript types](docs/TYPES.md)
 - [Naming](docs/NAMING.md)
 - [Directives](docs/DIRECTIVES.md)
 - [Schema JSDoc](docs/SCHEMA_JSDOC.md)
 - [Diagnostics](docs/DIAGNOSTICS.md)
-
-## Acknowledgements
-
-The selection-model design and response-type conventions build on Tatyana's
-original generator and its accumulated consumer requirements. The repository
-history retains the original implementation and authorship.

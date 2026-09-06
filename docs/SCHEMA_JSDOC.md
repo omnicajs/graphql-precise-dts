@@ -56,5 +56,11 @@ The Codegen adapter returns operation declarations and does not write schema
 support files. With `enumsModule`, schema types import enum types from that
 module; without it, enum declarations are included in the schema types module.
 
+The example produces two separate files: `schema.d.ts` for the schema contract
+and `enums.ts` for enum declarations and values. Configure the corresponding
+TypeScript paths and include those files along with the chosen operation tree
+or aggregate. If application code imports enum values at runtime, its build must
+also compile the enum module. A `.d.ts` declaration does not supply runtime values.
+
 See [module paths](MODULE_PATH_RESOLUTION.md) for module identifiers and
-[architecture](../docs-dev/en/ARCHITECTURE.md) for snapshot ownership.
+[architecture](https://github.com/omnicajs/graphql-precise-dts/blob/main/docs-dev/en/ARCHITECTURE.md) for snapshot ownership.
