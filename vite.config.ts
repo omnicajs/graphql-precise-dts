@@ -20,6 +20,7 @@ export default mergeConfig(basic, defineConfig({
             entry: {
                 index: resolve(__dirname, './src/index.ts'),
                 codegen: resolve(__dirname, './src/integrations/codegen.ts'),
+                cli: resolve(__dirname, './src/cli.ts'),
                 'generation-worker': resolve(
                     __dirname,
                     './src/generation/worker.ts'

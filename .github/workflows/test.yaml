@@ -39,11 +39,11 @@ jobs:
       - name: Checking for peer dependency conflicts
         run: yarn check:peer-deps:fix
 
-      - name: Generating declarations for type testing
-        run: yarn generate:test-fixtures
-
       - name: Run type tests
         run: yarn test:types
 
-      - name: Run unit tests
-        run: yarn test:units
+      - name: Run public scenarios with coverage
+        run: yarn test:coverage
+
+      - name: Verify package entrypoints and CLI
+        run: yarn test:package
