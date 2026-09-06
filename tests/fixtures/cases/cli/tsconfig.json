@@ -1,0 +1,21 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "viewer.graphql": [
+                "./expected/app/viewer.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/app/viewer.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/cli/*.test-d.ts"
+    ]
+}

@@ -21,5 +21,6 @@
     ],
     "exclude": [
         "tests/fixtures/cases/**/expected/**",
+        "tests/cases/**/*.test-d.ts",
     ]
 }

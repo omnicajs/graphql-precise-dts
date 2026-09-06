@@ -115,8 +115,8 @@ try {
                 plugins: [{
                     '@omnicajs/graphql-precise-dts/codegen': {
                         root: singleSchemaDocumentRoot,
-                        typesModule: './schema',
-                        enumsModule: './enums',
+                        typesModule: '@case/schema',
+                        enumsModule: '@case/enums',
                         scalars: {
                             DateTime: { kind: 'named', name: 'string' },
                         },
@@ -139,7 +139,7 @@ try {
     })
     assert.equal(
         readFileSync(singleSchemaCodegenOutput, 'utf8'),
-        readFileSync(resolve(codegenFixture, 'expected/experimental/types.d.ts'), 'utf8')
+        readFileSync(resolve(codegenFixture, 'expected/aggregate.d.ts'), 'utf8')
     )
 
     const sequentialConfig = api.defineConfig({

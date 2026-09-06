@@ -6,31 +6,17 @@ import {
 
 import {
     type Config,
-    arrayOf,
-    defineBoolean,
     defineConfig,
-    defineGeneric,
-    defineLiteral,
     defineNamed,
-    defineNumber,
-    defineObject,
-    defineObjectField,
     defineString,
-    defineTuple,
-    defineUnknown,
     generateDeclarations,
-    intersectionOf,
     listProjects,
-    makeNullable,
-    unionOf,
 } from '@/index'
-import { createFixtureWorkspace } from '../fixture-workspace'
-import { spawnSync } from 'node:child_process'
+import { createFixtureWorkspace } from '../fixtures/workspace'
 import { resolve } from 'node:path'
 
 const fixtureWorkspace = createFixtureWorkspace()
 const fixturesRoot = fixtureWorkspace.root
-const readFixture = fixtureWorkspace.readFixture
 
 afterAll(fixtureWorkspace.dispose)
 
@@ -413,100 +399,4 @@ test('uses scalar type helpers in the public generation operation', async () => 
     expect(result.diagnostics).toEqual([])
     expect(result.outputs[0]?.content).toContain('at: string;')
     expect(result.outputs[0]?.content).toContain('event: Date;')
-})
-
-test('uses structured scalar types in schema and operation declarations', async () => {
-    const root = resolve(fixturesRoot, 'scalar-mappings')
-    const result = await generateDeclarations(defineConfig({
-        root,
-        schemas: {
-            core: {
-                file: 'schemas/core/schema.graphql',
-                typesModule: '@app/graphql/schema',
-                scalars: {
-                    Timestamp: {
-                        input: defineObject({
-                            metadata: defineObjectField(defineGeneric(
-                                'Readonly',
-                                defineObject({
-                                    enabled: defineObjectField(defineBoolean()),
-                                    fallback: defineObjectField(defineNamed('unknown'), true),
-                                    'source-id': defineObjectField(defineString()),
-                                    value: defineObjectField(defineUnknown(), true),
-                                })
-                            )),
-                            range: defineObjectField(defineTuple(
-                                defineNumber(),
-                                makeNullable(makeNullable(defineNumber()))
-                            )),
-                            tags: defineObjectField(arrayOf(makeNullable(defineString())), true),
-                        }),
-                        output: intersectionOf(
-                            defineGeneric(
-                                'Readonly',
-                                defineObject({
-                                    epoch: defineObjectField(defineNumber()),
-                                    iso: defineObjectField(defineString()),
-                                })
-                            ),
-                            intersectionOf(
-                                defineObject({
-                                    kind: defineObjectField(defineLiteral('timestamp')),
-                                    precision: defineObjectField(defineLiteral(3)),
-                                    verified: defineObjectField(defineLiteral(true)),
-                                }),
-                                defineObject({
-                                    kind: defineObjectField(defineLiteral('timestamp')),
-                                    precision: defineObjectField(defineLiteral(3)),
-                                    verified: defineObjectField(defineLiteral(true)),
-                                })
-                            ),
-                            unionOf(
-                                defineObject({
-                                    timezone: defineObjectField(defineLiteral('utc')),
-                                }),
-                                defineObject({
-                                    timezone: defineObjectField(defineLiteral('local')),
-                                })
-                            )
-                        ),
-                    },
-                },
-                outputs: {
-                    root: 'generated/rich/schema',
-                    types: 'schema.d.ts',
-                },
-            },
-        },
-        projects: {
-            app: {
-                root: 'projects/app/documents',
-                targets: {
-                    core: {
-                        schema: 'core',
-                        documents: { files: ['queries/event.graphql'] },
-                        outputs: { tree: { root: 'generated/rich/operations' } },
-                    },
-                },
-            },
-        },
-    }))
-
-    expect(result.diagnostics).toEqual([])
-    expect(result.outputs[0]?.content).toBe(
-        readFixture('scalar-mappings/expected/schema.d.ts')
-    )
-    expect(result.outputs[1]?.content).toBe(
-        readFixture('scalar-mappings/expected/event.graphql.d.ts')
-    )
-
-    const typecheck = spawnSync(process.execPath, [
-        resolve(__dirname, '../../node_modules/typescript/bin/tsc'),
-        '--project',
-        resolve(root, 'consumer/tsconfig.json'),
-    ], { encoding: 'utf8' })
-
-    expect(typecheck.stderr).toBe('')
-    expect(typecheck.stdout).toBe('')
-    expect(typecheck.status).toBe(0)
 })

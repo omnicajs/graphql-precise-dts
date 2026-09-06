@@ -1,0 +1,3 @@
+{
+    "extends": "../../fixtures/cases/repeated-selections/tsconfig.json"
+}

@@ -1,0 +1,37 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "fragments/group.graphql": [
+                "./expected/app/fragments/group.graphql.d.ts"
+            ],
+            "fragments/user.graphql": [
+                "./expected/app/fragments/user.graphql.d.ts"
+            ],
+            "mixed/local.graphql": [
+                "./expected/app/mixed/local.graphql.d.ts"
+            ],
+            "queries/group.graphql": [
+                "./expected/app/queries/group.graphql.d.ts"
+            ],
+            "queries/user.graphql": [
+                "./expected/app/queries/user.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/app/fragments/group.graphql.d.ts",
+        "expected/app/fragments/user.graphql.d.ts",
+        "expected/app/mixed/local.graphql.d.ts",
+        "expected/app/queries/group.graphql.d.ts",
+        "expected/app/queries/user.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/fragment-providers/*.test-d.ts"
+    ]
+}

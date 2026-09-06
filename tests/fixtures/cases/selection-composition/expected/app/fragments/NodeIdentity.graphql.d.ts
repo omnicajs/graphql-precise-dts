@@ -1,6 +1,8 @@
-declare module 'fragments/NodeIdentity.graphql' {
-	export type NodeIdentity = {
-		__typename?: 'Team' | 'User';
-		id: string;
-	}
+export type NodeIdentity = {
+	__typename?: 'Team' | 'User';
+	id: string;
 }
+
+declare const document: import('graphql').DocumentNode
+
+export default document

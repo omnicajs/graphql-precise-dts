@@ -1,0 +1,45 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "fragments/GroupDetails.graphql": [
+                "./expected/app/fragments/GroupDetails.graphql.d.ts"
+            ],
+            "fragments/NodeFields.graphql": [
+                "./expected/app/fragments/NodeFields.graphql.d.ts"
+            ],
+            "fragments/UserGroups.graphql": [
+                "./expected/app/fragments/UserGroups.graphql.d.ts"
+            ],
+            "fragments/UserIdentity.graphql": [
+                "./expected/app/fragments/UserIdentity.graphql.d.ts"
+            ],
+            "mixed/dashboard.graphql": [
+                "./expected/app/mixed/dashboard.graphql.d.ts"
+            ],
+            "queries/groups.graphql": [
+                "./expected/app/queries/groups.graphql.d.ts"
+            ],
+            "queries/users.graphql": [
+                "./expected/app/queries/users.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/app/fragments/GroupDetails.graphql.d.ts",
+        "expected/app/fragments/NodeFields.graphql.d.ts",
+        "expected/app/fragments/UserGroups.graphql.d.ts",
+        "expected/app/fragments/UserIdentity.graphql.d.ts",
+        "expected/app/mixed/dashboard.graphql.d.ts",
+        "expected/app/queries/groups.graphql.d.ts",
+        "expected/app/queries/users.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/fragment-heavy/*.test-d.ts"
+    ]
+}

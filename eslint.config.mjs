@@ -77,7 +77,13 @@ export default [
         },
 
     },
+    {
+        files: [ 'tests/fixtures/cases/**/expected/**/*.d.ts' ],
+        rules: {
+            // Inline imports keep generated helper types outside the consumer's namespace.
+            '@typescript-eslint/consistent-type-imports': ['error', { disallowTypeAnnotations: false }],
+        },
+    },
     { ignores: [ '**/dist' ] },
     { ignores: [ '**/node_modules' ] },
-    { ignores: [ 'tests/fixtures/generated/**' ] },
 ]

@@ -1,0 +1,3 @@
+{
+    "extends": "../../fixtures/cases/literal-arguments/tsconfig.json"
+}

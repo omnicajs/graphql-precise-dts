@@ -1,0 +1,1 @@
+{ "extends": "../../fixtures/cases/schema-contract/tsconfig.aggregate.json" }

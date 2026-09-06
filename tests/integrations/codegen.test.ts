@@ -10,7 +10,7 @@ import type { CodegenConfig } from '@/integrations/codegen'
 import type { Types } from '@graphql-codegen/plugin-helpers'
 
 import { buildSchema, parse } from 'graphql'
-import { createFixtureWorkspace } from '../fixture-workspace'
+import { createFixtureWorkspace } from '../fixtures/workspace'
 import { plugin } from '@/integrations/codegen'
 import {
     existsSync,
@@ -58,8 +58,8 @@ describe('GraphQL Code Generator integration', () => {
             'utf8'
         )), documents, {
             root: documentRoot,
-            typesModule: './schema',
-            enumsModule: './enums',
+            typesModule: '@case/schema',
+            enumsModule: '@case/enums',
             scalars: {
                 DateTime: { kind: 'named', name: 'string' },
             },
@@ -71,7 +71,7 @@ describe('GraphQL Code Generator integration', () => {
         })
 
         expect(output).toBe(readFileSync(
-            resolve(fixtureRoot, 'expected/experimental/types.d.ts'),
+            resolve(fixtureRoot, 'expected/aggregate.d.ts'),
             'utf8'
         ))
         expect(existsSync(resolve(fixtureRoot, 'codegen/schema.d.ts'))).toBe(false)

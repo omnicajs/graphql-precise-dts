@@ -1,7 +1,0 @@
-#import "../fragments/UserWithGroups.graphql"
-
-mutation changeOwner ($input: ChangeOwnerInput!) {
-    changeOwner (input: $input) {
-        ...UserWithGroups
-    }
-}

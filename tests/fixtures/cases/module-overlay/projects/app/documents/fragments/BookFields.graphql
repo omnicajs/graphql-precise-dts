@@ -1,0 +1,1 @@
+fragment BookFields on Book { id state }

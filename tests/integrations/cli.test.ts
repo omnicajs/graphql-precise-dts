@@ -9,7 +9,7 @@ import {
 import type { CliEnvironment } from '@/cli/types'
 
 import { runCli } from '@/cli/run'
-import { createFixtureWorkspace } from '../fixture-workspace'
+import { createFixtureWorkspace } from '../fixtures/workspace'
 import {
     existsSync,
     rmSync,

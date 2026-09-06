@@ -1,0 +1,2 @@
+#import "./details.graphql"
+query Inspect { item { ...Details } }

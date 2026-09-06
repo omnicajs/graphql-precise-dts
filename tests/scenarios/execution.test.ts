@@ -10,7 +10,7 @@ import {
     defineConfig,
     generateDeclarations,
 } from '@/index'
-import { createFixtureWorkspace } from '../fixture-workspace'
+import { createFixtureWorkspace } from '../fixtures/workspace'
 import {
     existsSync,
     mkdirSync,

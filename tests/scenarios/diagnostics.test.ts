@@ -15,7 +15,7 @@ import {
     defineString,
     generateDeclarations,
 } from '@/index'
-import { createFixtureWorkspace } from '../fixture-workspace'
+import { createFixtureWorkspace } from '../fixtures/workspace'
 import {
     existsSync,
     mkdtempSync,
@@ -164,7 +164,7 @@ describe('experimental generation diagnostics through the public API', () => {
         expect(result.diagnostics).toEqual([])
         expect(result.outputs).toHaveLength(1)
         expect(result.outputs[0]?.content).toContain(
-            'child: {\n\t\t\t\t__typename?: \'User\';\n\t\t\t\tid: string;\n\t\t\t\tscore: number;'
+            'child: {\n\t\t\t__typename?: \'User\';\n\t\t\tid: string;\n\t\t\tscore: number;'
         )
     })
 
@@ -183,7 +183,7 @@ describe('experimental generation diagnostics through the public API', () => {
         }])
         expect(result.outputs).toHaveLength(1)
         expect(result.outputs[0]?.content).toContain(
-            'user?: {\n\t\t\t__typename?: \'User\';\n\t\t\tid?: string;\n\t\t\tscore?: number;'
+            'user?: {\n\t\t__typename?: \'User\';\n\t\tid?: string;\n\t\tscore?: number;'
         )
     })
 

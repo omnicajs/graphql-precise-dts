@@ -1,0 +1,4 @@
+enum ReviewState { IN_REVIEW READY }
+type Book { id: ID! title: String! state: ReviewState! }
+interface Remote { id: ID! state: ReviewState! }
+type Query { book(id: ID!): Book! remote: Remote! }

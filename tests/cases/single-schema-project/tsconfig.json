@@ -1,0 +1,3 @@
+{
+    "extends": "../../fixtures/cases/single-schema-project/tsconfig.json"
+}

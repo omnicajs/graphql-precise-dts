@@ -1,0 +1,22 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@case/schema": [
+                "expected/schema.d.ts"
+            ],
+            "@case/enums": [
+                "expected/enums.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/enums.ts",
+        "expected/aggregate.d.ts"
+    ],
+    "include": [
+        "../../../cases/single-schema-project/*.test-d.ts"
+    ]
+}

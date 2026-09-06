@@ -1,7 +1,0 @@
-#import "../fragments/UserWithGroups.graphql"
-
-query users ($filter: UsersFilter) {
-    users (filter: $filter) {
-        ...UserWithGroups
-    }
-}

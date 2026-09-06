@@ -1,9 +1,11 @@
-declare module 'fragments/user_fields.graphql' {
-	import type { user_status } from '@naming/enums'
+import type { user_status } from '@naming/enums'
 
-	export type userFields = {
-		__typename?: 'UserProfile';
-		id: string;
-		status: user_status;
-	}
+export type userFields = {
+	__typename?: 'UserProfile';
+	id: string;
+	status: user_status;
 }
+
+declare const document: import('graphql').DocumentNode
+
+export default document

@@ -1,0 +1,21 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "queries/event.graphql": [
+                "./expected/event.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/event.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/scalar-mappings/*.test-d.ts"
+    ]
+}

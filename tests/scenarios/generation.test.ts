@@ -5,18 +5,14 @@ import {
     test,
 } from 'vitest'
 
-import type {
-    DocumentSelector,
-    SchemaConfig,
-} from '@/index'
 import {
     defineConfig,
     defineNamed,
     defineString,
     generateDeclarations,
 } from '@/index'
-import { createFixtureWorkspace } from '../fixture-workspace'
-import { spawnSync } from 'node:child_process'
+import { createFixtureWorkspace } from '../fixtures/workspace'
+import { generateFixtureProject } from '../fixtures/generation'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -26,47 +22,6 @@ const readFixture = fixtureWorkspace.readFixture
 
 afterAll(fixtureWorkspace.dispose)
 
-const generateFixtureProject = async ({
-    root,
-    projectId,
-    schema,
-    documentsRoot,
-    documents,
-}: {
-    root: string
-    projectId: string
-    schema: SchemaConfig
-    documentsRoot: string
-    documents: DocumentSelector
-}) => {
-    const result = await generateDeclarations(defineConfig({
-        root,
-        schemas: { fixture: schema },
-        projects: {
-            [projectId]: {
-                root: documentsRoot,
-                targets: {
-                    fixture: {
-                        schema: 'fixture',
-                        documents,
-                        outputs: { tree: { root: 'generated' } },
-                    },
-                },
-            },
-        },
-    }))
-
-    return {
-        projectId,
-        outputs: result.outputs.map(({ sourceId, content }) => ({ sourceId, content })),
-        diagnostics: result.diagnostics.map(diagnostic => ({
-            severity: diagnostic.severity,
-            code: diagnostic.code,
-            sourceId: diagnostic.sourceId,
-            message: diagnostic.message,
-        })),
-    }
-}
 
 describe('experimental generation public API', () => {
     test('generates a complete single-schema project through the filesystem API', async () => {
@@ -80,8 +35,8 @@ describe('experimental generation public API', () => {
             schemas: {
                 main: {
                     file: 'schemas/main/schema.graphql',
-                    typesModule: './schema',
-                    enumsModule: './enums',
+                    typesModule: '@case/schema',
+                    enumsModule: '@case/enums',
                     scalars: { DateTime: defineString() },
                 },
             },
@@ -116,26 +71,11 @@ describe('experimental generation public API', () => {
             { sourceId: 'subscriptions/userCreated.graphql', file: 'generated/app/subscriptions/userCreated.graphql.d.ts' },
         ])
 
-        const generatedTypes = [
-            result.outputs[0]?.content,
-            result.outputs[1]?.content,
-            result.outputs[2]?.content,
-            result.outputs[3]?.content,
-            result.outputs[4]?.content,
-            result.outputs[5]?.content,
-            result.outputs[6]?.content,
-            result.outputs[7]?.content,
-            result.outputs[8]?.content,
-            result.outputs[9]?.content,
-            result.outputs[10]?.content,
-            result.outputs[11]?.content,
-            result.outputs[12]?.content,
-            result.outputs[13]?.content,
-        ].join('\n')
-
-        expect(generatedTypes).toBe(
-            readFixture('single-schema-project/expected/experimental/types.d.ts')
-        )
+        for (const output of result.outputs) {
+            expect(output.content).toBe(readFixture(
+                `single-schema-project/expected/app/${output.sourceId}.d.ts`
+            ))
+        }
     })
 
     test('isolates multiple schema targets inside one project', async () => {
@@ -367,7 +307,7 @@ describe('experimental generation public API', () => {
             'schema-contract/expected/operations.d.ts'
         ))
         expect(result.outputs[3]?.content).toBe(readFixture(
-            'schema-contract/expected/operations.d.ts'
+            'schema-contract/expected/aggregate.d.ts'
         ))
         expect(readFileSync(resolve(root, 'generated/schema/schema.d.ts'), 'utf8')).toBe(
             result.outputs[0]?.content
@@ -382,53 +322,6 @@ describe('experimental generation public API', () => {
         expect(readFileSync(resolve(root, 'generated/operations/all.d.ts'), 'utf8')).toBe(
             result.outputs[3]?.content
         )
-    })
-
-    test('emits declarations consumable by TypeScript', async () => {
-        const root = resolve(fixturesRoot, 'schema-contract')
-        const result = await generateDeclarations(defineConfig({
-            root,
-            schemas: {
-                core: {
-                    file: 'schemas/core/schema.graphql',
-                    typesModule: '@app/graphql/schema',
-                    enumsModule: '@app/graphql/enums',
-                    scalars: {
-                        DateTime: defineString(),
-                    },
-                    outputs: {
-                        root: 'generated/type-consumption/schema',
-                        types: 'schema.d.ts',
-                        enums: 'enums.ts',
-                    },
-                },
-            },
-            projects: {
-                app: {
-                    root: 'projects/app/documents',
-                    targets: {
-                        core: {
-                            schema: 'core',
-                            documents: { files: ['queries/search.graphql'] },
-                            outputs: {
-                                tree: { root: 'generated/type-consumption/operations' },
-                            },
-                        },
-                    },
-                },
-            },
-        }))
-
-        expect(result.diagnostics).toEqual([])
-        const typecheck = spawnSync(process.execPath, [
-            resolve(__dirname, '../../node_modules/typescript/bin/tsc'),
-            '--project',
-            resolve(root, 'consumer/tsconfig.json'),
-        ], { encoding: 'utf8' })
-
-        expect(typecheck.stderr).toBe('')
-        expect(typecheck.stdout).toBe('')
-        expect(typecheck.status).toBe(0)
     })
 
     test('rejects schema declaration names that collide after normalization', async () => {
@@ -765,162 +658,6 @@ describe('experimental generation public API', () => {
         })
     })
 
-    test('keeps nested fields optional when their fragment spread is conditional', async () => {
-        const root = resolve(fixturesRoot, 'conditional-fragment')
-        const result = await generateFixtureProject({
-            root,
-            projectId: 'app',
-            schema: {
-                file: 'schemas/core/schema.graphql',
-                typesModule: '@app/graphql/schema',
-            },
-            documentsRoot: 'projects/app/documents',
-            documents: { files: ['viewer.graphql'] },
-        })
-        const typecheck = spawnSync(process.execPath, [
-            resolve(__dirname, '../../node_modules/typescript/bin/tsc'),
-            '--project',
-            resolve(root, 'consumer/tsconfig.json'),
-        ], { encoding: 'utf8' })
-
-        expect(typecheck.stderr).toBe('')
-        expect(typecheck.stdout).toBe('')
-        expect(typecheck.status).toBe(0)
-        expect(result.outputs[0]?.content).not.toContain('Partial<Details>')
-        expect(result).toEqual({
-            projectId: 'app',
-            outputs: [{
-                sourceId: 'viewer.graphql',
-                content: readFixture('conditional-fragment/expected/app/viewer.graphql.d.ts'),
-            }],
-            diagnostics: [],
-        })
-    })
-
-    test('merges an unconditional base fragment with a conditional fragment', async () => {
-        const root = resolve(fixturesRoot, 'conditional-fragment')
-        const result = await generateFixtureProject({
-            root,
-            projectId: 'app',
-            schema: {
-                file: 'schemas/core/schema.graphql',
-                typesModule: '@app/graphql/schema',
-            },
-            documentsRoot: 'projects/app/documents',
-            documents: { files: ['composed.graphql'] },
-        })
-        const typecheck = spawnSync(process.execPath, [
-            resolve(__dirname, '../../node_modules/typescript/bin/tsc'),
-            '--project',
-            resolve(root, 'consumer/composed.tsconfig.json'),
-        ], { encoding: 'utf8' })
-
-        expect(typecheck.stderr).toBe('')
-        expect(typecheck.stdout).toBe('')
-        expect(typecheck.status).toBe(0)
-        expect(result).toEqual({
-            projectId: 'app',
-            outputs: [{
-                sourceId: 'composed.graphql',
-                content: readFixture('conditional-fragment/expected/app/composed.graphql.d.ts'),
-            }],
-            diagnostics: [],
-        })
-    })
-
-    test('merges a transitive base fragment with a conditional fragment', async () => {
-        const root = resolve(fixturesRoot, 'conditional-fragment')
-        const result = await generateFixtureProject({
-            root,
-            projectId: 'app',
-            schema: {
-                file: 'schemas/core/schema.graphql',
-                typesModule: '@app/graphql/schema',
-            },
-            documentsRoot: 'projects/app/documents',
-            documents: { files: ['transitive.graphql'] },
-        })
-        const typecheck = spawnSync(process.execPath, [
-            resolve(__dirname, '../../node_modules/typescript/bin/tsc'),
-            '--project',
-            resolve(root, 'consumer/transitive.tsconfig.json'),
-        ], { encoding: 'utf8' })
-
-        expect(typecheck.stderr).toBe('')
-        expect(typecheck.stdout).toBe('')
-        expect(typecheck.status).toBe(0)
-        expect(result).toEqual({
-            projectId: 'app',
-            outputs: [{
-                sourceId: 'transitive.graphql',
-                content: readFixture('conditional-fragment/expected/app/transitive.graphql.d.ts'),
-            }],
-            diagnostics: [],
-        })
-    })
-
-    test('keeps every concrete variant of a conditional abstract fragment', async () => {
-        const root = resolve(fixturesRoot, 'conditional-fragment')
-        const result = await generateFixtureProject({
-            root,
-            projectId: 'app',
-            schema: {
-                file: 'schemas/core/schema.graphql',
-                typesModule: '@app/graphql/schema',
-            },
-            documentsRoot: 'projects/app/documents',
-            documents: { files: ['abstract.graphql'] },
-        })
-        const typecheck = spawnSync(process.execPath, [
-            resolve(__dirname, '../../node_modules/typescript/bin/tsc'),
-            '--project',
-            resolve(root, 'consumer/abstract.tsconfig.json'),
-        ], { encoding: 'utf8' })
-
-        expect(typecheck.stderr).toBe('')
-        expect(typecheck.stdout).toBe('')
-        expect(typecheck.status).toBe(0)
-        expect(result).toEqual({
-            projectId: 'app',
-            outputs: [{
-                sourceId: 'abstract.graphql',
-                content: readFixture('conditional-fragment/expected/app/abstract.graphql.d.ts'),
-            }],
-            diagnostics: [],
-        })
-    })
-
-    test('narrows abstract fragments to the concrete field type', async () => {
-        const root = resolve(fixturesRoot, 'abstract-fragment-narrowing')
-        const result = await generateFixtureProject({
-            root,
-            projectId: 'app',
-            schema: {
-                file: 'schemas/core/schema.graphql',
-                typesModule: '@app/graphql/schema',
-            },
-            documentsRoot: 'projects/app/documents',
-            documents: { files: ['only-a.graphql'] },
-        })
-        const typecheck = spawnSync(process.execPath, [
-            resolve(__dirname, '../../node_modules/typescript/bin/tsc'),
-            '--project',
-            resolve(root, 'consumer/tsconfig.json'),
-        ], { encoding: 'utf8' })
-
-        expect(typecheck.stderr).toBe('')
-        expect(typecheck.stdout).toBe('')
-        expect(typecheck.status).toBe(0)
-        expect(result).toEqual({
-            projectId: 'app',
-            outputs: [{
-                sourceId: 'only-a.graphql',
-                content: readFixture('abstract-fragment-narrowing/expected/app/only-a.graphql.d.ts'),
-            }],
-            diagnostics: [],
-        })
-    })
-
     test('resolves same-named fragments by explicit provider and local document ownership', async () => {
         const result = await generateFixtureProject({
             root: resolve(fixturesRoot, 'fragment-providers'),
@@ -1050,68 +787,6 @@ describe('experimental generation public API', () => {
                     code: 'repeated-field-selection',
                     sourceId: 'queries/user.graphql',
                     message: 'Repeated field selection "user" in query "User" was merged; first occurrence is at 6:5',
-                },
-            ],
-        })
-    })
-
-    test('keeps selected fields when repeated objects also contain statically skipped fields', async () => {
-        const root = resolve(fixturesRoot, 'repeated-selections')
-        const result = await generateFixtureProject({
-            root,
-            projectId: 'app',
-            schema: {
-                file: 'schemas/core/schema.graphql',
-                typesModule: '@app/graphql/schema',
-            },
-            documentsRoot: 'projects/app/documents',
-            documents: { files: ['queries/skipped.graphql'] },
-        })
-        const typecheck = spawnSync(process.execPath, [
-            resolve(__dirname, '../../node_modules/typescript/bin/tsc'),
-            '--project',
-            resolve(root, 'consumer/tsconfig.json'),
-        ], { encoding: 'utf8' })
-
-        expect(typecheck.stderr).toBe('')
-        expect(typecheck.stdout).toBe('')
-        expect(typecheck.status).toBe(0)
-        expect(result).toEqual({
-            projectId: 'app',
-            outputs: [{
-                sourceId: 'queries/skipped.graphql',
-                content: readFixture('repeated-selections/expected/app/queries/skipped.graphql.d.ts'),
-            }],
-            diagnostics: [
-                {
-                    severity: 'warning',
-                    code: 'repeated-field-selection',
-                    sourceId: 'queries/skipped.graphql',
-                    message: 'Repeated field selection "user" in query "SkippedFirst" was merged; first occurrence is at 2:5',
-                },
-                {
-                    severity: 'warning',
-                    code: 'repeated-field-selection',
-                    sourceId: 'queries/skipped.graphql',
-                    message: 'Repeated field selection "user" in query "SelectedFirst" was merged; first occurrence is at 11:5',
-                },
-                {
-                    severity: 'warning',
-                    code: 'repeated-field-selection',
-                    sourceId: 'queries/skipped.graphql',
-                    message: 'Repeated field selection "user" in query "BothSkipped" was merged; first occurrence is at 20:5',
-                },
-                {
-                    severity: 'warning',
-                    code: 'repeated-field-selection',
-                    sourceId: 'queries/skipped.graphql',
-                    message: 'Repeated field selection "user" in query "NestedSkippedFirst" was merged; first occurrence is at 29:5',
-                },
-                {
-                    severity: 'warning',
-                    code: 'repeated-field-selection',
-                    sourceId: 'queries/skipped.graphql',
-                    message: 'Repeated field selection "user" in query "NestedSelectedFirst" was merged; first occurrence is at 42:5',
                 },
             ],
         })
@@ -1290,7 +965,7 @@ describe('experimental generation public API', () => {
         expect(result.outputs).toHaveLength(1)
         expect(result.outputs[0]?.content).toContain('date: OpaqueDate;')
         expect(result.outputs[0]?.content).toContain(
-            'user: {\n\t\t\t__typename?: \'User\';\n\t\t\tid: string;\n\t\t\tstatus: Status;\n\t\t};'
+            'user: {\n\t\t__typename?: \'User\';\n\t\tid: string;\n\t\tstatus: Status;\n\t};'
         )
         expect(result.diagnostics).toEqual([
             {

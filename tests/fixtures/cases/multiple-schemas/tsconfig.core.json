@@ -1,0 +1,21 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/core-app/schema.d.ts"
+            ],
+            "queries/dashboard.graphql": [
+                "./expected/core-app/types.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/core-app/schema.d.ts",
+        "expected/core-app/types.d.ts"
+    ],
+    "include": [
+        "../../../cases/multiple-schemas/core/*.test-d.ts"
+    ]
+}
