@@ -1,0 +1,16 @@
+fragment Base on Query {
+    user {
+        id
+    }
+}
+
+fragment Extra on Query {
+    user {
+        name
+    }
+}
+
+query Composed($details: Boolean!) {
+    ...Base
+    ...Extra @include(if: $details)
+}

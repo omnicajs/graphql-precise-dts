@@ -1,0 +1,9 @@
+fragment Exact on User {
+    id
+}
+
+query Viewer($include: Boolean!) {
+    user {
+        ...Exact @include(if: $include)
+    }
+}

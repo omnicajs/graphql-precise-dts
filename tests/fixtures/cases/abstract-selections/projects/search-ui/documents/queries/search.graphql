@@ -1,0 +1,15 @@
+query Search($filter: SearchFilter!, $archived: Boolean = false) {
+    results: search(filter: $filter, archived: $archived) @includeArchived(if: $archived) {
+        __typename
+        ... on User {
+            id
+            name
+            updatedAt
+        }
+        ... on Team {
+            id
+            title
+            updatedAt
+        }
+    }
+}

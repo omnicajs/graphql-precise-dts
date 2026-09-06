@@ -1,0 +1,7 @@
+#import "../fragments/UserWithGroups.graphql"
+
+query ownerGroup ($id: ID!) {
+    ownerGroup (id: $id) {
+        ...UserWithGroups
+    }
+}

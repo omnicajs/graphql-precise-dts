@@ -1,0 +1,8 @@
+type Query {
+    ping: String
+}
+
+type Subscription {
+    first: String
+    second: String
+}

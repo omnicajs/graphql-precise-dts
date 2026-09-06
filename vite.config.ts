@@ -17,7 +17,14 @@ const nodeBuiltins = builtinModules.flatMap(moduleName => [
 export default mergeConfig(basic, defineConfig({
     build: {
         lib: {
-            entry: resolve(__dirname, './src/index.ts'),
+            entry: {
+                index: resolve(__dirname, './src/index.ts'),
+                codegen: resolve(__dirname, './src/integrations/codegen.ts'),
+                'generation-worker': resolve(
+                    __dirname,
+                    './src/generation/worker.ts'
+                ),
+            },
             name: '@omnicajs/graphql-precise-dts',
         },
         minify: false,
@@ -33,14 +40,14 @@ export default mergeConfig(basic, defineConfig({
                     exports: 'named',
                     dir: resolve(__dirname, './dist'),
                     entryFileNames: '[name].mjs',
-                    chunkFileNames: 'common.mjs',
+                    chunkFileNames: 'chunks/[name]-[hash].mjs',
                 },
                 {
                     format: 'cjs',
                     exports: 'named',
                     dir: resolve(__dirname, './dist'),
                     entryFileNames: '[name].cjs',
-                    chunkFileNames: 'common.cjs',
+                    chunkFileNames: 'chunks/[name]-[hash].cjs',
                 },
             ],
         },
@@ -49,6 +56,9 @@ export default mergeConfig(basic, defineConfig({
     plugins: [
         dts({
             include: ['src'],
+            copyDtsFiles: true,
+            entryRoot: 'src',
+            insertTypesEntry: true,
         }),
     ],
 }))

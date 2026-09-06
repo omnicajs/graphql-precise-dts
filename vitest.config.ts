@@ -1,4 +1,5 @@
 import {
+    configDefaults,
     defineConfig,
     mergeConfig,
 } from 'vitest/config'
@@ -9,6 +10,10 @@ export default mergeConfig(basic, defineConfig({
     test: {
         include: [
             '**/*.test.?(c|m)[jt]s?(x)',
+        ],
+        exclude: [
+            ...configDefaults.exclude,
+            'drafts/**',
         ],
         typecheck: {
             include: [

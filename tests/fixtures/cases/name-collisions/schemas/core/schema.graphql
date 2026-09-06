@@ -1,0 +1,20 @@
+enum Status {
+    ACTIVE
+}
+
+type User {
+    id: ID!
+    status: Status!
+}
+
+type user_profile {
+    id: ID!
+}
+
+type UserProfile {
+    id: ID!
+}
+
+type Query {
+    user: User!
+}

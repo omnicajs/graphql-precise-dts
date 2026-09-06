@@ -1,0 +1,18 @@
+query User($id: ID!, $withName: Boolean!) {
+    __typename
+    __typename @include(if: $withName)
+    maybeType: __typename @include(if: $withName)
+    maybeType: __typename @skip(if: $withName)
+    user(id: $id, locale: "en") {
+        id
+        name @include(if: $withName)
+    }
+    user(locale: "en", id: $id) {
+        id
+        name
+        nickname
+    }
+    user(id: $id, locale: "en") @include(if: $withName) {
+        conditionalNickname: nickname
+    }
+}

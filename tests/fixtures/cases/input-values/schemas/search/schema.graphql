@@ -1,0 +1,24 @@
+enum SearchMode {
+    EXACT
+    FUZZY
+}
+
+input RecursiveFilter {
+    label: String
+    nested: RecursiveFilter
+}
+
+input SearchChoice @oneOf {
+    id: ID
+    mode: SearchMode
+}
+
+input SearchOptions {
+    choice: SearchChoice
+    filter: RecursiveFilter
+    tags: [String!]
+}
+
+type Query {
+    search(options: SearchOptions!): Boolean!
+}

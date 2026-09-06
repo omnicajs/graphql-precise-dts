@@ -1,0 +1,7 @@
+#import "../fragments/group.graphql"
+
+query GroupDetails {
+    group {
+        ...SharedDetails
+    }
+}

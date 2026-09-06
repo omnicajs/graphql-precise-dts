@@ -1,0 +1,9 @@
+fragment TypedDocumentNode on User {
+    id
+}
+
+query Viewer {
+    user {
+        ...TypedDocumentNode
+    }
+}

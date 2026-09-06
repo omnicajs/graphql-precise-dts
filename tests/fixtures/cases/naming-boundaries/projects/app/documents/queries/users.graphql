@@ -1,0 +1,3 @@
+query FetchHTTP2Users {
+    users
+}

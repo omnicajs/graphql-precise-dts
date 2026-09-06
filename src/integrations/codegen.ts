@@ -1,145 +1,140 @@
-import type { ModelContext } from '../models/types'
-import type { PluginConfig } from '../config'
-import type { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import type { PluginFunction, Types } from '@graphql-codegen/plugin-helpers'
+import type { CodegenConfig } from './codegen/types'
+import type {
+    DocumentImport,
+    GenerationDiagnostic,
+    ParsedDocumentSource,
+} from '@/generation/types'
 
-import { assertUniqueDocumentModuleSpecifiers } from '../diagnostics/declaration-errors'
-import { buildGenerationModels } from '../generation/compile'
-import { createNamingConvention } from '../generation/naming'
-import { dirname } from 'path'
-import { emitCustomScalarNamedTypeWarnings } from '../diagnostics/scalar-name-warnings'
+import { collectDocumentImports } from '@/filesystem/imports'
+import { createHash } from 'node:crypto'
+import { createSchemaSnapshot } from '@/schema/snapshot/create'
+import { existsSync, readFileSync } from 'node:fs'
+import { generateDeclarations } from '@/generation/generate'
+import { GraphQLSchemaView } from '@/schema/graphql'
 import {
-    emitDuplicateFragmentDefinitionWarnings,
-    emitMissingFragmentDefinitionWarnings,
-} from '../diagnostics/document-warnings'
-import { emitRepeatedSelectionWarnings } from '../diagnostics/repeated-selection-warnings'
-import { emitSkippedDocumentWarnings } from '../diagnostics/document-errors'
-import { findFragmentDefinitions } from '../lib/documents'
-import { guardNamedOperations } from '../diagnostics/document-errors'
-import { makeDeclarationModuleSpecifier } from '../path'
-import { makeDocumentLocationMap } from '../lib/documents'
-import { makeDocumentModelBundles } from '../plan/document-model-bundles'
-import { makeDocumentModelImportMap } from '../plan/document-model-imports'
-import { makeEnumsOutputFile } from '../path'
-import { makeGenerationDirectivePolicies } from '../directives/structural-policies'
-import {
-    makeModuleSpecifier,
-    makeSchemaDeclarationOutputFile,
-    makeSchemaOutputDirectory,
-} from '../path'
-import { makeStructuralDirectivePolicies } from '../directives/structural-policies'
-import { mkdirSync } from 'fs'
-import { renderDeclarations } from '../render/declarations'
-import { renderEnumsDeclaration } from '../render/enum'
-import { renderSchemaDeclaration } from '../render/schema'
-import { writeFileSync } from 'fs'
+    isAbsolute,
+    relative,
+    resolve,
+    sep,
+} from 'node:path'
+import { lexicographicSortSchema, printSchema } from 'graphql'
+import { renderAggregate } from '@/generation/render/aggregate'
+import { resolveModuleId } from '@/filesystem/modules'
+import { validateCodegenConfig } from './codegen/validate'
 
-export const plugin: PluginFunction<PluginConfig, string> = (
-    schema,
-    documents,
-    config,
-    info
-) => {
-    if (!info?.outputFile) throw new Error('Output file is missing')
+const normalizePath = (path: string): string => path.split(sep).join('/')
 
-    emitSkippedDocumentWarnings(documents)
-    guardNamedOperations(documents, schema)
+const resolveDocument = (
+    source: Types.DocumentFile,
+    index: number,
+    root: string,
+    config: CodegenConfig
+): ParsedDocumentSource => {
+    if (!source.location) {
+        throw new Error(`Codegen document at index ${index} does not have a location`)
+    }
+    if (!source.document) {
+        throw new Error(`Codegen document "${source.location}" does not have a parsed document`)
+    }
 
-    const schemaOutputDirectory = makeSchemaOutputDirectory(info.outputFile, config.schemaOutputDirectory)
-    const schemaOutputFile = makeSchemaDeclarationOutputFile(schemaOutputDirectory)
+    const file = resolve(root, source.location)
+    const sourcePath = relative(root, file)
+    if (sourcePath === '..' || sourcePath.startsWith(`..${sep}`) || isAbsolute(sourcePath)) {
+        throw new Error(`Codegen document must be inside root: ${source.location}`)
+    }
 
-    const enumsOutputFile = makeEnumsOutputFile(schemaOutputDirectory)
-    const enumsModulePath = makeDeclarationModuleSpecifier(info.outputFile, enumsOutputFile, config.paths)
-
-    const documentModuleSpecifier = (location: string | undefined) => makeModuleSpecifier(
-        config.prefix ?? '*/',
-        location,
-        config.relativeToCwd ?? false,
-        config.scope
+    const sourceId = normalizePath(sourcePath)
+    const contents = existsSync(file)
+        ? readFileSync(file, 'utf8')
+        : source.document.loc?.source.body ?? source.rawSDL ?? ''
+    const imports: DocumentImport[] = collectDocumentImports(root, file, contents).map(
+        imported => ({
+            sourceId: resolveModuleId(root, imported.file, imported.id, config.resolve),
+            sourcePath: imported.id,
+            specifier: imported.specifier,
+            external: imported.external,
+            location: imported.location,
+        })
     )
 
-    const fragmentDefinitions = findFragmentDefinitions(documents)
-    const directivePolicies = config.directivePolicies ?? {}
-    const naming = createNamingConvention(config.namingConvention)
-    const importMap = makeDocumentModelImportMap(schema, documents, enumsModulePath, documentModuleSpecifier)
-
-    emitRepeatedSelectionWarnings(documents)
-    emitDuplicateFragmentDefinitionWarnings(documents)
-    emitMissingFragmentDefinitionWarnings(documents, fragmentDefinitions)
-
-    const context = {
-        schema,
-        fragmentDefinitions,
-        documentLocations: makeDocumentLocationMap(documents),
-        structuralDirectivePolicies: makeStructuralDirectivePolicies(directivePolicies),
-    } satisfies ModelContext
-
-    const { schema: schemaOutput, registry } = buildGenerationModels(
-        {
-            fragments: [ ...importMap.fragments.keys() ],
-            enums: [ ...importMap.enums.keys() ],
-        },
-        context,
-        config.scalars ?? {}
-    )
-
-    emitCustomScalarNamedTypeWarnings({ schema: schemaOutput, registry }, config.scalars ?? {})
-
-    const schemaDeclaration = renderSchemaDeclaration(schemaOutput, naming)
-    const enumsDeclaration = registry.enums.size
-        ? renderEnumsDeclaration(registry.enums, naming)
-        : ''
-
-    mkdirSync(dirname(schemaOutputFile), { recursive: true })
-    writeFileSync(schemaOutputFile, schemaDeclaration)
-
-    if (enumsDeclaration) writeFileSync(enumsOutputFile, enumsDeclaration)
-
-    const documentBundles = makeDocumentModelBundles(
-        documents,
-        context,
-        importMap,
-        config.scalars ?? {},
-        naming,
-        makeGenerationDirectivePolicies(directivePolicies)
-    )
-
-    assertUniqueDocumentModuleSpecifiers(documentBundles, documentModuleSpecifier)
-
-    return renderDeclarations(
-        documentBundles,
-        documentModuleSpecifier,
-        makeDeclarationModuleSpecifier(info.outputFile, schemaOutputFile, config.paths),
-        naming
-    )
+    return {
+        id: resolveModuleId(root, file, sourceId, config.resolve),
+        path: sourceId,
+        imports,
+        document: source.document,
+    }
 }
 
-export type { ConfigNamingConvention } from '../config'
-export type { DirectivePolicy } from '../directives/types'
-export type {
-    NamedObjectField,
-    ObjectFieldConfig,
-} from '../config/scalars'
-export type { PluginConfig } from '../config'
-export type { TsType } from '../config/scalars'
+const formatDiagnostic = (diagnostic: GenerationDiagnostic): string => {
+    const location = diagnostic.location!
 
-export {
-    arrayOf,
-    defineBoolean,
-    defineGeneric,
-    defineLiteral,
-    defineNamed,
-    defineNull,
-    defineNumber,
-    defineObject,
-    defineObjectField,
-    defineString,
-    defineTuple,
-    defineUnknown,
-    intersectionOf,
-    unionOf,
-    makeNullable,
-    renderType,
-} from '../config/scalars'
+    return `${diagnostic.sourceId}:${location.line}:${location.column} `
+        + `[${diagnostic.code}] ${diagnostic.message}`
+}
 
-export { NAMING_STYLE } from '../config'
-export { TS_TYPE_KIND } from '../config/scalars'
+const validateModuleIds = (sources: ReadonlyArray<ParsedDocumentSource>): void => {
+    const sourcePaths = new Map<string, string>()
+
+    for (const source of sources) {
+        const existingSourcePath = sourcePaths.get(source.id)
+        if (existingSourcePath && existingSourcePath !== source.path) {
+            throw new Error(
+                `Module ID "${source.id}" is resolved from both `
+                + `"${existingSourcePath}" and "${source.path}" in Codegen adapter`
+            )
+        }
+        sourcePaths.set(source.id, source.path)
+    }
+}
+
+export const plugin: PluginFunction<CodegenConfig, string> = async (
+    schema,
+    documents,
+    config
+) => {
+    validateCodegenConfig(config)
+
+    const root = resolve(config.root ?? process.cwd())
+    const schemaSource = printSchema(lexicographicSortSchema(schema))
+    const snapshot = createSchemaSnapshot(
+        new GraphQLSchemaView(schema),
+        `sha256:${createHash('sha256').update(schemaSource).digest('hex')}`
+    )
+    const sources = documents
+        .map((source, index) => resolveDocument(source, index, root, config))
+        .sort((left, right) => left.path.localeCompare(right.path))
+    validateModuleIds(sources)
+    const result = await generateDeclarations({
+        projectId: 'codegen',
+        schema: {
+            snapshot,
+            typesModule: config.typesModule,
+            enumsModule: config.enumsModule,
+            scalars: config.scalars,
+            directives: config.directives,
+            naming: config.naming,
+            typename: config.typename,
+        },
+        documents: sources,
+    })
+    const errors = result.diagnostics.filter(diagnostic => diagnostic.severity === 'error')
+
+    for (const warning of result.diagnostics.filter(
+        diagnostic => diagnostic.severity === 'warning'
+    )) {
+        console.warn(formatDiagnostic(warning))
+    }
+
+    if (errors.length) {
+        throw new Error([
+            'GraphQL declaration generation failed:',
+            ...errors.map(formatDiagnostic),
+        ].join('\n'))
+    }
+
+    return renderAggregate(result.outputs)
+}
+
+export type { CodegenConfig } from './codegen/types'
+export type { CodegenConfig as PluginConfig } from './codegen/types'

@@ -1,0 +1,12 @@
+scalar DateTime
+
+type Query {
+    customer(id: ID!): Customer!
+}
+
+type Customer {
+    id: ID!
+    name: String!
+    email: String!
+    updatedAt: DateTime!
+}

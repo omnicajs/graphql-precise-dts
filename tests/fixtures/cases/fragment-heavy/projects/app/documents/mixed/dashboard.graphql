@@ -1,0 +1,19 @@
+fragment DashboardUser on User {
+    id
+    name
+}
+
+query DashboardUsers {
+    users {
+        ...DashboardUser
+    }
+}
+
+query DashboardGroups {
+    groups {
+        id
+        owner {
+            ...DashboardUser
+        }
+    }
+}

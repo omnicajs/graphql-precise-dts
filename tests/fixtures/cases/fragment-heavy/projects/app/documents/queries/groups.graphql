@@ -1,0 +1,11 @@
+#import "../fragments/GroupDetails.graphql"
+#import "../fragments/UserIdentity.graphql"
+
+query Groups {
+    groups {
+        ...GroupDetails
+        members {
+            ...UserIdentity
+        }
+    }
+}

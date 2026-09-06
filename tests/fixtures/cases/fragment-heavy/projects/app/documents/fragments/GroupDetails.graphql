@@ -1,0 +1,10 @@
+#import "./NodeFields.graphql"
+#import "./UserIdentity.graphql"
+
+fragment GroupDetails on Group {
+    ...NodeFields
+    name
+    owner {
+        ...UserIdentity
+    }
+}

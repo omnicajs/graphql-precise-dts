@@ -1,0 +1,14 @@
+query Search(
+    $label: String = "root"
+    $nested: RecursiveFilter = { label: "nested" }
+    $choice: SearchChoice = { mode: EXACT }
+) {
+    search(options: {
+        choice: $choice
+        filter: {
+            label: $label
+            nested: $nested
+        }
+        tags: ["static", $label]
+    })
+}

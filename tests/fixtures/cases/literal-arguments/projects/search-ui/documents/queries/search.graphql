@@ -1,0 +1,13 @@
+query Search {
+    search(
+        filter: {
+            enabled: true
+            query: "term"
+            range: { min: 1, max: 5 }
+            statuses: [ACTIVE, PAUSED]
+        }
+        limit: 20
+    ) @visible(filter: { query: "visible", statuses: ACTIVE }) {
+        id
+    }
+}

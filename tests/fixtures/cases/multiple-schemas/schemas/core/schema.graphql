@@ -1,0 +1,7 @@
+type Query {
+    dashboard: CoreDashboard!
+}
+
+type CoreDashboard {
+    openOrders: Int!
+}

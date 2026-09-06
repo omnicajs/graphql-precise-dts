@@ -1,0 +1,9 @@
+fragment ViewerQueryVariables on User {
+    id
+}
+
+query Viewer($include: Boolean!) {
+    user {
+        ...ViewerQueryVariables @include(if: $include)
+    }
+}

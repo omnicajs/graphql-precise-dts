@@ -1,0 +1,27 @@
+fragment NodeValue on Node {
+    ... on A {
+        a
+    }
+    ... on B {
+        b
+    }
+}
+
+fragment NodeIdentity on Node {
+    id
+}
+
+fragment NodeWrapper on Node {
+    ...NodeValue
+}
+
+query OnlyA {
+    onlyA {
+        ...NodeIdentity
+        ...NodeWrapper
+        child {
+            ...NodeIdentity
+            ...NodeWrapper
+        }
+    }
+}

@@ -12,6 +12,12 @@
             "require": "./dist/index.cjs",
             "import": "./dist/index.mjs",
             "default": "./dist/index.mjs"
+        },
+        "./codegen": {
+            "types": "./dist/codegen.d.ts",
+            "require": "./dist/codegen.cjs",
+            "import": "./dist/codegen.mjs",
+            "default": "./dist/codegen.mjs"
         }
     },
     "sideEffects": false,
@@ -19,21 +25,22 @@
         "build": "vite build",
         "check:peer-deps": "fix-peer-deps",
         "check:peer-deps:fix": "fix-peer-deps --fix",
-        "generate:test-fixtures": "ts-node tests/fixtures/generate-fixtures.ts",
         "release": "standard-version",
         "release:minor": "standard-version --release-as minor",
         "release:patch": "standard-version --release-as patch",
         "release:major": "standard-version --release-as major",
-        "test:types": "vitest --typecheck run tests/types",
-        "test:units": "vitest run tests/units",
-        "tests": "yarn generate:test-fixtures && yarn test:types && yarn test:units",
+        "test:types": "vitest --typecheck.only run tests/integrations",
+        "test:units": "vitest run",
+        "tests": "yarn test:types && yarn test:units && yarn test:package",
         "test:coverage": "vitest run --coverage",
         "lint": "eslint .",
-        "lint:fix": "eslint . --fix"
+        "lint:fix": "eslint . --fix",
+        "test:package": "yarn build && node --test tests/package/codegen.node.mjs"
     },
     "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",
-        "graphql": "^16.12.0"
+        "graphql": "^16.12.0",
+        "zod": "^4.5.4"
     },
     "peerDependencies": {
         "@graphql-codegen/plugin-helpers": "^6.1.0"

@@ -1,0 +1,10 @@
+type User {
+    friend: User
+    id: ID!
+    name: String!
+    nickname: String
+}
+
+type Query {
+    user(id: ID!, locale: String): User!
+}

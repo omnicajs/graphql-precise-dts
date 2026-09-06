@@ -1,0 +1,46 @@
+directive @includeArchived(if: Boolean! = false) on FIELD
+
+scalar DateTime @specifiedBy(url: "https://example.test/date-time")
+
+interface Node {
+    id: ID!
+    updatedAt: DateTime!
+}
+
+type User implements Node {
+    id: ID!
+    updatedAt: DateTime!
+    name: String!
+}
+
+type Team implements Node {
+    id: ID!
+    updatedAt: DateTime!
+    title: String!
+}
+
+union SearchResult = User | Team
+
+enum SearchScope {
+    ALL
+    PEOPLE
+    TEAMS
+}
+
+input SearchWindow {
+    cursor: String
+    limit: Int = 20
+}
+
+input SearchFilter {
+    query: String!
+    limit: Int = 20
+    scope: SearchScope = ALL
+    tags: [String!]
+    window: SearchWindow
+}
+
+type Query {
+    search(filter: SearchFilter!, archived: Boolean = false): [SearchResult!]!
+    node(id: ID!): Node
+}

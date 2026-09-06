@@ -1,0 +1,18 @@
+interface Node {
+    id: ID!
+}
+
+type A implements Node {
+    id: ID!
+    a: String!
+    child: A!
+}
+
+type B implements Node {
+    id: ID!
+    b: String!
+}
+
+type Query {
+    onlyA: A
+}

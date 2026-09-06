@@ -1,0 +1,23 @@
+interface Node {
+    id: ID!
+}
+
+type Profile {
+    displayName: String!
+    nickname: String
+}
+
+type Team implements Node {
+    id: ID!
+    title: String!
+}
+
+type User implements Node {
+    id: ID!
+    name: String!
+    profile: Profile!
+}
+
+type Query {
+    node(id: ID!): Node!
+}

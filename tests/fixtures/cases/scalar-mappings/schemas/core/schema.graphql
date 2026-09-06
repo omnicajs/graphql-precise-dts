@@ -1,0 +1,7 @@
+scalar constructor
+scalar Timestamp
+
+type Query {
+    value: constructor!
+    event(at: Timestamp!): Timestamp!
+}

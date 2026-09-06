@@ -1,0 +1,77 @@
+"""ISO date-time string. Do not close */ generated documentation."""
+scalar DateTime @specifiedBy(url: "https://scalars.graphql.org/andimarek/date-time.html")
+
+"""Availability of a search result."""
+enum Status {
+    """The result is available."""
+    ACTIVE
+    """Kept for compatibility."""
+    INACTIVE @deprecated(reason: """
+        Use ACTIVE instead.
+        Do not close */ generated documentation.
+    """)
+}
+
+"""A globally identifiable result."""
+interface Node {
+    """Stable result identifier."""
+    id: ID!
+}
+
+interface Resource implements Node {
+    id: ID!
+}
+
+interface Orphan {
+    code: String
+}
+
+"""A person returned by search."""
+type User implements Node & Resource {
+    id: ID!
+    name: String!
+    nickname: String @deprecated(reason: "")
+    status: Status!
+    createdAt: DateTime!
+}
+
+type Team implements Node {
+    id: ID!
+    title: String!
+}
+
+"""A result returned by search."""
+union SearchResult = User | Team
+
+"""Numeric search boundaries."""
+input Range {
+    """Inclusive lower boundary."""
+    from: Int!
+    """Inclusive upper boundary."""
+    to: Int @deprecated(reason: "Use an open-ended range instead.")
+}
+
+"""Exactly one search discriminator."""
+input SearchFilter @oneOf {
+    """Free-text search."""
+    term: String
+    """Status search."""
+    status: Status
+}
+
+"""
+Search entrypoint.
+
+The blank description line is preserved.
+"""
+type Query {
+    """Find matching resources."""
+    search(
+        """Optional result discriminator."""
+        filter: SearchFilter
+        """Optional numeric boundaries."""
+        range: Range
+        """Maximum number of results."""
+        limit: Int = 10 @deprecated(reason: "The server now chooses the limit.")
+    ): [SearchResult!]!
+}

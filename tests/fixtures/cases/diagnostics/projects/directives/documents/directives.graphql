@@ -1,0 +1,14 @@
+query DirectiveEffects {
+    date @opaque
+    user(id: "1") @required {
+        id @review
+        ...UserStatus @review @required
+        ... on User @review {
+            status
+        }
+    }
+}
+
+fragment UserStatus on User {
+    status
+}

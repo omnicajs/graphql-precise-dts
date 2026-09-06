@@ -1,0 +1,4 @@
+fragment SharedDetails on User {
+    id
+    username
+}

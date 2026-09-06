@@ -1,0 +1,7 @@
+type Query {
+    dashboard: AnalyticsDashboard!
+}
+
+type AnalyticsDashboard {
+    activeVisitors: Int!
+}

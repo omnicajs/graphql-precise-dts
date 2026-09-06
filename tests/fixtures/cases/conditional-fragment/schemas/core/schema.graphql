@@ -1,0 +1,23 @@
+type User {
+    id: ID!
+    name: String!
+}
+
+interface Node {
+    id: ID!
+}
+
+type A implements Node {
+    id: ID!
+    a: String!
+}
+
+type B implements Node {
+    id: ID!
+    b: String!
+}
+
+type Query {
+    node: Node
+    user: User
+}
