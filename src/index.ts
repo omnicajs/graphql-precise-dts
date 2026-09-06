@@ -1,3 +1,75 @@
-export * from './integrations/codegen'
-export * from './config/scalars'
-export type { TsType } from './config/ts-type'
+export type {
+    CacheConfig,
+    Config,
+    DirectivePolicies,
+    DirectivePolicy,
+    FieldDirectivePolicy,
+    DocumentSelector,
+    ExecutionConfig,
+    NamingPolicy,
+    NamingStyle,
+    TypenamePolicy,
+    ProjectConfig,
+    ProjectsConfig,
+    ResolveConfig,
+    ScalarMapping,
+    ScalarMappings,
+    SchemaConfig,
+    SharedDirectivePolicy,
+    SchemaId,
+    SchemaOutputsConfig,
+    SchemasConfig,
+    TargetConfig,
+    TargetsConfig,
+} from './config/types'
+export type {
+    CheckDeclarationsResult,
+    DeclarationDifference,
+    GeneratedAggregateOutput,
+    GeneratedDeclarationOutput,
+    GeneratedSchemaOutput,
+    GenerateDeclarationsResult,
+    GenerationDiagnostic,
+    GenerationOutput,
+} from './types'
+export type {
+    DiagnosticCode,
+    DiagnosticSeverity,
+    SourceLocation,
+} from './generation/types'
+export type {
+    TsArrayType,
+    TsGenericType,
+    TsIntersectionType,
+    TsLiteralType,
+    TsNamedType,
+    TsNullType,
+    TsObjectField,
+    TsObjectFieldConfig,
+    TsObjectType,
+    TsType,
+    TsTupleType,
+    TsUnionType,
+    TsUnknownType,
+} from './config/ts-type'
+export { defineConfig } from './config/define'
+export {
+    arrayOf,
+    defineBoolean,
+    defineGeneric,
+    defineLiteral,
+    defineNamed,
+    defineNull,
+    defineNumber,
+    defineObject,
+    defineObjectField,
+    defineString,
+    defineTuple,
+    defineUnknown,
+    intersectionOf,
+    makeNullable,
+    unionOf,
+} from './config/scalars'
+export { checkDeclarations } from './check'
+export { generateDeclarations } from './generate'
+export { listProjects } from './projects'

@@ -24,12 +24,19 @@ export default mergeConfig(basic, defineConfig({
             provider: 'v8',
             reportsDirectory: './coverage',
             include: ['src/**'],
+            // The executable wrapper is exercised by test:package, outside Vitest instrumentation.
+            exclude: ['src/cli.ts'],
             reporter: [
                 'text',
                 'html',
                 'json',
                 'lcovonly',
             ],
+            thresholds: {
+                'src/**': {
+                    100: true,
+                },
+            },
         },
     },
 }))

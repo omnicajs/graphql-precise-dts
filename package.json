@@ -18,9 +18,14 @@
             "require": "./dist/codegen.cjs",
             "import": "./dist/codegen.mjs",
             "default": "./dist/codegen.mjs"
-        }
+        },
+        "./package.json": "./package.json"
     },
-    "sideEffects": false,
+    "bin": "./dist/cli.mjs",
+    "sideEffects": [
+        "./dist/cli.mjs",
+        "./dist/cli.cjs"
+    ],
     "scripts": {
         "build": "vite build",
         "check:peer-deps": "fix-peer-deps",
@@ -29,21 +34,28 @@
         "release:minor": "standard-version --release-as minor",
         "release:patch": "standard-version --release-as patch",
         "release:major": "standard-version --release-as major",
-        "test:types": "vitest --typecheck.only run tests/integrations",
+        "test:types": "vitest --typecheck.only run",
         "test:units": "vitest run",
+        "test:package": "yarn build && node tests/package-entrypoints.mjs && node --test tests/package/codegen.node.mjs",
         "tests": "yarn test:types && yarn test:units && yarn test:package",
         "test:coverage": "vitest run --coverage",
         "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
-        "test:package": "yarn build && node --test tests/package/codegen.node.mjs"
+        "lint:fix": "eslint . --fix"
     },
     "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",
         "graphql": "^16.12.0",
+        "jiti": "^2.6.1",
+        "yargs": "^17.7.2",
         "zod": "^4.5.4"
     },
     "peerDependencies": {
         "@graphql-codegen/plugin-helpers": "^6.1.0"
+    },
+    "peerDependenciesMeta": {
+        "@graphql-codegen/plugin-helpers": {
+            "optional": true
+        }
     },
     "devDependencies": {
         "@apollo/client": "^4.1.3",
@@ -51,6 +63,7 @@
         "@graphql-codegen/cli": "^6.1.1",
         "@graphql-codegen/plugin-helpers": "^6.1.0",
         "@types/node": "^25.2.0",
+        "@types/yargs": "^17.0.33",
         "@vitest/coverage-v8": "4.0.18",
         "@vitest/eslint-plugin": "^1.6.12",
         "eslint": "^10.0.3",
