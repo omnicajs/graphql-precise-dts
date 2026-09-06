@@ -59,6 +59,20 @@ input-field defaults, and selection conditionality determine optional properties
 at their respective boundaries; a scalar mapping is not a replacement for those
 GraphQL rules.
 
+## Checking the consumer contract
+
+An operation exports its variables, response payload, and a `TypedDocumentNode`
+declaration. Use `VariablesOf<typeof document>` and `ResultOf<typeof document>`
+from `@graphql-typed-document-node/core` to consume those types. The application
+must include the operation declarations and their schema dependencies in its
+[TypeScript project](MODULE_PATH_RESOLUTION.md#typescript-consumer-configuration).
+
+A schema output type describes the schema's fields; it is not the response type
+of every operation on that object. Use the operation payload for selected fields,
+aliases, and conditional properties. For example, a scalar mapped to `Date` on
+output requires the client to actually produce `Date` values; declarations alone
+do not convert JSON strings into dates.
+
 ## Data shape
 
 The public `TsType` union has `named`, `unknown`, `null`, `literal`, `array`,

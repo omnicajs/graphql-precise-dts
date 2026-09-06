@@ -286,10 +286,16 @@ just because reproducing it is inconvenient.
 
 ## Where to put scenarios and how to run checks
 
-Public API tests live in `tests/scenarios/`, fixtures in
-`tests/fixtures/cases/`, and integrations in `tests/integrations/`. Group a
+Public API scenarios live in `tests/scenarios/`, generated declaration contract
+tests in `tests/cases/`, fixtures in `tests/fixtures/cases/`, and integrations
+in `tests/integrations/`. Group a
 scenario by its observable contract — generation, configuration, diagnostics,
 filesystem, or execution — rather than by an internal module's name.
+
+Fixture helpers live in `tests/fixtures/`: `workspace.ts` owns disposable copies
+and reads saved expectations, while `generation.ts` calls the public generator
+for a single fixture project. Reuse these helpers in scenarios to keep temporary
+workspace ownership and public API calls consistent.
 
 Configuration type checks use `*.test-d.ts`. Consumers of generated declarations
 are compiled by real TypeScript. Built-package checks, including ESM/CJS and the
@@ -299,16 +305,60 @@ For changes to behavior or generated output, the required validation run is:
 
 ```bash
 yarn lint:fix
-yarn tests
+yarn test
 yarn test:coverage
 ```
 
-Use `yarn test:types` for public type checks and `yarn test:package` for built
-entrypoints. During local work, limit Vitest to the relevant scenario file,
-while retaining the complete validation run before handoff. The full `yarn tests`
+Use `yarn test:types` for public configuration and declaration type checks,
+`yarn test:cases` for all declaration cases, `yarn test:types:cases` for their
+`.test-d.ts` projects, and `yarn test:package` for built entrypoints. During local work, limit Vitest to the relevant scenario file,
+while retaining the complete validation run before handoff. The full `yarn test`
 command includes type checks, runtime scenarios that generate declarations in
 temporary workspaces, and package checks. [package.json](../../package.json) defines the commands, and
 [AGENTS.md](../../AGENTS.md) defines change requirements.
+
+`yarn test:types:api` checks only the public configuration and adapter types;
+`yarn test:runtime` runs all runtime tests. `test:coverage` runs that runtime
+suite with coverage thresholds, while `test:package` builds and verifies the
+published entrypoints. Script groups in `package.json` are build, lint, tests,
+dependency checks, and releases.
+
+Declaration tests have two independent obligations:
+
+1. `tests/cases/<case>/*.test-d.ts` validate the checked-in expectations in
+   `tests/fixtures/cases/<case>/expected/`, including valid values, counterexamples,
+   schema/enum contracts, and inference through real `TypedDocumentNode` types.
+2. `tests/cases/expectations.test.ts` calls the public generator in temporary
+   workspaces and compares every published file byte for byte with the same
+   expectations. The inventory check requires an explicit contract for every
+   fixture set and every active declaration artifact.
+
+Tests never regenerate their expectations. Changes to expectations must be
+intentional and reviewed alongside their consumer assertions. A fixture that
+must reject generation, such as `name-collisions`, has explicit runtime rejection
+checks instead of a fictitious declaration type test.
+
+`vitest.cases.config.ts` discovers static projects without invoking the generator.
+Each fixture has a scoped `tsconfig.json` (or `tsconfig.<target>.json`), with a
+matching configuration beside its `.test-d.ts` files. They share
+`tests/cases/tsconfig.base.json`, use `skipLibCheck: false`, resolve schema and enum
+modules to saved files, and use the installed dependency declarations. PhpStorm
+can therefore resolve the contracts immediately after checkout and dependency
+installation. No generated cache or test preparation is needed.
+
+The `single-schema-project` retains the original Apollo Client query, mutation,
+subscription, variable, and fragment assertions. Its tree and aggregate projects
+check the same consumers against separate saved declaration sets. Equivalent
+intersection shapes are checked in both assignability directions; negative
+examples use `@ts-expect-error`. The root configuration typecheck excludes these
+consumers; `yarn test:types` runs both public API and fixture contract checks.
+
+To add a declaration case, provide its inputs, saved outputs and diagnostic
+expectations, register its public configuration in `tests/cases/catalog.ts`, add
+scoped tsconfigs and `.test-d.ts` contracts, and run `yarn test:cases`. Include
+counterexamples that would fail if the intended field, nullability, union, alias,
+or variable contract were weakened. Compilation alone does not prove these
+semantic expectations.
 
 ### Measurement boundaries
 
@@ -342,3 +392,12 @@ Before handing off a change, verify that:
 
 When reporting readiness, name the behavior proved and the remaining measurement
 limitations. The percentage alone is not proof that the generator is correct.
+
+## File-module consumer contracts
+
+The `module-overlay`, `module-names`, and `client-typename` cases protect separate
+output trees, relative and alias resolution, fragment defaults, local export-name
+collisions, interfaces without implementations, enum-member casing, and abstract
+narrowing. Their saved `.d.ts` files are independent oracles: type tests validate
+them, then the public generator reproduces every file byte for byte. Aggregate
+oracles have separate tsconfigs so they cannot supply missing tree imports.
