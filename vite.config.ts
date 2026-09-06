@@ -29,7 +29,7 @@ export default mergeConfig(basic, defineConfig({
             name: '@omnicajs/graphql-precise-dts',
         },
         minify: false,
-        rollupOptions: {
+        rolldownOptions: {
             external: [
                 ...nodeBuiltins,
                 ...Object.keys(dependencies),

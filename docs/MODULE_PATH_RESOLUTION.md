@@ -105,12 +105,11 @@ the consumer can use this `tsconfig.json` at the configuration root:
     "noEmit": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "baseUrl": ".",
     "rootDirs": ["src", "generated/operations"],
     "paths": {
       "@app/graphql/*": ["./src/*", "./generated/operations/*"],
-      "@app/graphql/schema": ["generated/schema/schema.d.ts"],
-      "@app/graphql/enums": ["generated/schema/enums.ts"]
+      "@app/graphql/schema": ["./generated/schema/schema.d.ts"],
+      "@app/graphql/enums": ["./generated/schema/enums.ts"]
     }
   },
   "include": [

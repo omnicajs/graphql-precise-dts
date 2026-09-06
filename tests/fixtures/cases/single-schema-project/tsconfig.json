@@ -1,13 +1,12 @@
 {
     "extends": "../../../cases/tsconfig.base.json",
     "compilerOptions": {
-        "baseUrl": ".",
         "paths": {
             "@case/schema": [
-                "expected/schema.d.ts"
+                "./expected/schema.d.ts"
             ],
             "@case/enums": [
-                "expected/enums.ts"
+                "./expected/enums.ts"
             ],
             "~tests/fixtures/documents/fragments/GroupDetails.graphql": [
                 "./expected/app/fragments/GroupDetails.graphql.d.ts"

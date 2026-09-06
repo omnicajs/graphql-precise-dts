@@ -1,13 +1,12 @@
 {
     "extends": "../../../cases/tsconfig.base.json",
     "compilerOptions": {
-        "baseUrl": ".",
         "paths": {
             "@search/graphql/schema": [
-                "expected/schema.d.ts"
+                "./expected/schema.d.ts"
             ],
             "@search/graphql/enums": [
-                "expected/enums.ts"
+                "./expected/enums.ts"
             ],
             "queries/node.graphql": [
                 "./expected/search-ui/queries/node.graphql.d.ts"

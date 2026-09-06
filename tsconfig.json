@@ -5,10 +5,10 @@
         "moduleResolution": "nodenext",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
-        "baseUrl": "./",
+        "types": [ "node" ],
         "paths": {
-            "@/*": [ "src/*" ],
-            "~tests/": [ "tests/*" ],
+            "@/*": [ "./src/*" ],
+            "~tests/": [ "./tests/*" ],
         },
         "resolveJsonModule": true,
         "strict": true,
