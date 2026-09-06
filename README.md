@@ -34,7 +34,7 @@ The package exports are:
 
 ## Project API and CLI
 
-Create `graphql-precise-dts.config.ts`:
+Create `graphql-dts.config.ts`:
 
 ```ts
 import { defineConfig } from '@omnicajs/graphql-precise-dts'
