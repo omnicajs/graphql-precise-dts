@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         node-version: [ 22.x, 24.x ]
-        typescript-version: [ 5.5, 5.8, 5.9 ]
+        typescript-version: [ '5.5', '5.8', '5.9', '6.0' ]
 
     steps:
       - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
@@ -30,11 +30,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache-key-suffix: tests-typescript-${{ matrix.typescript-version }}
 
-      - name: Install specific TS
-        run: npm i -g typescript@${{ matrix.typescript-version }}
+      - name: Install the matrix TypeScript version locally
+        run: yarn add --dev typescript@~${{ matrix.typescript-version }}.0
 
       - name: Check TypeScript version
-        run: tsc --version
+        run: yarn tsc --version
 
       - name: Checking for peer dependency conflicts
         run: yarn check:peer-deps:fix
