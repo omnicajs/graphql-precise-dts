@@ -1,4 +1,4 @@
-import type { NamingConvention } from '../naming'
+import type { NamingConvention } from '../generation/naming'
 import type { SchemaOutputModel } from '../models/generation'
 
 const assertUniqueRenderedSchemaName = (

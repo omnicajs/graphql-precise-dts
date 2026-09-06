@@ -1,4 +1,4 @@
-import type { NamingConvention } from '../naming'
+import type { NamingConvention } from '../generation/naming'
 import type { ScalarModelShape } from '../models/types'
 import type { Scalars } from '../scalars/types'
 import type {
@@ -6,14 +6,14 @@ import type {
     SchemaObjectModel,
     SchemaOutputModel,
 } from '../models/generation'
-import type { TsType } from '../ts-type'
+import type { TsType } from '../config/scalars'
 
 import { assertUniqueRenderedSchemaNames } from '../diagnostics/schema-errors'
-import { createNamingConvention } from '../naming'
-import { indent } from '../lib/strings'
+import { createNamingConvention } from '../generation/naming'
+import { indent } from '../strings'
 import { isScalarPrimitiveKey } from '../scalars/builder'
 import { renderJsDoc } from './jsdoc'
-import { renderTsType } from '../ts-type'
+import { renderTsType } from '../config/scalars'
 
 import {
     arrayTsType,
@@ -22,10 +22,10 @@ import {
     namedTsType,
     tupleTsType,
     unionTsType,
-} from '../ts-type'
+} from '../config/scalars'
 
 import { GENERATED_ENUMS_FILE_NAME } from '../path'
-import { TS_TYPE_KIND } from '../ts-type'
+import { TS_TYPE_KIND } from '../config/scalars'
 
 const EXACT_TYPE_DECLARATION = 'export type Exact<T extends { [ key: string ]: unknown }> = { [ K in keyof T ]: T[K] }'
 const MAYBE_PROMISE_TYPE_DECLARATION = 'export type MaybePromise<T> = T | Promise<T>'

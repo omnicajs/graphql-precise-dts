@@ -4,7 +4,7 @@ import {
     test,
 } from 'vitest'
 
-import { createNamingConvention } from '../../src/naming'
+import { createNamingConvention } from '../../src/generation/naming'
 
 import { NAMING_STYLE } from '../../src'
 import { OperationTypeNode } from 'graphql'

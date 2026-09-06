@@ -1,9 +1,9 @@
 import type { DocumentModelBundle } from '../plan/document-model-bundles'
-import type { NamingConvention } from '../naming'
+import type { NamingConvention } from '../generation/naming'
 import type { RenderableDocumentModels } from '../plan/renderable/types'
 
 import { getOperationTypeName } from '../plan/naming'
-import { uncapitalize } from '../lib/strings'
+import { uncapitalize } from '../strings'
 
 const DECLARATION_NAME_SOURCE_KIND = {
     TYPE_IMPORT: 'typeImport',

@@ -1,4 +1,4 @@
-import type { NamingConvention } from '../../../src/naming'
+import type { NamingConvention } from '../../../src/generation/naming'
 
 import {
     describe,
@@ -7,7 +7,7 @@ import {
     vi,
 } from 'vitest'
 
-import { createNamingConvention } from '../../../src/naming'
+import { createNamingConvention } from '../../../src/generation/naming'
 import { makeGenerationDirectivePolicies } from '../../../src/directives/structural-policies'
 import { makePlannedDocumentModels } from '../../../src/plan/planned'
 import { prepareRenderableDocumentModels } from '../../../src/plan/renderable/prepare-models'

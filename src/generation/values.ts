@@ -1,17 +1,17 @@
-import type { ModelContext } from './types/context'
+import type { ModelContext } from '../models/types/context'
 import type { ScalarUsage } from '../scalars/types'
-import type { SelectionModel } from './types/selection'
+import type { SelectionModel } from '../models/types/selection'
 
 import type {
     TypeFieldNode,
     TypeSelectionNode,
-} from './selection'
+} from '../models/selection'
 
 import type {
     FieldValue,
     ScalarValue,
     VariableValue,
-} from './types/value'
+} from '../models/types/value'
 
 import type {
     FieldNode,
@@ -29,7 +29,7 @@ import {
     makeTypeRefForVariable,
     shouldBuildTypeSelectionUnion,
     specializeTypenameSelections,
-} from './resolve'
+} from '../models/resolve'
 
 import {
     getNamedType,
@@ -43,7 +43,7 @@ import {
 import {
     makeSelectionModels,
     makeSelectionsForFields,
-} from './selections-builder'
+} from './selections'
 
 import {
     SELECTION_MODEL_KIND,

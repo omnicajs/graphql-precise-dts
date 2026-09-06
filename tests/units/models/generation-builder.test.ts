@@ -4,7 +4,7 @@ import {
     test,
 } from 'vitest'
 
-import { buildGenerationModels } from '../../../src/models/generation-builder'
+import { buildGenerationModels } from '../../../src/generation/compile'
 import { buildSchema } from 'graphql'
 import { defineNamed } from '../../../src'
 import { makeTestModelContext } from '../helpers/model-context'

@@ -1,7 +1,7 @@
 import type { EnumModel } from './types/type-ref'
 import type { FragmentModel } from './types/document'
 import type { ScalarModelShape } from './types/type-ref'
-import type { TsType } from '../ts-type'
+import type { TsType } from '../config/scalars'
 
 export type SchemaObjectModel = {
     fields: TsType;

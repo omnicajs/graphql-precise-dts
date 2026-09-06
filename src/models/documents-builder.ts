@@ -21,8 +21,8 @@ import { TypeInfo } from 'graphql'
 
 import { getRootTypeForOperation } from '../lib/operations'
 import { isUndefined } from '../lib/predicates'
-import { makeSelectionModels } from './selections-builder'
-import { makeVariableValue } from './value-builder'
+import { makeSelectionModels } from '../generation/selections'
+import { makeVariableValue } from '../generation/values'
 
 import {
     filterSelectionsForConcreteType,

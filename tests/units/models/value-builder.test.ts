@@ -17,7 +17,7 @@ import { makeTestModelContext } from '../helpers/model-context'
 import {
     makeFieldValue,
     makeVariableValue,
-} from '../../../src/models/value-builder'
+} from '../../../src/generation/values'
 
 import {
     buildSchema,

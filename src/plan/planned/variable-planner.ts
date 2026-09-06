@@ -1,6 +1,6 @@
 import type { CustomScalarMappingRecord } from '../../scalars/types'
 import type { NameAllocator } from './name-allocator'
-import type { NamingConvention } from '../../naming'
+import type { NamingConvention } from '../../generation/naming'
 
 import type {
     OperationModel,
@@ -16,7 +16,7 @@ import type {
 } from './types'
 
 import { buildScalarValue } from './shared'
-import { createNamingConvention } from '../../naming'
+import { createNamingConvention } from '../../generation/naming'
 import { makeVariableShapeSignature } from './normalize/shape-signature'
 
 import { VALUE_MODEL_KIND } from '../../kinds'
