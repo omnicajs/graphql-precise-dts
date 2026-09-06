@@ -1,10 +1,9 @@
 {
     "extends": "../../../cases/tsconfig.base.json",
     "compilerOptions": {
-        "baseUrl": ".",
         "paths": {
             "@app/graphql/core/schema": [
-                "expected/core/schema.d.ts"
+                "./expected/core/schema.d.ts"
             ],
             "core/dashboard.graphql": [
                 "./expected/app/core/dashboard.graphql.d.ts"
