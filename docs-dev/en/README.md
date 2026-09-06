@@ -9,6 +9,12 @@ the [user guide](../../docs/README.md).
 
 ## Development
 
+Use Node.js 24 and the Yarn version declared in `package.json`. The development
+compiler is TypeScript 6.0; its range stays below 6.1 while `typescript-eslint`
+requires that upper bound. CI installs each matrix compiler locally and runs
+type checks, runtime coverage, and built-package checks with TypeScript 5.5,
+5.8, 5.9, and 6.0 on Node.js 22 and 24.
+
 Source code lives in `src/`; public scenarios and integration checks live in
 `tests/`. Declarations are generated in temporary test workspaces and compared
 with committed expectations in `tests/fixtures/cases/`. `tests/cases/` separately
