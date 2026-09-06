@@ -1,251 +1,65 @@
 # Naming
 
-The plugin can normalize generated TypeScript identifiers with `namingConvention`.
+Naming changes generated TypeScript identifiers. GraphQL response keys, argument
+names, input keys, variables, and enum member names keep their runtime spelling.
+A field alias determines its response key at every selection level.
 
-By default, the plugin normalizes generated TypeScript identifiers that are not runtime GraphQL object keys.
-Schema type names, enum member identifiers, operation declaration base names, and fragment export names use PascalCase.
-Field names, input field names, field argument names, and operation variable names stay unchanged.
+## Configuration
 
-## Config Shape
+Set `schemas.<id>.naming` in the project API or `naming` in the Codegen adapter:
 
 ```ts
-const NAMING_STYLE = {
-  KEEP: 'keep',
-  PASCAL_CASE: 'pascalCase',
-  CAMEL_CASE: 'camelCase',
-  SNAKE_CASE: 'snakeCase',
-} as const
-
-type NAMING_STYLE = typeof NAMING_STYLE[keyof typeof NAMING_STYLE]
-
-type NamingConventionConfig = {
-  typeNames?: NAMING_STYLE
-  enumValues?: NAMING_STYLE
-  operationNames?: NAMING_STYLE
-  fragmentNames?: NAMING_STYLE
-  transformUnderscore?: boolean
-}
+naming: 'pascalCase'
 ```
 
-Short form:
+A style applies to type, operation, and fragment names. The object form controls
+the three categories separately:
 
 ```ts
-{
-  namingConvention: 'pascalCase',
-}
-```
-
-With exported constants:
-
-```ts
-import { NAMING_STYLE } from '@omnicajs/graphql-precise-dts'
-
-{
-  namingConvention: NAMING_STYLE.PASCAL_CASE,
-}
-```
-
-Object form:
-
-```ts
-{
-  namingConvention: {
-    typeNames: 'pascalCase',
-    enumValues: NAMING_STYLE.KEEP,
-  },
-}
-```
-
-## Defaults
-
-```ts
-{
+naming: {
   typeNames: 'pascalCase',
-  enumValues: 'pascalCase',
-  operationNames: 'pascalCase',
-  fragmentNames: 'pascalCase',
-  transformUnderscore: true,
+  operationNames: 'camelCase',
+  fragmentNames: 'keep',
 }
 ```
 
-The short string form configures `typeNames`, `enumValues`, `operationNames`, and `fragmentNames`. Runtime GraphQL keys
-are not configurable, so GraphQL response objects and variable objects always keep their original keys.
+Supported styles are `keep`, `pascalCase`, `camelCase`, and `snakeCase`.
+`typeNames` defaults to `pascalCase`; omitted operation and fragment styles
+inherit `typeNames`. There is no runtime-key naming policy.
 
-## Supported Style Examples
+## Operation names
 
-The same source name can render differently depending on the configured style:
+The operation kind participates in generated names. An existing matching trailing
+kind is not duplicated. For a query named `FetchUser`, the default base is
+`FetchUserQuery`; related exports use `FetchUserQueryVariables` and
+`FetchUserQueryPayload`. The document value starts with a lowercase first letter.
+The `keep` style preserves the operation's spelling and appends derived suffixes
+in PascalCase. Names are checked for collisions before rendering.
 
-| Source | `keep` | `pascalCase` | `camelCase` | `snakeCase` |
-| --- | --- | --- | --- | --- |
-| `user_profile` | `user_profile` | `UserProfile` | `userProfile` | `user_profile` |
-| `userProfileID` | `userProfileID` | `UserProfileId` | `userProfileId` | `user_profile_id` |
-| `IS_ACTIVE` | `IS_ACTIVE` | `IsActive` | `isActive` | `is_active` |
-
-Uppercase acronym runs are treated as words, then normalized according to the selected style. For example,
-`fetchHTTP2Bots` becomes `FetchHttp2Bots`, `fetchHttp2Bots`, or `fetch_http2_bots`.
-
-Names that do not contain word characters are preserved instead of normalized. For example, `___` stays `___`.
-
-`namingConvention` controls generated TypeScript identifiers, so supported styles must render valid TypeScript names.
-
-## What Each Category Controls
-
-| Category | Applies to | Default |
-| --- | --- | --- |
-| `typeNames` | schema object types, input object types, interfaces, unions, enum type names, generated schema references | `pascalCase` |
-| `enumValues` | TypeScript enum member identifiers | `pascalCase` |
-| `operationNames` | operation declaration base names | `pascalCase` |
-| `fragmentNames` | fragment declaration export names and fragment spread references | `pascalCase` |
-
-## Derived Generated Names
-
-Some generated TypeScript identifiers do not have dedicated config fields. They are derived from the configured
-categories:
-
-| Generated name | Derived from |
-| --- | --- |
-| operation payload, variables, and document base names | `operationNames` |
-| operation type suffixes, such as `Query`, `Mutation`, and `Subscription` | `operationNames` |
-| field argument helper names, such as `QueryRootUserProfileArgs` | `typeNames` |
-| variable alias names, such as `UserFilterInputAlias` | `typeNames` |
-| output alias names, such as `UserProfileAlias` | `typeNames` |
-
-For example, `query_root.user_profile` arguments become `QueryRootUserProfileArgs` by default.
-
-Operation names that already end with their operation type do not receive the suffix twice:
+## Response aliases
 
 ```graphql
-query FetchUserQuery {
-  user {
-    id
+query FetchUser($id: ID!) {
+  payload: user(id: $id) {
+    userId: id
+    displayName: name
   }
 }
 ```
 
-renders operation exports with the `FetchUserQuery` base name, not `FetchUserQueryQuery`.
+The response contains `payload`, `userId`, and `displayName`. Naming configuration
+does not change these keys. A `kind: __typename` selection retains `kind` as its
+response key and uses concrete GraphQL type names as string literal values.
 
-When `operationNames` is `keep`, the source operation name is preserved, while plugin-added suffixes use PascalCase:
+## Schema and enum names
 
-```ts
-{
-  namingConvention: {
-    operationNames: NAMING_STYLE.KEEP,
-  },
-}
-```
+`typeNames` controls schema type identifiers and field-argument type identifiers.
+Enum type names follow this policy, while enum member names and serialized values
+are preserved. Distinct GraphQL names that normalize to conflicting declarations
+produce an error rather than silently sharing a TypeScript type.
 
-For an operation named `get_user`, generated operation exports use names such as `get_userQuery`,
-`get_userQueryVariables`, and `get_userQueryPayload`.
+Type and value namespaces are checked separately. Module imports, fragment
+exports, input declarations, and operation types also participate in the
+appropriate collision checks.
 
-If an operation name has no word characters, the source name is preserved before plugin-added suffixes:
-
-| `operationNames` | Operation name | Query base name |
-| --- | --- | --- |
-| `pascalCase` | `___` | `___Query` |
-| `camelCase` | `___` | `___Query` |
-| `snakeCase` | `___` | `____query` |
-| `keep` | `___` | `___Query` |
-
-## Examples
-
-Given this schema:
-
-```graphql
-schema {
-  query: query_root
-}
-
-enum user_status {
-  IS_ACTIVE
-}
-
-input user_filter {
-  user_status: user_status
-}
-
-type user_profile {
-  user_id: ID!
-  status: user_status!
-}
-
-type query_root {
-  user_profile(filter_by: user_filter): user_profile
-}
-```
-
-Default output uses PascalCase for generated identifiers and keeps field/argument keys:
-
-```ts
-export enum UserStatus {
-  IsActive = 'IS_ACTIVE',
-}
-
-export type UserFilter = {
-  user_status?: UserStatus | null;
-}
-
-export type UserProfile = {
-  __typename?: 'user_profile';
-  user_id: Scalars['ID']['output'];
-  status: UserStatus;
-}
-
-export type QueryRootUserProfileArgs = {
-  filter_by?: UserFilter | null;
-}
-```
-
-To keep GraphQL enum member names:
-
-```ts
-{
-  namingConvention: {
-    enumValues: NAMING_STYLE.KEEP,
-  },
-}
-```
-
-renders:
-
-```ts
-export enum UserStatus {
-  IS_ACTIVE = 'IS_ACTIVE',
-}
-```
-
-## Runtime Key Caveat
-
-Fields, input fields, arguments, and operation variables are GraphQL runtime keys. The plugin always keeps them
-unchanged so generated types match the actual JSON and variables used by GraphQL.
-
-For example, a GraphQL field named `first_name` is returned as:
-
-```json
-{ "first_name": "Ada" }
-```
-
-not:
-
-```json
-{ "firstName": "Ada" }
-```
-
-These runtime key categories are intentionally not part of `namingConvention`.
-
-`__typename` string literal values always remain GraphQL runtime type names. If a schema type is named `user_profile`,
-the generated type declaration may be `UserProfile`, but `__typename` remains `'user_profile'`.
-
-## Collision Handling
-
-Names are validated after normalization, at the point where generated TypeScript identifiers are rendered.
-
-Generation fails with a collision diagnostic when different GraphQL names render to the same TypeScript identifier in
-the same generated namespace. This includes:
-
-- schema declaration names, such as object, input, interface, union, enum, and generated field argument helper names;
-- enum member names inside the same enum declaration;
-- document declaration exports, such as fragment types, operation payload/variables types, operation document values,
-  imported fragment/enum types, and generated reusable aliases.
-
-For example, with the default `pascalCase` style, schema types named `UserStatus` and `user_status` both render as
-`UserStatus`; generation fails instead of silently overwriting one declaration.
+See [diagnostics](DIAGNOSTICS.md) and [module paths](MODULE_PATH_RESOLUTION.md).

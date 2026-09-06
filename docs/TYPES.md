@@ -1,234 +1,73 @@
-# Types
+# Structural TypeScript types
 
-`@omnicajs/graphql-precise-dts` uses a structural `TsType` model for custom scalar mappings and directive
-`override-type` policies.
+Scalar mappings and field overrides use `TsType` values, not TypeScript source
+strings. Import constructors and their public types from
+`@omnicajs/graphql-precise-dts`.
 
-String-based type config is not supported. Custom types must be built with the exported helpers.
+## Constructors
 
-## Public API
+| Constructor | Meaning |
+|---|---|
+| `defineString()`, `defineNumber()`, `defineBoolean()` | Primitive named types |
+| `defineNamed(name)` | Named type reference; `unknown` uses the dedicated unknown variant |
+| `defineUnknown()`, `defineNull()` | `unknown`, `null` |
+| `defineLiteral(value)` | String, number, or boolean literal |
+| `arrayOf(type)` | Array of a structural type |
+| `unionOf(first, ...rest)` | Union |
+| `intersectionOf(first, ...rest)` | Intersection |
+| `defineGeneric(name, first, ...rest)` | Generic type application |
+| `defineTuple(...items)` | Tuple, including the empty tuple |
+| `defineObject(fields)` | Object from a keyed field map |
+| `defineObjectField(type, optional?)` | Object field configuration; required by default |
+| `makeNullable(type)` | Union with `null` |
 
-Import helpers from the package root:
+Groups flatten nested groups of the same kind, normalize nested values, remove
+structural duplicates, and collapse a single remaining member. Constructors
+return data; generation renders it in the appropriate scalar or field context.
+
+## Scalar directions
+
+A mapping can apply to both input and output or configure them independently:
 
 ```ts
 import {
-  TS_TYPE_KIND,
-  arrayOf,
-  defineBoolean,
-  defineGeneric,
-  defineLiteral,
   defineNamed,
-  defineNull,
-  defineNumber,
+  defineString,
   defineObject,
   defineObjectField,
-  defineString,
-  defineTuple,
-  defineUnknown,
-  intersectionOf,
+  defineBoolean,
   unionOf,
-  makeNullable,
-  renderType,
+  defineNull,
 } from '@omnicajs/graphql-precise-dts'
-```
 
-## TsType
-
-```ts
-type TsType =
-  | { kind: TS_TYPE_KIND.NAMED; name: string }
-  | { kind: TS_TYPE_KIND.NULL }
-  | { kind: TS_TYPE_KIND.UNKNOWN }
-  | { kind: TS_TYPE_KIND.ARRAY; ofType: TsType }
-  | { kind: TS_TYPE_KIND.UNION; types: TsType[] }
-  | { kind: TS_TYPE_KIND.INTERSECTION; types: TsType[] }
-  | { kind: TS_TYPE_KIND.GENERIC; name: string; args: TsType[] }
-  | { kind: TS_TYPE_KIND.OBJECT; fields: NamedObjectField[] }
-  | { kind: TS_TYPE_KIND.TUPLE; items: TsType[] }
-  | { kind: TS_TYPE_KIND.LITERAL; value: string | number | boolean }
-
-type ObjectFieldConfig = {
-  type: TsType
-  optional: boolean
-}
-
-type NamedObjectField = {
-  name: string
-} & ObjectFieldConfig
-```
-
-Recommended usage is through helpers instead of manual object construction.
-
-## Available Operations
-
-- `defineNamed('Date')` for named references and primitives like `string`, `number`, `boolean`
-- `defineNull()` for `null`
-- `defineUnknown()` for `unknown`
-- `arrayOf(type)` for `Array<T>`
-- `unionOf(a, b, c)` for `A | B | C`
-- `intersectionOf(a, b, c)` for `A & B & C`
-- `defineGeneric('Record', defineString(), defineNamed('User'))` for `Record<string, User>`
-- `defineObject({ id: defineObjectField(defineString()) })` for object literals
-- `defineTuple(defineString(), defineNumber())` for tuples
-- `defineLiteral('User')`, `defineLiteral(true)`, `defineLiteral(1)` for literal values
-- `makeNullable(type)` as a convenience wrapper over `unionOf(type, defineNull())`
-- `renderType(type)` for debug rendering and tests
-
-## Config Usage
-
-### Scalars
-
-```ts
-{
-  scalars: {
-    DateTime: defineString(),
-    Timestamp: {
-      input: defineString(),
-      output: defineNamed('Date'),
-    },
-  },
+const scalars = {
+  DateTime: { input: defineString(), output: defineNamed('Date') },
+  Metadata: defineObject({
+    id: defineObjectField(defineString()),
+    archived: defineObjectField(defineBoolean(), true),
+  }),
+  OptionalDate: unionOf(defineNamed('Date'), defineNull()),
 }
 ```
 
-Nullable scalar output:
+Put mappings under `schemas.<id>.scalars` in the project API or `scalars` in the
+Codegen adapter configuration. Named types must be available to the TypeScript
+consumer; a `defineNamed` call does not install a package or declare that type.
 
-```ts
-{
-  scalars: {
-    DateTime: {
-      output: unionOf(defineNamed('Date'), defineNull()),
-    },
-  },
-}
-```
+GraphQL wrappers still control list and field nullability. Variable defaults,
+input-field defaults, and selection conditionality determine optional properties
+at their respective boundaries; a scalar mapping is not a replacement for those
+GraphQL rules.
 
-### Directive Override Types
+## Data shape
 
-```ts
-{
-  directivePolicies: {
-    opaque: {
-      effect: 'override-type',
-      type: defineNamed('OpaqueId'),
-    },
-  },
-}
-```
+The public `TsType` union has `named`, `unknown`, `null`, `literal`, `array`,
+`union`, `intersection`, `generic`, `object`, and `tuple` variants. In particular,
+a generic stores `arguments`, an array stores `ofType`, and an object stores a
+list of `{ name, type, optional }` fields. Prefer constructors for normalization
+and use the exported `TsType` interfaces when authoring typed configuration.
 
-If the override must apply only to a specific selection kind, you can still scope it:
+Runtime configuration validation checks these structures before generation.
+An arbitrary string such as `"Date | null"` is not a scalar mapping.
 
-```ts
-{
-  directivePolicies: {
-    opaque: {
-      field: {
-        effect: 'override-type',
-        type: defineNamed('OpaqueId'),
-      },
-    },
-  },
-}
-```
-
-## Examples
-
-### Generic
-
-```ts
-defineGeneric('Record', defineString(), defineNamed('User'))
-```
-
-Renders as:
-
-```ts
-Record<string, User>
-```
-
-### Intersection
-
-```ts
-intersectionOf(
-  defineNamed('UserBase'),
-  defineGeneric('Partial', defineNamed('UserMeta')),
-)
-```
-
-Renders as:
-
-```ts
-UserBase & Partial<UserMeta>
-```
-
-### Tuple
-
-```ts
-defineTuple(defineString(), defineNull(), defineNamed('User'))
-```
-
-Renders as:
-
-```ts
-[string, null, User]
-```
-
-### Object
-
-```ts
-defineObject({
-  id: defineObjectField(defineString()),
-  active: defineObjectField(defineBoolean(), true),
-})
-```
-
-Renders as:
-
-```ts
-{
-  id: string;
-  active?: boolean;
-}
-```
-
-## Scope of the Model
-
-`ObjectFieldConfig` is the public input helper shape for `defineObject(...)`.
-`NamedObjectField` is the normalized internal object-member representation stored inside `TsType`.
-Both types are exported so consumers can build object-member values either through the provided helpers or manually
-when that is more convenient for their use case.
-
-Example:
-
-```ts
-defineObject({
-  id: defineObjectField(defineString()),
-  profile: defineObjectField(
-    defineObject({
-      displayName: defineObjectField(defineString()),
-    }),
-    true,
-  ),
-})
-```
-
-Only the supported structural operations can be used in config. If a needed TypeScript shape is missing, the model
-should be extended explicitly rather than bypassed with arbitrary strings.
-
-## Responsibility Boundaries
-
-The plugin provides a structural TypeScript type model and renders it as declared, but it does not act as a full
-TypeScript type checker for custom type expressions.
-
-The plugin does not validate:
-
-- whether a named type such as `defineNamed('UserId')` actually exists in your TypeScript environment;
-- whether a generic type such as `defineGeneric('Record', ...)` exists in your project;
-- whether the number of generic arguments matches what the target generic expects;
-- whether generic arguments are supplied in a semantically correct order;
-- whether the chosen argument shapes are semantically valid for a given generic;
-- whether intersections or unions are meaningful in your domain model beyond their structural rendering;
-- whether object field names or compositions conflict with external types you intersect or wrap;
-- whether a custom type expression is actually imported or otherwise available where the generated declarations are consumed.
-
-In practice this means:
-
-- the plugin guarantees only structural rendering of the configured `TsType`;
-- TypeScript semantic correctness remains the responsibility of the user and the downstream consumer type-checking step.
+See [configuration examples](../README.md) and [directives](DIRECTIVES.md).

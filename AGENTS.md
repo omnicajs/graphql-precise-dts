@@ -35,8 +35,10 @@ for the corresponding GraphQL operations.
 - Main source directories:
   - `src/` - runtime implementation;
   - `tests/` - vitest test suite;
-  - `tests/types` - type-level testing;
-  - `tests/units` - unit testing.
+  - `tests/scenarios/` - public API scenarios;
+  - `tests/integrations/` - CLI and Codegen integration checks;
+  - `tests/**/*.test-d.ts` - public type checks;
+  - `tests/package*` - built package and real-process checks.
 - Coverage output directory: `coverage/`.
 
 ## Local Environment Prerequisites
@@ -58,19 +60,19 @@ yarn check:peer-deps:fix
 yarn lint
 yarn lint:fix
 ```
-- Launching the plugin with test code generation:
+- Built package, CLI, and Codegen integration:
 ```bash
-yarn generate:test-fixtures
+yarn test:package
 ```
 - Type-level tests:
 ```bash
 yarn test:types
 ```
-- Unit tests:
+- Public runtime scenarios:
 ```bash
 yarn test:units
 ```
-- Type-level and unit tests:
+- Type checks, runtime scenarios, and package checks:
 ```bash
 yarn tests
 ```
