@@ -12,6 +12,8 @@ import { runCli } from '@/cli/run'
 import { createFixtureWorkspace } from '../fixtures/workspace'
 import {
     existsSync,
+    mkdirSync,
+    readFileSync,
     rmSync,
     writeFileSync,
 } from 'node:fs'
@@ -19,7 +21,7 @@ import { resolve } from 'node:path'
 
 const fixtureWorkspace = createFixtureWorkspace()
 const root = resolve(fixtureWorkspace.root, 'cli')
-const configFile = resolve(root, 'graphql-precise-dts.config.ts')
+const configFile = resolve(root, 'graphql-dts.config.ts')
 let stdout = ''
 let stderr = ''
 const environment: CliEnvironment = {
@@ -104,6 +106,46 @@ describe('CLI application integration', () => {
     test('lists projects from an explicit TypeScript config', async () => {
         expect(await runCli(['list', '--config', configFile], environment)).toBe(0)
         expect(stdout).toBe('app\n')
+        expect(stderr).toBe('')
+    })
+
+    test.each(['ts', 'mts', 'js', 'mjs'])('discovers graphql-dts.config.%s automatically', async extension => {
+        const workspace = createFixtureWorkspace()
+        const cwd = resolve(workspace.root, 'cli')
+        const source = resolve(cwd, 'graphql-dts.config.ts')
+        const config = readFileSync(source, 'utf8')
+            .replace('const root: string', 'const root')
+            .replace('} as const', '}')
+        rmSync(source)
+        writeFileSync(resolve(cwd, `graphql-dts.config.${extension}`), config)
+
+        try {
+            expect(await runCli(['list'], { ...environment, cwd }), stderr).toBe(0)
+            expect(stdout).toBe('app\n')
+            expect(stderr).toBe('')
+        } finally {
+            workspace.dispose()
+        }
+    })
+
+    test.each(['relative', 'absolute'])('uses a custom config with a %s path for every command', async mode => {
+        const relativeFile = 'configuration/custom.ts'
+        const customFile = resolve(root, relativeFile)
+        mkdirSync(resolve(root, 'configuration'), { recursive: true })
+        writeFileSync(customFile, readFileSync(configFile, 'utf8').replace(
+            'const root: string = __dirname',
+            `const root: string = ${JSON.stringify(root)}`
+        ).replace('        app: {', '        custom: {'))
+        const file = mode === 'relative' ? relativeFile : customFile
+
+        expect(await runCli(['generate', '--config', file], environment)).toBe(0)
+        expect(stdout).toBe('Generated 1 declaration files.\n')
+        stdout = ''
+        expect(await runCli(['check', '--config', file], environment)).toBe(0)
+        expect(stdout).toBe('Declarations are up to date.\n')
+        stdout = ''
+        expect(await runCli(['list', '--config', file], environment)).toBe(0)
+        expect(stdout).toBe('custom\n')
         expect(stderr).toBe('')
     })
 

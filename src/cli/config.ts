@@ -6,10 +6,10 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const defaultConfigFiles = [
-    'graphql-precise-dts.config.ts',
-    'graphql-precise-dts.config.mts',
-    'graphql-precise-dts.config.js',
-    'graphql-precise-dts.config.mjs',
+    'graphql-dts.config.ts',
+    'graphql-dts.config.mts',
+    'graphql-dts.config.js',
+    'graphql-dts.config.mjs',
 ]
 
 const resolveConfigFile = (cwd: string, requestedFile?: string): string => {
