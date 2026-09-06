@@ -1,17 +1,15 @@
-declare module 'core/dashboard.graphql' {
-	import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
-	export type DashboardQueryVariables = { [key: string]: never }
+export type DashboardQueryVariables = { [key: string]: never }
 
-	export type DashboardQueryPayload = {
-		__typename?: 'Query';
-		dashboard: {
-			__typename?: 'CoreDashboard';
-			openOrders: number;
-		};
-	}
-
-	export const dashboardQuery: TypedDocumentNode<DashboardQueryPayload, DashboardQueryVariables>
-
-	export default dashboardQuery
+export type DashboardQueryPayload = {
+	__typename?: 'Query';
+	dashboard: {
+		__typename?: 'CoreDashboard';
+		openOrders: number;
+	};
 }
+
+export const dashboardQuery: TypedDocumentNode<DashboardQueryPayload, DashboardQueryVariables>
+
+export default dashboardQuery

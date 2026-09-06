@@ -1,7 +1,0 @@
-fragment UserDetails on User {
-    id
-    username
-    firstName
-    lastName
-    isOnline
-}

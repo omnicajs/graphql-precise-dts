@@ -1,0 +1,3 @@
+interface Base { id: ID! }
+interface Specialized implements Base { id: ID! label: String! }
+type Query { item: Specialized! }

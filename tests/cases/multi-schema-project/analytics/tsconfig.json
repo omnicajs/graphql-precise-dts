@@ -1,0 +1,3 @@
+{
+    "extends": "../../../fixtures/cases/multi-schema-project/tsconfig.analytics.json"
+}

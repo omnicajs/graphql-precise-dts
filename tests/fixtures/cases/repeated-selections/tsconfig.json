@@ -1,0 +1,25 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "queries/skipped.graphql": [
+                "./expected/app/queries/skipped.graphql.d.ts"
+            ],
+            "queries/user.graphql": [
+                "./expected/app/queries/user.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/app/queries/skipped.graphql.d.ts",
+        "expected/app/queries/user.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/repeated-selections/*.test-d.ts"
+    ]
+}

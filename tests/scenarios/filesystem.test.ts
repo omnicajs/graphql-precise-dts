@@ -15,7 +15,7 @@ import {
     defineString,
     generateDeclarations,
 } from '@/index'
-import { createFixtureWorkspace } from '../fixture-workspace'
+import { createFixtureWorkspace } from '../fixtures/workspace'
 import {
     existsSync,
     mkdirSync,
@@ -670,7 +670,7 @@ describe('experimental filesystem public API', () => {
                         core: {
                             schema: 'core',
                             documents: { files: ['queries/users.graphql'] },
-                            outputs: { tree: { root: 'generated/app' } },
+                            outputs: { tree: { root: 'generated/app' }, aggregate: { file: 'aggregate.d.ts' } },
                         },
                     },
                 },
@@ -681,7 +681,7 @@ describe('experimental filesystem public API', () => {
             sourceId: 'queries/users.graphql',
             file: 'generated/app/queries/users.graphql.d.ts',
         })
-        expect(result.outputs[0]?.content).toContain(
+        expect(result.outputs[1]?.content).toContain(
             'declare module \'@documents/queries/users.graphql\''
         )
     })
@@ -707,14 +707,14 @@ describe('experimental filesystem public API', () => {
                         core: {
                             schema: 'core',
                             documents: { files: ['queries/users.graphql'] },
-                            outputs: { tree: { root: 'generated/app' } },
+                            outputs: { tree: { root: 'generated/app' }, aggregate: { file: 'aggregate.d.ts' } },
                         },
                     },
                 },
             },
         }))
 
-        expect(result.outputs[0]?.content).toContain(
+        expect(result.outputs[1]?.content).toContain(
             'declare module \'@documents/users.graphql\''
         )
     })

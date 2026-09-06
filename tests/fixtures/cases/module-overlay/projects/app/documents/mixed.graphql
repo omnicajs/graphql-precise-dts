@@ -1,0 +1,2 @@
+query Summary { book(id: "1") { ...Local } }
+fragment Local on Book { title }

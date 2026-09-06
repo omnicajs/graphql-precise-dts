@@ -1,0 +1,29 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "fragments/NodeIdentity.graphql": [
+                "./expected/app/fragments/NodeIdentity.graphql.d.ts"
+            ],
+            "fragments/UserDetails.graphql": [
+                "./expected/app/fragments/UserDetails.graphql.d.ts"
+            ],
+            "queries/viewer.graphql": [
+                "./expected/app/queries/viewer.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/app/fragments/NodeIdentity.graphql.d.ts",
+        "expected/app/fragments/UserDetails.graphql.d.ts",
+        "expected/app/queries/viewer.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/selection-composition/*.test-d.ts"
+    ]
+}

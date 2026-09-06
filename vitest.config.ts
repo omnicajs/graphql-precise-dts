@@ -16,6 +16,7 @@ export default mergeConfig(basic, defineConfig({
             'drafts/**',
         ],
         typecheck: {
+            exclude: [...configDefaults.exclude, 'tests/cases/**'],
             include: [
                 '**/*.test-d.?(c|m)[jt]s?(x)',
             ],

@@ -1,0 +1,32 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "rootDirs": [
+            "../../../cases/module-overlay",
+            "expected/app"
+        ],
+        "paths": {
+            "@app/graphql/schema": [
+                "./expected/schema.d.ts"
+            ],
+            "@app/graphql/enums": [
+                "./expected/enums.ts"
+            ],
+            "@documents/*": [
+                "./projects/app/documents/*",
+                "./expected/app/*"
+            ]
+        }
+    },
+    "files": [
+        "expected/app/fragments/BookFields.graphql.d.ts",
+        "expected/app/mixed.graphql.d.ts",
+        "expected/app/queries/book.graphql.d.ts",
+        "expected/app/remote.graphql.d.ts",
+        "expected/enums.ts",
+        "expected/schema.d.ts"
+    ],
+    "include": [
+        "../../../cases/module-overlay/**/*.test-d.ts"
+    ]
+}

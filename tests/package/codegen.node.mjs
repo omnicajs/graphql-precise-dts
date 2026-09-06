@@ -66,13 +66,7 @@ test('generates abstract selections through GraphQL Code Generator', async conte
 
     assert.equal(
         readFileSync(output, 'utf8'),
-        `${readFileSync(
-            resolve(fixture, 'expected/search-ui/queries/node.graphql.d.ts'),
-            'utf8'
-        ).trimEnd()}\n\n${readFileSync(
-            resolve(fixture, 'expected/search-ui/queries/search.graphql.d.ts'),
-            'utf8'
-        ).trimEnd()}\n`
+        readFileSync(resolve(fixture, 'expected/aggregate.d.ts'), 'utf8')
     )
 })
 test('generates recursive input values through GraphQL Code Generator', async context => {
@@ -107,7 +101,7 @@ test('generates recursive input values through GraphQL Code Generator', async co
     assert.equal(
         readFileSync(output, 'utf8'),
         readFileSync(
-            resolve(fixture, 'expected/search-ui/queries/search.graphql.d.ts'),
+            resolve(fixture, 'expected/aggregate.d.ts'),
             'utf8'
         )
     )

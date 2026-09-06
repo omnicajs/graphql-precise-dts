@@ -1,0 +1,21 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "paths": {
+            "@search/graphql/schema": [
+                "./expected/schema.d.ts"
+            ],
+            "@search/graphql/enums": [
+                "./expected/enums.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/enums.ts",
+        "expected/aggregate.d.ts"
+    ],
+    "include": [
+        "../../../cases/input-values/*.test-d.ts"
+    ]
+}

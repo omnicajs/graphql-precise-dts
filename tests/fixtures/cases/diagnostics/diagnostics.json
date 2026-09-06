@@ -1,0 +1,12 @@
+[
+    {
+        "severity": "warning",
+        "code": "directive-warning",
+        "sourceId": "directives.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "directive-warning",
+        "sourceId": "directives.graphql"
+    }
+]

@@ -1,7 +1,0 @@
-#import "../fragments/UserDetails.graphql"
-
-query groupMembers ($groudId: ID!) {
-    groupMembers (groudId: $groudId) {
-        ...UserDetails
-    }
-}

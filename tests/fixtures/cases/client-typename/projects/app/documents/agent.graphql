@@ -1,0 +1,4 @@
+fragment AgentFields on Agent {
+    ... on Person { firstName }
+    ... on Team { title }
+}

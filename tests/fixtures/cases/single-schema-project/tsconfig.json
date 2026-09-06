@@ -1,0 +1,77 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@case/schema": [
+                "expected/schema.d.ts"
+            ],
+            "@case/enums": [
+                "expected/enums.ts"
+            ],
+            "~tests/fixtures/documents/fragments/GroupDetails.graphql": [
+                "./expected/app/fragments/GroupDetails.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/fragments/UserDetails.graphql": [
+                "./expected/app/fragments/UserDetails.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/fragments/UserWithGroups.graphql": [
+                "./expected/app/fragments/UserWithGroups.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/mutations/addGroup.graphql": [
+                "./expected/app/mutations/addGroup.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/mutations/changeOwner.graphql": [
+                "./expected/app/mutations/changeOwner.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/mutations/createUser.graphql": [
+                "./expected/app/mutations/createUser.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/mutations/removeGroup.graphql": [
+                "./expected/app/mutations/removeGroup.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/queries/groupMembers.graphql": [
+                "./expected/app/queries/groupMembers.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/queries/ownerGroup.graphql": [
+                "./expected/app/queries/ownerGroup.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/queries/user.graphql": [
+                "./expected/app/queries/user.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/queries/userGroups.graphql": [
+                "./expected/app/queries/userGroups.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/queries/users.graphql": [
+                "./expected/app/queries/users.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/subscriptions/ownerGroupChanged.graphql": [
+                "./expected/app/subscriptions/ownerGroupChanged.graphql.d.ts"
+            ],
+            "~tests/fixtures/documents/subscriptions/userCreated.graphql": [
+                "./expected/app/subscriptions/userCreated.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/enums.ts",
+        "expected/app/fragments/GroupDetails.graphql.d.ts",
+        "expected/app/fragments/UserDetails.graphql.d.ts",
+        "expected/app/fragments/UserWithGroups.graphql.d.ts",
+        "expected/app/mutations/addGroup.graphql.d.ts",
+        "expected/app/mutations/changeOwner.graphql.d.ts",
+        "expected/app/mutations/createUser.graphql.d.ts",
+        "expected/app/mutations/removeGroup.graphql.d.ts",
+        "expected/app/queries/groupMembers.graphql.d.ts",
+        "expected/app/queries/ownerGroup.graphql.d.ts",
+        "expected/app/queries/user.graphql.d.ts",
+        "expected/app/queries/userGroups.graphql.d.ts",
+        "expected/app/queries/users.graphql.d.ts",
+        "expected/app/subscriptions/ownerGroupChanged.graphql.d.ts",
+        "expected/app/subscriptions/userCreated.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/single-schema-project/*.test-d.ts"
+    ]
+}

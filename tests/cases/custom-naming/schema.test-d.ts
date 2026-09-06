@@ -1,0 +1,11 @@
+import type { query as Query, Scalars } from '@naming/schema'
+
+import { expectTypeOf, test } from 'vitest'
+
+test('preserves schema field types and built-in scalar directions', () => {
+    expectTypeOf<Scalars['Boolean']>().toEqualTypeOf<{ input: boolean; output: boolean }>()
+    expectTypeOf<Query['users'][number]['id']>().toEqualTypeOf<string>()
+    // @ts-expect-error A schema output remains an object with declared fields.
+    const invalid: Query = 'invalid output'
+    void invalid
+})

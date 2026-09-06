@@ -1,0 +1,4 @@
+type Person { firstName: String! }
+type Team { title: String! }
+union Agent = Person | Team
+type Query { agent: Agent! person: Person! }

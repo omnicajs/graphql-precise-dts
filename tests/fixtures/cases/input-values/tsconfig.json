@@ -1,0 +1,25 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@search/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "@search/graphql/enums": [
+                "expected/enums.ts"
+            ],
+            "queries/search.graphql": [
+                "./expected/search-ui/queries/search.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/enums.ts",
+        "expected/search-ui/queries/search.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/input-values/*.test-d.ts"
+    ]
+}

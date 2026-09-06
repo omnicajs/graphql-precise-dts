@@ -1,0 +1,21 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/analytics/schema": [
+                "expected/analytics/schema.d.ts"
+            ],
+            "analytics/dashboard.graphql": [
+                "./expected/app/analytics/dashboard.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/analytics/schema.d.ts",
+        "expected/app/analytics/dashboard.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/multi-schema-project/analytics/*.test-d.ts"
+    ]
+}

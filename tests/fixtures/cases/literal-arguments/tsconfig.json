@@ -1,0 +1,21 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@search/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "queries/search.graphql": [
+                "./expected/search-ui/queries/search.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/search-ui/queries/search.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/literal-arguments/*.test-d.ts"
+    ]
+}

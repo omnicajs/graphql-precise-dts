@@ -1,0 +1,2 @@
+#import "../fragments/BookFields.graphql"
+query FetchBook($id: ID!) { payload: book(id: $id) { ...BookFields } }

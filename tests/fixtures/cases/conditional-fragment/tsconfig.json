@@ -1,0 +1,33 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "abstract.graphql": [
+                "./expected/app/abstract.graphql.d.ts"
+            ],
+            "composed.graphql": [
+                "./expected/app/composed.graphql.d.ts"
+            ],
+            "transitive.graphql": [
+                "./expected/app/transitive.graphql.d.ts"
+            ],
+            "viewer.graphql": [
+                "./expected/app/viewer.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/app/abstract.graphql.d.ts",
+        "expected/app/composed.graphql.d.ts",
+        "expected/app/transitive.graphql.d.ts",
+        "expected/app/viewer.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/conditional-fragment/*.test-d.ts"
+    ]
+}

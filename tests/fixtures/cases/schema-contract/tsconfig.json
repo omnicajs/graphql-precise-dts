@@ -1,0 +1,25 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "@app/graphql/enums": [
+                "expected/enums.ts"
+            ],
+            "queries/search.graphql": [
+                "./expected/operations.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/enums.ts",
+        "expected/operations.d.ts"
+    ],
+    "include": [
+        "../../../cases/schema-contract/*.test-d.ts"
+    ]
+}

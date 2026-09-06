@@ -1,0 +1,17 @@
+#import "./agent.graphql"
+query Display($show: Boolean!) {
+    agent { ...AgentFields }
+    partial: agent { ... on Person { firstName } }
+    person { ...AgentFields }
+    conditional: person { ...AgentFields @include(if: $show) }
+    explicit: agent {
+        __typename @include(if: $show)
+        ... on Person { firstName }
+        ... on Team { title }
+    }
+    aliased: agent {
+        kind: __typename
+        ... on Person { firstName }
+        ... on Team { title }
+    }
+}

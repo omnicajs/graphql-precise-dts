@@ -1,0 +1,4 @@
+query RemoteQuery($details: Boolean!) {
+  payload: remote { kind: __typename id ...RemoteFields @include(if: $details) }
+}
+fragment RemoteFields on Remote { state }

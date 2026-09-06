@@ -1,0 +1,29 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@app/graphql/schema": [
+                "expected/schema.d.ts"
+            ],
+            "queries/status.graphql": [
+                "./expected/app/queries/status.graphql.d.ts"
+            ],
+            "queries/underscores.graphql": [
+                "./expected/app/queries/underscores.graphql.d.ts"
+            ],
+            "queries/users.graphql": [
+                "./expected/app/queries/users.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/app/queries/status.graphql.d.ts",
+        "expected/app/queries/underscores.graphql.d.ts",
+        "expected/app/queries/users.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/publication/*.test-d.ts"
+    ]
+}

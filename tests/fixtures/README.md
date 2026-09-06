@@ -1,8 +1,13 @@
-# Experimental fixtures
+# GraphQL fixtures
 
 Each directory under `cases/` is a self-contained scenario. Schemas are owned by
 `schemas/<schema-project-id>/`, while GraphQL documents are owned by
 `projects/<operation-project-id>/documents/`.
+
+The sibling helpers `workspace.ts` and `generation.ts` are test infrastructure.
+`workspace.ts` copies `cases/` into a disposable workspace and reads expectations
+from their committed locations. `generation.ts` invokes the public generator for
+a single fixture project and returns its declarations and diagnostics.
 
 | Case | Contract covered |
 |---|---|
@@ -10,6 +15,9 @@ Each directory under `cases/` is a self-contained scenario. Schemas are owned by
 | `shared-schema` | Two operation projects share one schema; the shell project provides the variables-and-arguments golden output |
 | `multiple-schemas` | Isolated schemas with repeated paths and operation names, plus golden outputs for the first public generation slice |
 | `multi-schema-project` | One project compiles independent `core` and `analytics` targets against different schemas and output trees |
+| `abstract-fragment-narrowing` | Covariant abstract selections narrow parent and nested results to the concrete type |
+| `conditional-fragment` | Conditional fields across direct, composed, transitive, and abstract fragments |
+| `fragment-variables` | Variables used by imported fragments and operation/fragment name overlap |
 | `fragment-heavy` | Transitive and shared fragments plus several definitions owned by one physical source |
 | `fragment-providers` | Explicit fragment-provider identity, local ownership and duplicate names across source modules |
 | `abstract-selections` | Interfaces, unions, aliases, variables, directives and custom scalars |
@@ -26,12 +34,36 @@ Each directory under `cases/` is a self-contained scenario. Schemas are owned by
 | `diagnostics` | Located errors, non-blocking warnings and directive-policy behavior through filesystem inputs |
 | `cli` | TypeScript config discovery plus `generate`, read-only `check`, `list` and warning exit behavior |
 
-The legacy source under `tests/fixtures/` stays unchanged. New expectations and
-scenario-specific data belong only to this experimental tree.
+All fixture inputs live under `cases/`. `single-schema-project` reuses the
+original documents and schema without changes; the duplicate top-level fixture
+files were removed after a byte-for-byte comparison.
 
-Within `single-schema-project`, `expected/generated/` remains the byte-for-byte
-copy of the original generated output. `expected/experimental/types.d.ts` is the current operation
-generator contract: it keeps the legacy module namespace through
-`resolve.alias`, while retaining the experimental compiler's more precise
-abstract-fragment intersections. Schema and enum declarations remain external
-schema contracts and are not emitted by this scenario.
+Within `single-schema-project`, `expected/generated/*.txt` preserves the original
+schema, enum, and operation reference byte for byte as historical text.
+`expected/app/`, `expected/schema.d.ts`, `expected/enums.ts`, and
+`expected/aggregate.d.ts` form the active declaration expectations. The
+`~tests/fixtures/documents` strings are module IDs, not filesystem dependencies.
+
+## Declaration contract checks
+
+Every fixture that produces declarations has checked-in outputs and scoped
+TypeScript configurations. `tests/cases/<case>/*.test-d.ts` proves their consumer
+contracts without invoking the generator. The compiler checks all active
+expectations with `skipLibCheck: false` and real dependency types. Cases with
+conflicting module names use separate projects. The original Apollo Client
+assertions run against both the saved tree and aggregate outputs.
+
+`tests/cases/expectations.test.ts` generates files in disposable workspaces and
+compares their contents and complete inventory with the same expectations. It
+also checks diagnostic expectations. `name-collisions` deliberately rejects
+schema publication and has explicit rejection tests instead of declaration
+artifacts. The inventory guard prevents silently omitting a fixture set or an
+active `.ts` expectation.
+
+Ordinary tests never update expectations. Edit them deliberately and review them
+with the corresponding positive and negative consumer assertions. Historical
+`.txt` references are not executable expectations.
+
+Run all declaration cases with `yarn test:cases`, or only their static Vitest type
+tests with `yarn test:types:cases`. They are included in `yarn test:types` and the
+complete `yarn test` command. IDE resolution needs no preliminary generation.

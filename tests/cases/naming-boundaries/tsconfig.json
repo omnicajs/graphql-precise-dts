@@ -1,0 +1,3 @@
+{
+    "extends": "../../fixtures/cases/naming-boundaries/tsconfig.json"
+}

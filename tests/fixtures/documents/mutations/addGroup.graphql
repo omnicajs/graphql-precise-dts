@@ -1,7 +1,0 @@
-#import "../fragments/GroupDetails.graphql"
-
-mutation addGroup ($input: AddGroupInput!) {
-    addGroup (input: $input) {
-        ...GroupDetails
-    }
-}

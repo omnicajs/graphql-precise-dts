@@ -1,0 +1,47 @@
+[
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/skipped.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/skipped.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/skipped.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/skipped.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/skipped.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/user.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/user.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/user.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "queries/user.graphql"
+    }
+]

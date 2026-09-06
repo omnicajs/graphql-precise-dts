@@ -1,0 +1,29 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@naming/schema": [
+                "expected/schema.d.ts"
+            ],
+            "@naming/enums": [
+                "expected/enums.ts"
+            ],
+            "fragments/user_fields.graphql": [
+                "./expected/app/fragments/user_fields.graphql.d.ts"
+            ],
+            "queries/fetch_users.graphql": [
+                "./expected/app/queries/fetch_users.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/enums.ts",
+        "expected/app/fragments/user_fields.graphql.d.ts",
+        "expected/app/queries/fetch_users.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/custom-naming/*.test-d.ts"
+    ]
+}

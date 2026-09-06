@@ -8,10 +8,8 @@ import { buildSchema } from 'graphql'
 import { parse } from 'graphql'
 import { readdirSync } from 'node:fs'
 import { readFileSync } from 'node:fs'
-import { relative } from 'node:path'
 import { resolve } from 'node:path'
 
-const repositoryRoot = resolve(__dirname, '..')
 const fixturesRoot = resolve(__dirname, 'fixtures/cases')
 
 const listFiles = (directory: string): ReadonlyArray<string> => readdirSync(directory, { withFileTypes: true })
@@ -24,42 +22,7 @@ const listFiles = (directory: string): ReadonlyArray<string> => readdirSync(dire
 
 const read = (path: string): string => readFileSync(path, 'utf8')
 
-const expectDirectoryCopy = (
-    originalDirectory: string,
-    copiedDirectory: string
-): void => {
-    const originalFiles = listFiles(originalDirectory)
-    const copiedFiles = listFiles(copiedDirectory)
-
-    expect(copiedFiles.map(path => relative(copiedDirectory, path))).toEqual(
-        originalFiles.map(path => relative(originalDirectory, path))
-    )
-
-    for (const original of originalFiles) {
-        const copied = resolve(copiedDirectory, relative(originalDirectory, original))
-
-        expect(read(copied)).toBe(read(original))
-    }
-}
-
-describe('experimental fixture catalog', () => {
-    test('keeps the single-schema project as an exact copy of the original fixture', () => {
-        const originalDocuments = resolve(repositoryRoot, 'tests/fixtures/documents')
-        const copiedDocuments = resolve(
-            fixturesRoot,
-            'single-schema-project/projects/app/documents'
-        )
-        const originalGenerated = resolve(repositoryRoot, 'tests/fixtures/generated')
-        const copiedGenerated = resolve(fixturesRoot, 'single-schema-project/expected/generated')
-
-        expectDirectoryCopy(originalDocuments, copiedDocuments)
-        expectDirectoryCopy(originalGenerated, copiedGenerated)
-
-        expect(read(resolve(fixturesRoot, 'single-schema-project/schemas/main/schema.graphql'))).toBe(
-            read(resolve(repositoryRoot, 'tests/fixtures/schema.graphql'))
-        )
-    })
-
+describe('fixture catalog', () => {
     test('contains valid SDL and GraphQL documents in every scenario', () => {
         const files = listFiles(fixturesRoot)
 

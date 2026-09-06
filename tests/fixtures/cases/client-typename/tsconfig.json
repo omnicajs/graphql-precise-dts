@@ -1,0 +1,24 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "paths": {
+            "@app/graphql/schema": [
+                "./expected/schema.d.ts"
+            ],
+            "agent.graphql": [
+                "./expected/app/agent.graphql.d.ts"
+            ],
+            "display.graphql": [
+                "./expected/app/display.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/schema.d.ts",
+        "expected/app/agent.graphql.d.ts",
+        "expected/app/display.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/client-typename/*.test-d.ts"
+    ]
+}
