@@ -1,465 +1,161 @@
-import type { CustomScalarMappingRecord } from '../scalars/types'
-import type { EnumModel } from '../models/types/type-ref'
-import type { FragmentModel } from '../models/types/document'
-import type { GenerationModels } from '../models/generation'
 import type {
-    GraphQLArgument,
-    GraphQLField,
-    GraphQLInputField,
-    GraphQLInputObjectType,
-    GraphQLInputType,
-    GraphQLInterfaceType,
-    GraphQLNamedType,
-    GraphQLObjectType,
-    GraphQLOutputType,
-    GraphQLUnionType,
+    FragmentDefinitionNode,
+    OperationDefinitionNode,
 } from 'graphql'
-import type { JsDoc } from '../render/jsdoc'
-import type { ModelContext } from '../models/types/context'
-import type { NamedObjectField } from '../config/scalars'
-import type { ScalarModelShape } from '../models/types/type-ref'
-import type { Scalars } from '../scalars/types'
-import type { Schema } from '../plugin-types'
 import type {
-    SchemaFieldArgTypeModel,
-    SchemaObjectModel,
-    SchemaOutputModel,
-} from '../models/generation'
-import type { TsType } from '../config/scalars'
+    CompilationContext,
+    CompilationEnvironment,
+} from './context'
+import type {
+    CompiledDefinition,
+    CompiledDocument,
+    CompiledFragment,
+    CompiledOperation,
+} from './model'
+import type {
+    GenerationDiagnostic,
+    ParsedDocumentSource,
+} from './types'
+import type { VariableScope } from './variables'
 
 import {
-    getScalarPrimitiveShapeTs,
-    getScalarTsShape,
-    isScalarPrimitiveKey,
-} from '../scalars/builder'
-import { makeFragmentModel } from '../models/documents-builder'
+    CompilationError,
+    invalidDocument,
+    unsupportedDocument,
+} from './errors'
+import { getSelectionTypes } from './composites'
+import { getSourceLocation } from './diagnostics/location'
+import { validateDocumentImports } from './imports'
+import { compileSelectionSet } from './selections'
+import { Kind } from 'graphql'
+import { collectRepeatedSelectionDiagnostics } from './diagnostics/repeated'
+import { compileVariables } from './variables'
 
-import {
-    arrayTsType,
-    makeNullableTsType,
-    namedTsType,
-    defineLiteral,
-    defineObjectField,
-    unionTsType,
-} from '../config/scalars'
+export type CompileResult =
+    | { document: CompiledDocument; diagnostics: ReadonlyArray<GenerationDiagnostic> }
+    | { diagnostic: GenerationDiagnostic; diagnostics: ReadonlyArray<GenerationDiagnostic> }
 
-import {
-    getNamedType,
-    isEnumType,
-    isInputObjectType,
-    isInterfaceType,
-    isListType,
-    isNonNullType,
-    isNullableType,
-    isObjectType,
-    isScalarType,
-    isUnionType,
-} from 'graphql'
-
-import { TS_TYPE_KIND } from '../config/scalars'
-
-import { specifiedScalarTypes } from 'graphql'
-
-type RegisteredNames = {
-    fragments: string[];
-    enums: string[];
-}
-
-const createGenerationModels = (): GenerationModels => ({
-    schema: {
-        enumReferences: new Set<string>(),
-        scalars: new Map<string, ScalarModelShape>(),
-        inputTypes: new Map<string, TsType>(),
-        interfaceTypes: new Map<string, TsType>(),
-        objectTypes: new Map<string, SchemaObjectModel>(),
-        unionTypes: new Map<string, TsType>(),
-        fieldArgTypes: [],
-    },
-    registry: {
-        enums: new Map<string, EnumModel>(),
-        fragments: new Map<string, FragmentModel>(),
-    },
+const createEmptyVariableScope = (): VariableScope => ({
+    variables: [],
+    byName: new Map(),
+    usages: [],
 })
 
-const makeJsDoc = (description?: string | null): JsDoc => description ? { description } : {}
+const compileOperation = (
+    operation: OperationDefinitionNode,
+    context: CompilationContext
+): CompiledOperation => {
+    if (!operation.name) return invalidDocument('Operation must have a name', operation)
+    if (operation.directives?.length) return unsupportedDocument('Operation directives are not supported yet', operation.directives[0])
 
-const makeScalarReferenceRemark = (
-    type: GraphQLInputType | GraphQLOutputType,
-    usage: 'input' | 'output'
-): string | undefined => {
-    const namedType = getNamedType(type)
+    const rootType = context.schema.getRootType(operation.operation)
+    if (!rootType) return invalidDocument(`Schema does not define a ${operation.operation} root type`, operation)
 
-    return isScalarType(namedType)
-        ? `Scalar reference: \`Scalars['${namedType.name}']['${usage}']\`.`
-        : undefined
-}
-
-const addCustomScalars = (
-    scalars: Map<string, ScalarModelShape>,
-    schema: Schema,
-    customScalars: CustomScalarMappingRecord
-) => Object.keys(customScalars).forEach(scalarName => {
-    const scalarType = schema.getType(scalarName)
-
-    if (isScalarType(scalarType) && !scalars.has(scalarName)) {
-        const description = isScalarPrimitiveKey(scalarType.name)
-            ? scalarType.astNode?.description?.value
-            : scalarType.description
-
-        scalars.set(scalarName, {
-            ...getScalarTsShape(scalarName, customScalars),
-            ...(description && { description }),
-            ...(scalarType.specifiedByURL && { specifiedByUrl: scalarType.specifiedByURL }),
-        })
-    }
-})
-
-const addPrimitiveScalars = (
-    scalars: Map<string, ScalarModelShape>,
-    schema: Schema,
-    usedPrimitiveScalars: Set<keyof Scalars>
-) => specifiedScalarTypes.forEach(({ name }) => {
-    if (usedPrimitiveScalars.has(name as keyof Scalars) && !scalars.has(name)) {
-        const scalarType = schema.getType(name)
-        /* v8 ignore next -- @preserve used primitive scalars are collected from scalar schema types in valid GraphQLSchema instances. */
-        const description = isScalarType(scalarType)
-            ? scalarType.astNode?.description?.value
-            : undefined
-        /* v8 ignore next -- @preserve used primitive scalars are collected from scalar schema types in valid GraphQLSchema instances. */
-        const specifiedByUrl = isScalarType(scalarType)
-            ? scalarType.specifiedByURL
-            : undefined
-
-        scalars.set(name, {
-            ...getScalarPrimitiveShapeTs(name as keyof Scalars),
-            /* v8 ignore next -- @preserve GraphQL specified primitive scalars do not carry SDL descriptions in normal schemas. */
-            ...(description && { description }),
-            /* v8 ignore next -- @preserve GraphQL specified primitive scalars do not carry specifiedByUrl metadata in normal schemas. */
-            ...(specifiedByUrl && { specifiedByUrl }),
-        })
-    }
-})
-
-const makeTypenameField = (typeName: string): NamedObjectField => ({
-    name: '__typename',
-    ...defineObjectField(defineLiteral(typeName), true),
-})
-
-const makeSchemaObjectType = (
-    fields: NamedObjectField[],
-    jsDoc: JsDoc = {}
-): TsType => ({
-    kind: TS_TYPE_KIND.OBJECT,
-    fields,
-    ...jsDoc,
-})
-
-const makeScalarReference = (
-    scalars: Map<string, ScalarModelShape>,
-    scalarName: string,
-    usage: 'input' | 'output'
-): TsType => namedTsType(scalars.get(scalarName)?.[usage] ?? 'unknown')
-
-const makeNamedSchemaReference = (
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    namedType: GraphQLNamedType,
-    usage: 'input' | 'output'
-): TsType => {
-    if (isScalarType(namedType)) return makeScalarReference(scalars, namedType.name, usage)
-    if (isEnumType(namedType)) enumReferences.add(namedType.name)
-
-    return namedTsType(namedType.name)
-}
-
-const makeNonNullableSchemaTypeReference = (
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    type: GraphQLInputType | GraphQLOutputType,
-    usage: 'input' | 'output'
-): TsType => isListType(type)
-    ? arrayTsType(makeSchemaTypeReference(
-        enumReferences,
-        scalars,
-        type.ofType as GraphQLInputType | GraphQLOutputType,
-        usage
-    ))
-    : makeNamedSchemaReference(enumReferences, scalars, getNamedType(type), usage)
-
-const makeSchemaTypeReference = (
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    type: GraphQLInputType | GraphQLOutputType,
-    usage: 'input' | 'output'
-): TsType => isNonNullType(type)
-    ? makeNonNullableSchemaTypeReference(enumReferences, scalars, type.ofType, usage)
-    : makeNullableTsType(makeNonNullableSchemaTypeReference(enumReferences, scalars, type, usage))
-
-const makeSchemaObjectField = (
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    fieldName: string,
-    type: GraphQLInputType | GraphQLOutputType,
-    usage: 'input' | 'output',
-    jsDoc: {
-        description?: string | null;
-        deprecationReason?: string | null;
-    } = {}
-): NamedObjectField => {
-    const scalarReferenceRemark = makeScalarReferenceRemark(type, usage)
+    const variables = compileVariables(operation.variableDefinitions!, context)
 
     return {
-        name: fieldName,
-        ...defineObjectField(
-            makeSchemaTypeReference(enumReferences, scalars, type, usage),
-            isNullableType(type),
-            {
-                ...(jsDoc.description && { description: jsDoc.description }),
-                ...(jsDoc.deprecationReason && { deprecationReason: jsDoc.deprecationReason }),
-                ...(scalarReferenceRemark && { remarks: scalarReferenceRemark }),
-            }
-        ),
+        kind: 'operation',
+        operation: operation.operation,
+        name: operation.name.value,
+        rootType,
+        variables: variables.variables,
+        variableUsages: variables.usages,
+        selections: compileSelectionSet(operation.selectionSet, rootType, variables, context),
+        location: getSourceLocation(operation),
     }
 }
 
-const makeOutputFields = (
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    typeName: string,
-    fields: Record<string, GraphQLField<unknown, unknown>>,
-    withTypename: boolean,
-    jsDoc: JsDoc = {}
-): TsType => makeSchemaObjectType([
-    ...(withTypename ? [ makeTypenameField(typeName) ] : []),
-    ...Object.values(fields).map(field =>
-        makeSchemaObjectField(enumReferences, scalars, field.name, field.type, 'output', field)
-    ),
-], jsDoc)
+const compileFragment = (
+    fragment: FragmentDefinitionNode,
+    context: CompilationContext
+): CompiledFragment => {
+    if (fragment.directives?.length) return unsupportedDocument('Fragment definition directives are not supported yet', fragment.directives[0])
 
-const addFieldArgType = (
-    fieldArgTypes: SchemaFieldArgTypeModel[],
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    parentTypeName: string,
-    fieldName: string,
-    args: readonly GraphQLArgument[]
-) => {
-    if (!args.length) return
+    const type = fragment.typeCondition.name.value
+    const variables = createEmptyVariableScope()
 
-    fieldArgTypes.push({
-        parentTypeName,
-        fieldName,
-        type: makeSchemaObjectType(args.map(arg =>
-            makeSchemaObjectField(enumReferences, scalars, arg.name, arg.type, 'input', arg)
-        )),
-    })
+    return {
+        kind: 'fragment',
+        sourceId: context.sourceId,
+        sourcePath: context.sourcePath,
+        name: fragment.name.value,
+        type,
+        possibleTypes: getSelectionTypes(type, context.schema, fragment),
+        variableUsages: variables.usages,
+        selections: compileSelectionSet(fragment.selectionSet, type, variables, context),
+        location: getSourceLocation(fragment),
+    }
 }
 
-const addInputType = (
-    inputTypes: Map<string, TsType>,
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    type: GraphQLInputObjectType
-) => inputTypes.set(
-    type.name,
-    makeSchemaObjectType(
-        Object.values(type.getFields()).map((field: GraphQLInputField) =>
-            makeSchemaObjectField(enumReferences, scalars, field.name, field.type, 'input', field)
-        ),
-        makeJsDoc(type.description)
+const compileDefinition = (
+    definition: ParsedDocumentSource['document']['definitions'][number],
+    context: CompilationContext
+): CompiledDefinition => {
+    if (definition.kind === Kind.OPERATION_DEFINITION) {
+        return compileOperation(definition, context)
+    }
+    if (definition.kind === Kind.FRAGMENT_DEFINITION) {
+        return compileFragment(definition, context)
+    }
+
+    return unsupportedDocument(`Definition of kind "${definition.kind}" is not executable`, definition)
+}
+
+const compile = (
+    source: ParsedDocumentSource,
+    context: CompilationContext
+): CompiledDocument => {
+    validateDocumentImports(source, context.sources)
+    const definitions = source.document.definitions.map(
+        definition => compileDefinition(definition, context)
     )
-)
+    const operationNames = new Set<string>()
+    const fragmentNames = new Set<string>()
 
-const addInterfaceType = (
-    interfaceTypes: Map<string, TsType>,
-    fieldArgTypes: SchemaFieldArgTypeModel[],
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    type: GraphQLInterfaceType
-) => {
-    const fields = type.getFields()
-
-    Object.values(fields).forEach(field => {
-        addFieldArgType(fieldArgTypes, enumReferences, scalars, type.name, field.name, field.args)
-    })
-
-    interfaceTypes.set(type.name, makeOutputFields(
-        enumReferences,
-        scalars,
-        type.name,
-        fields,
-        false,
-        makeJsDoc(type.description)
-    ))
-}
-
-const addObjectType = (
-    objectTypes: Map<string, SchemaObjectModel>,
-    fieldArgTypes: SchemaFieldArgTypeModel[],
-    enumReferences: Set<string>,
-    scalars: Map<string, ScalarModelShape>,
-    type: GraphQLObjectType
-) => {
-    const fields = type.getFields()
-
-    Object.values(fields).forEach(field => {
-        addFieldArgType(fieldArgTypes, enumReferences, scalars, type.name, field.name, field.args)
-    })
-
-    objectTypes.set(type.name, {
-        fields: makeOutputFields(
-            enumReferences,
-            scalars,
-            type.name,
-            fields,
-            true
-        ),
-        interfaces: type.getInterfaces().map(({ name }) => name),
-        ...(type.description && { description: type.description }),
-    })
-}
-
-const addUnionType = (
-    unionTypes: Map<string, TsType>,
-    type: GraphQLUnionType
-) => {
-    unionTypes.set(
-        type.name,
-        {
-            ...unionTsType(...type.getTypes().map(({ name }) => namedTsType(name))),
-            ...(type.description && { description: type.description }),
+    for (const [ index, definition ] of definitions.entries()) {
+        const names = definition.kind === 'operation' ? operationNames : fragmentNames
+        if (names.has(definition.name)) {
+            return invalidDocument(
+                `Definition "${definition.name}" is declared more than once in the document`,
+                source.document.definitions[index]
+            )
         }
-    )
-}
+        names.add(definition.name)
+    }
 
-const addSchemaTypes = (
-    schemaOutput: SchemaOutputModel,
-    schema: Schema
-) => {
-    Object.values(schema.getTypeMap())
-        .filter(type => !type.name.startsWith('__'))
-        .forEach(type => {
-            if (isInputObjectType(type)) addInputType(schemaOutput.inputTypes, schemaOutput.enumReferences, schemaOutput.scalars, type)
-            if (isInterfaceType(type)) {
-                addInterfaceType(
-                    schemaOutput.interfaceTypes,
-                    schemaOutput.fieldArgTypes,
-                    schemaOutput.enumReferences,
-                    schemaOutput.scalars,
-                    type
-                )
-            }
-            if (isObjectType(type)) {
-                addObjectType(
-                    schemaOutput.objectTypes,
-                    schemaOutput.fieldArgTypes,
-                    schemaOutput.enumReferences,
-                    schemaOutput.scalars,
-                    type
-                )
-            }
-            if (isUnionType(type)) addUnionType(schemaOutput.unionTypes, type)
-        })
-}
-
-const collectPrimitiveScalar = (
-    type: GraphQLNamedType,
-    usedScalars: Set<keyof Scalars>
-) => {
-    if (isScalarType(type) && isScalarPrimitiveKey(type.name)) {
-        usedScalars.add(type.name as keyof Scalars)
+    return {
+        sourceId: source.id,
+        definitions,
     }
 }
 
-const collectUsedPrimitiveScalarsFromArguments = (
-    argumentsList: ReadonlyArray<{ type: GraphQLInputType }>,
-    usedScalars: Set<keyof Scalars>
-) => {
-    argumentsList.forEach(argument => {
-        collectPrimitiveScalar(getNamedType(argument.type), usedScalars)
-    })
-}
-
-const collectUsedPrimitiveScalarsFromObjectType = (
-    type: GraphQLObjectType | GraphQLInterfaceType,
-    usedScalars: Set<keyof Scalars>
-) => Object.values(type.getFields()).forEach(field => {
-    collectPrimitiveScalar(getNamedType(field.type), usedScalars)
-    collectUsedPrimitiveScalarsFromArguments(field.args, usedScalars)
-})
-
-const collectUsedPrimitiveScalarsFromInputType = (
-    type: GraphQLInputObjectType,
-    usedScalars: Set<keyof Scalars>
-) => Object.values(type.getFields()).forEach(field => {
-    collectPrimitiveScalar(getNamedType(field.type), usedScalars)
-})
-
-const collectUsedPrimitiveScalars = (
-    schema: Schema
-): Set<keyof Scalars> => {
-    const usedScalars = new Set<keyof Scalars>()
-
-    Object.values(schema.getTypeMap()).forEach(type => {
-        if (type.name.startsWith('__')) return
-
-        if (isObjectType(type) || isInterfaceType(type)) {
-            collectUsedPrimitiveScalarsFromObjectType(type, usedScalars)
-        }
-
-        if (isInputObjectType(type)) {
-            collectUsedPrimitiveScalarsFromInputType(type, usedScalars)
-        }
-    })
-
-    return usedScalars
-}
-
-const registerEnums = (
-    enums: Map<string, EnumModel>,
-    schema: Schema
-) => Object.values(schema.getTypeMap()).forEach(type => {
-    if (type.name.startsWith('__')) return
-
-    if (isEnumType(type) && !enums.has(type.name)) {
-        enums.set(type.name, {
-            ...(type.description && { description: type.description }),
-            entries: type.getValues().map(v => ({
-                name: v.name,
-                value: v.value,
-                ...(v.description && { description: v.description }),
-                ...(v.deprecationReason && { deprecationReason: v.deprecationReason }),
-            })),
-        })
+export const compileDocument = (
+    source: ParsedDocumentSource,
+    environment: CompilationEnvironment
+): CompileResult => {
+    const diagnostics: GenerationDiagnostic[] = [ ...collectRepeatedSelectionDiagnostics(source) ]
+    const context: CompilationContext = {
+        ...environment,
+        sourceId: source.id,
+        sourcePath: source.path,
+        reportDiagnostic: diagnostic => diagnostics.push(diagnostic),
     }
-})
 
-const registerFragments = (
-    fragments: Map<string, FragmentModel>,
-    importFragmentsName: string[],
-    context: ModelContext
-) => {
-    for (const [key, def] of context.fragmentDefinitions.entries()) {
-        if (importFragmentsName.includes(key) && !fragments.has(key)) {
-            fragments.set(key, makeFragmentModel(def, context))
+    try {
+        return { document: compile(source, context), diagnostics }
+    } catch (error) {
+        /* v8 ignore next -- @preserve non-compilation faults are internal failures, not public inputs. */
+        if (!(error instanceof CompilationError)) throw error
+
+        return {
+            diagnostics,
+            diagnostic: {
+                severity: 'error',
+                code: error.code,
+                sourceId: source.id,
+                location: error.location,
+                message: error.message,
+            },
         }
     }
-}
-
-export const buildGenerationModels = (
-    registeredNames: RegisteredNames,
-    context: ModelContext,
-    customScalars: CustomScalarMappingRecord = {}
-): GenerationModels => {
-    const { schema, registry } = createGenerationModels()
-    const usedPrimitiveScalars = collectUsedPrimitiveScalars(context.schema)
-
-    addCustomScalars(schema.scalars, context.schema, customScalars)
-    addPrimitiveScalars(schema.scalars, context.schema, usedPrimitiveScalars)
-    addSchemaTypes(schema, context.schema)
-
-    registerEnums(registry.enums, context.schema)
-    registerFragments(registry.fragments, registeredNames.fragments, context)
-
-    return { schema, registry }
 }

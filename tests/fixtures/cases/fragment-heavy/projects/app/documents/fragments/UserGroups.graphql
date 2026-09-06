@@ -1,0 +1,9 @@
+#import "./GroupDetails.graphql"
+#import "./UserIdentity.graphql"
+
+fragment UserGroups on User {
+    ...UserIdentity
+    groups {
+        ...GroupDetails
+    }
+}

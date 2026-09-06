@@ -1,0 +1,7 @@
+type Exact {
+    id: ID!
+}
+
+type Query {
+    exact: Exact!
+}

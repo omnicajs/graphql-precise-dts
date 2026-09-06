@@ -1,0 +1,7 @@
+query SameName {
+    ...SameName
+}
+
+fragment SameName on Query {
+    __typename
+}

@@ -1,0 +1,11 @@
+query user_details {
+    user {
+        id
+    }
+}
+
+query UserDetails {
+    user {
+        status
+    }
+}

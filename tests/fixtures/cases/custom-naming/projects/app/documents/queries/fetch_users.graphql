@@ -1,0 +1,7 @@
+#import "../fragments/user_fields.graphql"
+
+query fetch_users_query($status: UserStatus) {
+    users(status: $status) {
+        ...user_fields
+    }
+}

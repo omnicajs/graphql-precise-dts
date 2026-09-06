@@ -1,0 +1,12 @@
+fragment Details on Query {
+    user {
+        name
+    }
+}
+
+query Viewer($details: Boolean!) {
+    user {
+        id
+    }
+    ...Details @include(if: $details)
+}

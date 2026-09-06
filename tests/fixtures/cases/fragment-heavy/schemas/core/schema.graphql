@@ -1,0 +1,21 @@
+interface Node {
+    id: ID!
+}
+
+type Query {
+    users: [User!]!
+    groups: [Group!]!
+}
+
+type User implements Node {
+    id: ID!
+    name: String!
+    groups: [Group!]!
+}
+
+type Group implements Node {
+    id: ID!
+    name: String!
+    owner: User!
+    members: [User!]!
+}

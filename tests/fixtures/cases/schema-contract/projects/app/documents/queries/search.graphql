@@ -1,0 +1,15 @@
+query Search($filter: SearchFilter, $range: Range) {
+    search(filter: $filter, range: $range) {
+        __typename
+        ... on User {
+            id
+            name
+            status
+            createdAt
+        }
+        ... on Team {
+            id
+            title
+        }
+    }
+}

@@ -1,0 +1,27 @@
+#import "../fragments/NodeIdentity.graphql"
+#import "../fragments/UserDetails.graphql"
+
+query Viewer($id: ID!, $details: Boolean!) {
+    node(id: $id) {
+        id
+        ...NodeIdentity @include(if: $details)
+        ...NodeIdentity
+        ... on User {
+            id
+            name
+            profile {
+                displayName
+            }
+        }
+        ... on User @include(if: $details) {
+            profile {
+                nickname
+            }
+            ...UserDetails
+        }
+        ... on Team {
+            id
+            title
+        }
+    }
+}

@@ -1,0 +1,1 @@
+export const SCHEMA_SNAPSHOT_FORMAT_VERSION = 1

@@ -1,0 +1,7 @@
+fragment user_details on User {
+    id
+}
+
+fragment UserDetails on User {
+    status
+}

@@ -1,160 +1,125 @@
-import type {
-    ConfigNamingConvention,
-    NAMING_STYLE as NamingStyleConfig,
-} from '../config'
 import type { OperationTypeNode } from 'graphql'
+import type {
+    NamingPolicy,
+    NamingStyle,
+} from '@/config/types'
 
-import { NAMING_STYLE } from '../config'
-
-const DEFAULT_TYPE_NAME_STYLE = NAMING_STYLE.PASCAL_CASE
-
-type NormalizedNamingConvention = {
-    typeNames: NamingStyleConfig;
-    enumValues: NamingStyleConfig;
-    operationNames: NamingStyleConfig;
-    fragmentNames: NamingStyleConfig;
-    transformUnderscore: boolean;
+type NormalizedNamingPolicy = {
+    typeNames: NamingStyle
+    operationNames: NamingStyle
+    fragmentNames: NamingStyle
+    enumMembers: NamingStyle
 }
 
 export type NamingConvention = {
-    typeName(name: string): string;
-    enumValue(name: string): string;
-    operationName(name: string): string;
-    fragmentName(name: string): string;
-    operationTypeName(operationName: string, operationType: OperationTypeNode): string;
-    operationVariablesTypeName(operationName: string, operationType: OperationTypeNode): string;
-    operationPayloadTypeName(operationName: string, operationType: OperationTypeNode): string;
-    fieldArgTypeName(typeName: string, fieldName: string): string;
-    variableAliasName(typeName: string): string;
-    outputAliasName(typeName: string): string;
+    enumMember(name: string): string
+    typeName(name: string): string
+    fragmentName(name: string): string
+    operationTypeName(operationName: string, operationType: OperationTypeNode): string
+    operationVariablesTypeName(operationName: string, operationType: OperationTypeNode): string
+    operationPayloadTypeName(operationName: string, operationType: OperationTypeNode): string
 }
 
-const splitNameWords = (
-    value: string,
-    transformUnderscore: boolean
-): string[] => {
-    const source = transformUnderscore ? value : value.replace(/_/g, ' ')
+const splitNameWords = (value: string): ReadonlyArray<string> => value.match(
+    /[A-Z]+[0-9]*(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]+[0-9]*/g
+) ?? []
 
-    return source.match(/[A-Z]+[0-9]*(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]+[0-9]*/g) ?? []
-}
-
-const capitalizeWord = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+const capitalizeWord = (value: string): string => value.charAt(0).toUpperCase()
+    + value.slice(1).toLowerCase()
 
 const convertName = (
     value: string,
-    style: NamingStyleConfig,
-    transformUnderscore: boolean
+    style: NamingStyle
 ): string => {
-    if (style === NAMING_STYLE.KEEP) return value
+    if (style === 'keep') return value
 
-    const words = splitNameWords(value, transformUnderscore)
+    const words = splitNameWords(value)
     if (!words.length) return value
-
-    if (style === NAMING_STYLE.SNAKE_CASE) return words.map(word => word.toLowerCase()).join('_')
+    if (style === 'snakeCase') return words.map(word => word.toLowerCase()).join('_')
 
     const pascalName = words.map(capitalizeWord).join('')
-    if (style === NAMING_STYLE.PASCAL_CASE) return pascalName
 
-    return pascalName.charAt(0).toLowerCase() + pascalName.slice(1)
+    return style === 'pascalCase'
+        ? pascalName
+        : pascalName.charAt(0).toLowerCase() + pascalName.slice(1)
 }
 
 const hasTrailingWords = (
     value: string,
-    trailingValue: string,
-    transformUnderscore: boolean
+    trailingValue: string
 ): boolean => {
-    const words = splitNameWords(value, transformUnderscore).map(word => word.toLowerCase())
-    const trailingWords = splitNameWords(trailingValue, transformUnderscore).map(word => word.toLowerCase())
+    const words = splitNameWords(value).map(word => word.toLowerCase())
+    const trailingWords = splitNameWords(trailingValue).map(word => word.toLowerCase())
 
-    if (!words.length || !trailingWords.length || trailingWords.length > words.length) return false
+    if (!words.length || trailingWords.length > words.length) return false
 
-    return trailingWords.every((word, index) =>
+    return trailingWords.every((word, index) => (
         words[words.length - trailingWords.length + index] === word
-    )
+    ))
 }
 
-const normalizeNamingConvention = (
-    namingConvention: ConfigNamingConvention = {}
-): NormalizedNamingConvention => {
-    if (typeof namingConvention === 'string') {
+const normalizeNamingPolicy = (
+    policy: NamingPolicy = {}
+): NormalizedNamingPolicy => {
+    if (typeof policy === 'string') {
         return {
-            typeNames: namingConvention,
-            enumValues: namingConvention,
-            operationNames: namingConvention,
-            fragmentNames: namingConvention,
-            transformUnderscore: true,
+            typeNames: policy,
+            operationNames: policy,
+            fragmentNames: policy,
+            enumMembers: policy,
         }
     }
 
     return {
-        typeNames: namingConvention.typeNames ?? DEFAULT_TYPE_NAME_STYLE,
-        enumValues: namingConvention.enumValues ?? DEFAULT_TYPE_NAME_STYLE,
-        operationNames: namingConvention.operationNames ?? namingConvention.typeNames ?? DEFAULT_TYPE_NAME_STYLE,
-        fragmentNames: namingConvention.fragmentNames ?? namingConvention.typeNames ?? DEFAULT_TYPE_NAME_STYLE,
-        transformUnderscore: namingConvention.transformUnderscore ?? true,
+        typeNames: policy.typeNames ?? 'pascalCase',
+        operationNames: policy.operationNames ?? policy.typeNames ?? 'pascalCase',
+        fragmentNames: policy.fragmentNames ?? policy.typeNames ?? 'pascalCase',
+        enumMembers: policy.enumMembers ?? 'keep',
     }
 }
 
 export const createNamingConvention = (
-    config?: ConfigNamingConvention
+    policy?: NamingPolicy
 ): NamingConvention => {
-    const convention = normalizeNamingConvention(config)
-    const convert = (value: string, style: NamingStyleConfig) => convertName(value, style, convention.transformUnderscore)
+    const naming = normalizeNamingPolicy(policy)
     const operationParts = (
         operationName: string,
         operationType: OperationTypeNode,
         ...suffixes: string[]
     ): [string, ...string[]] => [
         operationName,
-        ...(
-            hasTrailingWords(operationName, operationType, convention.transformUnderscore)
-                ? []
-                : [ operationType ]
-        ),
+        ...(hasTrailingWords(operationName, operationType) ? [] : [ operationType ]),
         ...suffixes,
     ]
-    const convertOperationParts = (operationName: string, ...suffixes: string[]): string => {
-        if (convention.operationNames === NAMING_STYLE.KEEP) {
-            return operationName + convert(suffixes.join('_'), NAMING_STYLE.PASCAL_CASE)
+    const convertOperationParts = (
+        operationName: string,
+        ...suffixes: string[]
+    ): string => {
+        if (naming.operationNames === 'keep') {
+            return operationName + convertName(suffixes.join('_'), 'pascalCase')
         }
 
-        if (splitNameWords(operationName, convention.transformUnderscore).length > 0) {
-            return convert([ operationName, ...suffixes ].join('_'), convention.operationNames)
+        if (splitNameWords(operationName).length) {
+            return convertName([ operationName, ...suffixes ].join('_'), naming.operationNames)
         }
 
-        if (convention.operationNames === NAMING_STYLE.SNAKE_CASE) {
-            return [ operationName, convert(suffixes.join('_'), convention.operationNames) ].join('_')
-        }
-
-        return operationName + convert(suffixes.join('_'), NAMING_STYLE.PASCAL_CASE)
+        return naming.operationNames === 'snakeCase'
+            ? `${operationName}_${convertName(suffixes.join('_'), naming.operationNames)}`
+            : operationName + convertName(suffixes.join('_'), 'pascalCase')
     }
 
     return {
-        typeName: name => convert(name, convention.typeNames),
-        enumValue: name => convert(name, convention.enumValues),
-        operationName: name => convert(name, convention.operationNames),
-        fragmentName: name => convert(name, convention.fragmentNames),
-        operationTypeName(operationName, operationType) {
-            return convertOperationParts(...operationParts(operationName, operationType))
-        },
-        operationVariablesTypeName(operationName, operationType) {
-            return convertOperationParts(...operationParts(operationName, operationType, 'variables'))
-        },
-        operationPayloadTypeName(operationName, operationType) {
-            return convertOperationParts(...operationParts(operationName, operationType, 'payload'))
-        },
-        fieldArgTypeName(typeName, fieldName) {
-            if (convention.typeNames === NAMING_STYLE.KEEP) return `${typeName}${fieldName}Args`
-
-            const name = `${typeName}_${fieldName}`
-            return convert(`${name}_Args`, convention.typeNames)
-        },
-        variableAliasName(typeName) {
-            const inputName = typeName.endsWith('Input') ? typeName : `${typeName}Input`
-            return convert(`${convert(inputName, convention.typeNames)}Alias`, convention.typeNames)
-        },
-        outputAliasName(typeName) {
-            return convert(`${convert(typeName, convention.typeNames)}Alias`, convention.typeNames)
-        },
+        enumMember: name => convertName(name, naming.enumMembers),
+        typeName: name => convertName(name, naming.typeNames),
+        fragmentName: name => convertName(name, naming.fragmentNames),
+        operationTypeName: (operationName, operationType) => convertOperationParts(
+            ...operationParts(operationName, operationType)
+        ),
+        operationVariablesTypeName: (operationName, operationType) => convertOperationParts(
+            ...operationParts(operationName, operationType, 'variables')
+        ),
+        operationPayloadTypeName: (operationName, operationType) => convertOperationParts(
+            ...operationParts(operationName, operationType, 'payload')
+        ),
     }
 }

@@ -1,0 +1,3 @@
+query Event($at: Timestamp!) {
+    event(at: $at)
+}

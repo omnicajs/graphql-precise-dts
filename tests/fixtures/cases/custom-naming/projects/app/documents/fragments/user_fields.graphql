@@ -1,0 +1,4 @@
+fragment user_fields on UserProfile {
+    id
+    status
+}

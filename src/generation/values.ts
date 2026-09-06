@@ -1,287 +1,171 @@
-import type { ModelContext } from '../models/types/context'
-import type { ScalarUsage } from '../scalars/types'
-import type { SelectionModel } from '../models/types/selection'
-
 import type {
-    TypeFieldNode,
-    TypeSelectionNode,
-} from '../models/selection'
-
-import type {
-    FieldValue,
-    ScalarValue,
-    VariableValue,
-} from '../models/types/value'
-
-import type {
-    FieldNode,
-    GraphQLInputObjectType,
-    GraphQLInputType,
-    GraphQLInterfaceType,
-    SelectionNode,
+    ValueNode,
+    VariableNode,
 } from 'graphql'
+import type {
+    SchemaInputValue,
+    SchemaTypeRef,
+} from '@/schema/types'
+import type { SchemaView } from '@/schema/view'
 
-import { GraphQLObjectType } from 'graphql'
-
-import { isUndefined } from '../lib/predicates'
-import {
-    filterSelectionsForConcreteType,
-    makeTypeRefForVariable,
-    shouldBuildTypeSelectionUnion,
-    specializeTypenameSelections,
-} from '../models/resolve'
-
-import {
-    getNamedType,
-    isEnumType,
-    isInterfaceType,
-    isNullableType,
-    isObjectType,
-    isScalarType,
-} from 'graphql'
-
-import {
-    makeSelectionModels,
-    makeSelectionsForFields,
-} from './selections'
-
-import {
-    SELECTION_MODEL_KIND,
-    VALUE_MODEL_KIND,
-} from '../kinds'
+import { invalidDocument } from './errors'
 import { Kind } from 'graphql'
 
-const makeScalarValue = (
-    typeName: string,
-    usage: ScalarUsage = 'output'
-): ScalarValue => ({
-    kind: VALUE_MODEL_KIND.SCALAR,
-    name: typeName,
-    usage,
-})
+export type ValueLocation = Pick<SchemaInputValue, 'defaultValue' | 'type'>
 
-const makeEnumFieldValue = (
-    typeName: string
-): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.ENUM }> => ({
-    kind: VALUE_MODEL_KIND.ENUM,
-    name: typeName,
-})
+export type VariableValueValidator = (
+    variable: VariableNode,
+    location: ValueLocation,
+    subject: string,
+    requiresNonNullType: boolean
+) => void
 
-const makeInterfaceUnionFieldValue = (
-    typeSelections: WeakMap<SelectionNode, TypeSelectionNode>,
-    interfaceType: GraphQLInterfaceType,
-    selections: readonly SelectionNode[],
-    context: ModelContext,
-    diagnosticOwner: string
-): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }> => ({
-    kind: VALUE_MODEL_KIND.UNION,
-    variants: context.schema.getPossibleTypes(interfaceType).map(possibleType => ({
-        typeName: possibleType.name,
-        fields: specializeTypenameSelections(
-            makeSelectionModels(
-                filterSelectionsForConcreteType(context.schema, possibleType, [ ...selections ]),
-                typeSelections,
-                context,
-                diagnosticOwner
-            ),
-            possibleType.name
-        ),
-    })),
-})
+const renderType = (type: SchemaTypeRef): string => {
+    if (type.kind === 'named') return type.type
+    if (type.kind === 'list') return `[${renderType(type.ofType)}]`
 
-const makeInterfaceObjectFieldValue = (
-    typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
-    interfaceType: GraphQLInterfaceType,
-    selections: readonly SelectionNode[] | undefined,
-    context: ModelContext,
-    diagnosticOwner: string
-): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
-    kind: VALUE_MODEL_KIND.OBJECT,
-    typeNames: context.schema.getPossibleTypes(interfaceType).map(possibleType => possibleType.name),
-    fields: makeSelectionsForFields(selections, typeSelections, context, diagnosticOwner),
-})
-
-const makeInterfaceFieldValue = (
-    type: TypeFieldNode,
-    selections: readonly SelectionNode[] | undefined,
-    context: ModelContext,
-    diagnosticOwner: string
-): FieldValue => {
-    const interfaceType = getNamedType(type.currentType) as GraphQLInterfaceType
-
-    if (selections && type.selections && shouldBuildTypeSelectionUnion(
-        interfaceType,
-        [ ...selections ],
-        context.structuralDirectivePolicies
-    )) {
-        return makeInterfaceUnionFieldValue(type.selections, interfaceType, selections, context, diagnosticOwner)
-    }
-
-    return makeInterfaceObjectFieldValue(type.selections, interfaceType, selections, context, diagnosticOwner)
+    return `${renderType(type.ofType)}!`
 }
 
-const makeObjectFieldValue = (
-    typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
-    selections: readonly SelectionNode[] | undefined,
-    objectType: GraphQLObjectType,
-    context: ModelContext,
-    diagnosticOwner: string
-): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => ({
-    kind: VALUE_MODEL_KIND.OBJECT,
-    typeNames: [ objectType.name ],
-    fields: makeSelectionsForFields(selections, typeSelections, context, diagnosticOwner),
-})
+const invalidLiteral = (subject: string, type: SchemaTypeRef, value: ValueNode): never => invalidDocument(
+    `${subject} is not a valid literal for input type "${renderType(type)}"`,
+    value
+)
 
-const isInlineFragmentTypeSelection = (
-    typedSelection: TypeSelectionNode | undefined
-): typedSelection is Extract<
-    TypeSelectionNode,
-    { kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT }
-> => typedSelection?.kind === SELECTION_MODEL_KIND.INLINE_FRAGMENT
+const validateScalar = (
+    value: ValueNode,
+    scalar: string,
+    type: SchemaTypeRef,
+    subject: string
+): void => {
+    const valid = (() => {
+        switch (scalar) {
+            case 'Boolean':
+                return value.kind === Kind.BOOLEAN
+            case 'Float':
+                return (value.kind === Kind.FLOAT || value.kind === Kind.INT)
+                    && Number.isFinite(Number(value.value))
+            case 'ID':
+                return value.kind === Kind.STRING || value.kind === Kind.INT
+            case 'Int':
+                return value.kind === Kind.INT
+                    && Number(value.value) >= -2147483648
+                    && Number(value.value) <= 2147483647
+            case 'String':
+                return value.kind === Kind.STRING
+            default:
+                return true
+        }
+    })()
 
-const makeUnionFieldVariant = (
-    selection: SelectionNode,
-    typedSelection: TypeSelectionNode | undefined,
-    context: ModelContext,
-    diagnosticOwner: string
-): { typeName: string; fields: SelectionModel[] } | undefined => {
-    if (selection.kind !== Kind.INLINE_FRAGMENT) return
-    /* v8 ignore next -- @preserve Union variants are built from inline fragment type selections. */
-    if (!isInlineFragmentTypeSelection(typedSelection)) return
-
-    const typeName = selection.typeCondition?.name.value ?? typedSelection.typeCondition
-    if (!typeName) return
-
-    return {
-        typeName,
-        fields: makeSelectionModels(
-            [ ...selection.selectionSet.selections ],
-            typedSelection.selections,
-            context,
-            diagnosticOwner
-        ),
-    }
+    if (!valid) invalidLiteral(subject, type, value)
 }
 
-const makeUnionFieldVariants = (
-    typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
-    selections: readonly SelectionNode[] | undefined,
-    context: ModelContext,
-    diagnosticOwner: string
-): Array<{ typeName: string; fields: SelectionModel[] }> => {
-    /* v8 ignore next -- @preserve Valid composite GraphQL fields include a selection set; this is a defensive fallback for incomplete AST input. */
-    if (!selections) return []
+const validateInputObject = (
+    value: ValueNode,
+    fields: ReadonlyArray<SchemaInputValue>,
+    oneOf: boolean,
+    schema: SchemaView,
+    type: SchemaTypeRef,
+    subject: string,
+    validateVariable?: VariableValueValidator
+): void => {
+    if (value.kind !== Kind.OBJECT) return invalidLiteral(subject, type, value)
 
-    return selections
-        .map(selection => makeUnionFieldVariant(selection, typeSelections?.get(selection), context, diagnosticOwner))
-        .filter(selection => selection !== undefined)
-}
+    const provided = new Map<string, ValueNode>()
 
-const makeUnionFieldValue = (
-    typeSelections: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
-    selections: readonly SelectionNode[] | undefined,
-    context: ModelContext,
-    diagnosticOwner: string
-): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.UNION }> => ({
-    kind: VALUE_MODEL_KIND.UNION,
-    variants: makeUnionFieldVariants(typeSelections, selections, context, diagnosticOwner),
-})
+    for (const field of value.fields) {
+        const name = field.name.value
+        if (provided.has(name)) invalidDocument(`${subject} provides input field "${name}" more than once`, field)
 
-const makeTypeNameFieldValue = (
-    type: TypeFieldNode,
-    field: FieldNode
-): Extract<FieldValue, { kind: typeof VALUE_MODEL_KIND.TYPENAME }> | undefined => {
-    if (field.name.value !== '__typename' || !type.typeNames?.length) return
+        const schemaField = fields.find(candidate => candidate.name === name)
+        if (!schemaField) {
+            return invalidDocument(`${subject} provides unknown input field "${name}"`, field)
+        }
 
-    return {
-        kind: VALUE_MODEL_KIND.TYPENAME,
-        typeNames: type.typeNames,
-    }
-}
-
-export const makeFieldValue = (
-    type: TypeFieldNode,
-    field: FieldNode,
-    context: ModelContext,
-    diagnosticOwner = 'selection set'
-): FieldValue => {
-    const namedType = getNamedType(type.currentType)
-    const typeNameValue = makeTypeNameFieldValue(type, field)
-    const selections = field.selectionSet?.selections
-
-    if (typeNameValue) return typeNameValue
-
-    if (isScalarType(namedType)) return makeScalarValue(namedType.name)
-    if (isEnumType(namedType)) return makeEnumFieldValue(namedType.name)
-    if (isInterfaceType(namedType)) return makeInterfaceFieldValue(type, selections, context, diagnosticOwner)
-    if (isObjectType(namedType)) {
-        return makeObjectFieldValue(type.selections, selections, namedType, context, diagnosticOwner)
+        provided.set(name, field.value)
+        validateValue(
+            field.value,
+            schemaField,
+            schema,
+            `${subject}.${name}`,
+            validateVariable,
+            oneOf
+        )
     }
 
-    return makeUnionFieldValue(type.selections, selections, context, diagnosticOwner)
-}
-
-export const makeVariableValue = (
-    type: GraphQLInputType
-): VariableValue => buildVariableValue(type, {
-    inProgress: new Set(),
-    cache: new Map(),
-})
-
-const buildVariableValue = (
-    type: GraphQLInputType,
-    state: {
-        inProgress: Set<string>;
-        cache: Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
-    }
-): VariableValue => {
-    const namedType = getNamedType(type)
-
-    if (isScalarType(namedType)) {
-        return makeScalarValue(namedType.name, 'input')
-    }
-
-    if (isEnumType(namedType)) {
-        return { kind: VALUE_MODEL_KIND.ENUM, name: namedType.name }
-    }
-
-    return buildVariableObjectValue(namedType as GraphQLInputObjectType, state)
-}
-
-const buildVariableObjectValue = (
-    namedType: GraphQLInputObjectType,
-    state: {
-        inProgress: Set<string>;
-        cache: Map<string, Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }>>;
-    }
-): Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> => {
-    const cached = state.cache.get(namedType.name)
-    if (cached) return cached
-
-    if (state.inProgress.has(namedType.name)) {
-        return {
-            kind: VALUE_MODEL_KIND.OBJECT,
-            typeName: namedType.name,
-            fields: [],
-            isRecursiveReference: true,
+    for (const field of fields) {
+        const required = field.type.kind === 'non-null' && field.defaultValue === undefined
+        if (required && !provided.has(field.name)) {
+            invalidDocument(`${subject} is missing required input field "${field.name}"`, value)
         }
     }
 
-    state.inProgress.add(namedType.name)
+    if (oneOf) {
+        const values = [ ...provided.values() ]
+        if (values.length !== 1 || values[0]?.kind === Kind.NULL) {
+            invalidDocument(`${subject} must provide exactly one non-null field`, value)
+        }
+    }
+}
 
-    const value: Extract<VariableValue, { kind: typeof VALUE_MODEL_KIND.OBJECT }> = {
-        kind: VALUE_MODEL_KIND.OBJECT,
-        typeName: namedType.name,
-        fields: Object.values(namedType.getFields()).map(field => ({
-            name: field.name,
-            typeRef: makeTypeRefForVariable(field.type),
-            optional: isNullableType(field.type) || !isUndefined(field.defaultValue),
-            value: buildVariableValue(field.type, state),
-        })),
+export const validateValue = (
+    value: ValueNode,
+    location: ValueLocation,
+    schema: SchemaView,
+    subject: string,
+    validateVariable?: VariableValueValidator,
+    requiresNonNullVariable = false
+): void => {
+    const { type } = location
+
+    if (value.kind === Kind.VARIABLE) {
+        validateVariable!(value, location, subject, requiresNonNullVariable)
+        return
     }
 
-    state.inProgress.delete(namedType.name)
-    state.cache.set(namedType.name, value)
+    if (type.kind === 'non-null') {
+        if (value.kind === Kind.NULL) return invalidLiteral(subject, type, value)
 
-    return value
+        validateValue(value, { type: type.ofType }, schema, subject, validateVariable)
+        return
+    }
+
+    if (value.kind === Kind.NULL) return
+
+    if (type.kind === 'list') {
+        const values = value.kind === Kind.LIST ? value.values : [ value ]
+        values.forEach((item, index) => validateValue(
+            item,
+            { type: type.ofType },
+            schema,
+            `${subject}[${index}]`,
+            validateVariable
+        ))
+        return
+    }
+
+    const schemaType = schema.getInputType(type.type)
+
+    if (schemaType.kind === 'scalar') {
+        validateScalar(value, schemaType.id, type, subject)
+        return
+    }
+
+    if (schemaType.kind === 'enum') {
+        if (value.kind !== Kind.ENUM || !schemaType.values.some(candidate => candidate.name === value.value)) {
+            return invalidLiteral(subject, type, value)
+        }
+        return
+    }
+
+    validateInputObject(
+        value,
+        schemaType.fields,
+        schemaType.oneOf,
+        schema,
+        type,
+        subject,
+        validateVariable
+    )
 }

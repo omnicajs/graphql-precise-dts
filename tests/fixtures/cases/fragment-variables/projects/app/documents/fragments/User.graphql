@@ -1,0 +1,6 @@
+fragment UserById on Query {
+    user(id: $id) {
+        id
+        name @include(if: $details)
+    }
+}

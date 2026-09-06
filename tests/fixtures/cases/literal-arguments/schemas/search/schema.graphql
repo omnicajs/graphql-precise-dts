@@ -1,0 +1,26 @@
+enum Status {
+    ACTIVE
+    PAUSED
+}
+
+input Range {
+    max: Int
+    min: Int!
+}
+
+input SearchFilter {
+    enabled: Boolean
+    query: String!
+    range: Range
+    statuses: [Status!]!
+}
+
+directive @visible(filter: SearchFilter!) on FIELD
+
+type SearchResult {
+    id: ID!
+}
+
+type Query {
+    search(filter: SearchFilter!, limit: Int = 10): [SearchResult!]!
+}

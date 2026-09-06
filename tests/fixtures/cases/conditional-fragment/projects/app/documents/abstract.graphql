@@ -1,0 +1,15 @@
+fragment ConditionalNodeFields on Node {
+    ... on A {
+        a
+    }
+    ... on B {
+        b
+    }
+}
+
+query ConditionalNode($details: Boolean!) {
+    node {
+        __typename
+        ...ConditionalNodeFields @include(if: $details)
+    }
+}

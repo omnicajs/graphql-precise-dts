@@ -1,0 +1,86 @@
+directive @fieldOnly on FIELD
+directive @spreadOnly on FRAGMENT_SPREAD
+directive @custom(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @opaque on FIELD
+directive @required on FIELD | FRAGMENT_SPREAD
+directive @review on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+scalar Date
+scalar Audit
+
+enum Status {
+    ACTIVE
+    INACTIVE
+}
+
+input RecursiveFilter {
+    nested: RecursiveFilter
+}
+
+input SearchFilter @oneOf {
+    status: Status
+    term: String
+}
+
+input PlainFilter {
+    text: String
+}
+
+input RequiredFilter {
+    optional: Int
+    required: String!
+}
+
+input DefaultedFilter {
+    required: ID! = "default"
+}
+
+interface Node {
+    child: Node
+    id: ID!
+    value: Int
+}
+
+type User implements Node {
+    child: User
+    id: ID!
+    owner: User!
+    related: [User!]!
+    score: Int!
+    status: Status!
+    value: Int!
+}
+
+type Group implements Node {
+    child: Node
+    id: ID!
+    label: String!
+    owner: User!
+    value: Int
+}
+
+union SearchResult = User | Group
+
+type Query {
+    date: Date!
+    node(id: ID!, filter: RecursiveFilter): Node
+    defaulted(id: ID! = "default"): Boolean
+    plain(filter: PlainFilter): Boolean
+    result: SearchResult
+    search(filter: SearchFilter): [User!]!
+    user(id: ID!): User
+    users(ids: [ID!]!): [User!]!
+    validate(
+        boolean: Boolean
+        date: Date
+        defaulted: DefaultedFilter
+        float: Float
+        id: ID
+        ids: [ID!]
+        int: Int
+        plain: PlainFilter
+        required: RequiredFilter
+        status: Status
+        string: String
+    ): Boolean
+}

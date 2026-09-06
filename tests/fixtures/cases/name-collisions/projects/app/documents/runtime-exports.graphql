@@ -1,0 +1,11 @@
+query Viewer {
+    user {
+        id
+    }
+}
+
+query viewer {
+    user {
+        status
+    }
+}

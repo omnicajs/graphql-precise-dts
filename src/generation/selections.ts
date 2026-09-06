@@ -1,207 +1,294 @@
 import type {
-    ResolvedStructuralDirectives,
-    StructuralDirectivePolicies,
-} from '../directives/types'
-import type { ModelContext } from '../models/types/context'
-import type { SelectionModel } from '../models/types/selection'
-import type { SelectionNode } from 'graphql'
-import type { TypeSelectionNode } from '../models/selection'
-
-import { formatNodeLocation } from '../lib/documents'
-import { makeFieldValue } from './values'
-import { print } from 'graphql'
+    FieldNode,
+    FragmentSpreadNode,
+    InlineFragmentNode,
+    SelectionSetNode,
+} from 'graphql'
+import type { TypeId } from '@/schema/types'
+import type { SchemaTypeRef } from '@/schema/types'
+import type { CompilationContext } from './context'
+import type {
+    CompiledField,
+    CompiledFragmentSpread,
+    CompiledInlineFragment,
+    CompiledSelection,
+    CompiledTypename,
+} from './model'
+import type { VariableScope } from './variables'
 
 import {
-    isConditionalSelectionState,
-    resolveStructuralSelectionDirectivesForNode,
-} from '../directives/resolve'
-
+    makeArgumentsSignature,
+    validateArguments,
+} from './arguments'
 import {
-    getFragmentTypeNames,
-    makeNonNullTypeRef,
-    makeTypeRefForField,
-} from '../models/resolve'
-
-import { SELECTION_MODEL_KIND } from '../kinds'
-import { SELECTION_STATE } from '../directives/kinds'
+    getSelectionTypes,
+    overlap,
+} from './composites'
+import { compileSelectionState } from './directives'
+import {
+    invalidDocument,
+    unsupportedSchemaType,
+} from './errors'
+import { resolveFragment } from './fragments'
+import { getNamedType } from '@/schema/ref'
+import { getSourceLocation } from './diagnostics/location'
+import {
+    getScalarType,
+    hasScalarMapping,
+} from './scalars'
 import { Kind } from 'graphql'
+const compileTypename = (
+    field: FieldNode,
+    included: boolean,
+    conditional: boolean,
+    forceNonNull: boolean,
+    overrideType?: string
+): CompiledTypename => {
+    if (field.arguments?.length) return invalidDocument('Field "__typename" does not define arguments', field)
+    if (field.selectionSet) return invalidDocument('Field "__typename" cannot have selections', field)
 
-type ResolvedSelectionContext = {
-    fieldType: TypeSelectionNode;
-    resolvedDirectives: ResolvedStructuralDirectives;
+    return {
+        kind: 'typename',
+        included,
+        name: field.alias?.value ?? field.name.value,
+        field: '__typename',
+        argumentsSignature: '',
+        conditional,
+        forceNonNull,
+        overrideType,
+        location: getSourceLocation(field),
+    }
 }
 
-type SelectionModelKind = typeof SELECTION_MODEL_KIND[keyof typeof SELECTION_MODEL_KIND]
-
-type OfKind<K extends SelectionModelKind> =
-    Omit<ResolvedSelectionContext, 'fieldType'> & {
-    fieldType: Extract<TypeSelectionNode, { kind: K }>;
-}
-
-const isSelectionContextOfKind = <K extends SelectionModelKind>(
-    selectionContext: ResolvedSelectionContext,
-    kind: K
-): selectionContext is OfKind<K> => selectionContext.fieldType.kind === kind
-
-const resolveSelectionContext = (
-    selection: SelectionNode,
-    fieldType: TypeSelectionNode | undefined,
-    directivePolicies: StructuralDirectivePolicies
-): ResolvedSelectionContext | undefined => {
-    const resolvedDirectives = resolveStructuralSelectionDirectivesForNode(
-        selection,
-        directivePolicies
+const compileFragmentSpread = (
+    spread: FragmentSpreadNode,
+    parentType: TypeId,
+    included: boolean,
+    conditional: boolean,
+    context: CompilationContext
+): CompiledFragmentSpread => {
+    const name = spread.name.value
+    const fragment = resolveFragment(
+        context.fragments,
+        name,
+        context.sourcePath,
+        context.sources.get(context.sourcePath)!.imports,
+        spread
     )
+    const fragmentType = fragment.definition.typeCondition.name.value
+    const parentPossibleTypes = getSelectionTypes(parentType, context.schema, spread)
+    const fragmentPossibleTypes = getSelectionTypes(fragmentType, context.schema, spread)
 
-    if (resolvedDirectives.state === SELECTION_STATE.EXCLUDED) return
-
-    if (!fieldType) return
+    if (!overlap(parentPossibleTypes, fragmentPossibleTypes)) {
+        return invalidDocument(`Fragment "${name}" cannot apply to type "${parentType}"`, spread)
+    }
 
     return {
-        fieldType,
-        resolvedDirectives,
+        kind: 'fragment-spread',
+        included,
+        name,
+        sourceId: fragment.sourceId,
+        sourcePath: fragment.sourcePath,
+        possibleTypes: fragmentPossibleTypes,
+        conditional,
+        location: getSourceLocation(spread),
     }
 }
 
-const makeFieldSelectionModel = (
-    selection: Extract<SelectionNode, { kind: Kind.FIELD }>,
-    context: ModelContext,
-    selectionContext: OfKind<typeof SELECTION_MODEL_KIND.FIELD>,
-    diagnosticOwner: string
-): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.FIELD }> | undefined => {
-    if (selection.alias?.value === '__typename' && selection.name.value !== '__typename') {
-        throw new Error('Aliasing a field to "__typename" is not supported because this name is reserved')
+const compileInlineFragment = (
+    fragment: InlineFragmentNode,
+    parentType: TypeId,
+    included: boolean,
+    conditional: boolean,
+    variables: VariableScope,
+    context: CompilationContext
+): CompiledInlineFragment => {
+    const type = fragment.typeCondition?.name.value ?? parentType
+    const parentPossibleTypes = getSelectionTypes(parentType, context.schema, fragment)
+    const possibleTypes = getSelectionTypes(type, context.schema, fragment)
+
+    if (!overlap(parentPossibleTypes, possibleTypes)) {
+        return invalidDocument(`Inline fragment on "${type}" cannot apply to type "${parentType}"`, fragment)
     }
 
-    const typeRef = makeTypeRefForField(selectionContext.fieldType.currentType)
-    const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
+    return {
+        kind: 'inline-fragment',
+        included,
+        type,
+        possibleTypes,
+        selections: compileSelectionSet(fragment.selectionSet, type, variables, context),
+        conditional,
+        location: getSourceLocation(fragment),
+    }
+}
+
+const compileField = (
+    field: FieldNode,
+    parentType: TypeId,
+    included: boolean,
+    conditional: boolean,
+    forceNonNull: boolean,
+    overrideType: string | undefined,
+    variables: VariableScope,
+    context: CompilationContext
+): CompiledField | CompiledTypename => {
+    if (field.name.value === '__typename') {
+        return compileTypename(field, included, conditional, forceNonNull, overrideType)
+    }
+    if (field.alias?.value === '__typename') {
+        return invalidDocument(
+            'Aliasing a field to "__typename" is not supported because this name is reserved',
+            field
+        )
+    }
+
+    const schemaField = context.schema.getField(parentType, field.name.value)
+    if (!schemaField) return invalidDocument(`Type "${parentType}" does not define field "${field.name.value}"`, field)
+    validateArguments(field, schemaField, variables, context)
+
+    const name = field.alias?.value ?? field.name.value
+    const argumentsSignature = makeArgumentsSignature(field.arguments!)
+    const type: SchemaTypeRef = forceNonNull && schemaField.type.kind !== 'non-null'
+        ? { kind: 'non-null', ofType: schemaField.type }
+        : schemaField.type
+    const namedType = getNamedType(type)
+    const schemaType = context.schema.getOutputType(namedType)
+
+    if (schemaType.kind === 'scalar') {
+        if (field.selectionSet) return invalidDocument(`Scalar field "${parentType}.${name}" cannot have selections`, field)
+
+        const scalarType = getScalarType(schemaType.id, context.scalars, 'output')
+        if (!scalarType) {
+            return unsupportedSchemaType(hasScalarMapping(context.scalars, schemaType.id)
+                ? `Scalar "${schemaType.id}" does not define an output mapping`
+                : `Scalar "${schemaType.id}" is not supported yet`, field)
+        }
+
+        return {
+            kind: 'field',
+            included,
+            name,
+            field: field.name.value,
+            argumentsSignature,
+            type,
+            conditional,
+            forceNonNull,
+            overrideType,
+            location: getSourceLocation(field),
+            value: {
+                kind: 'scalar',
+                type: scalarType,
+            },
+        }
+    }
+
+    if (schemaType.kind === 'enum') {
+        if (field.selectionSet) return invalidDocument(`Enum field "${parentType}.${name}" cannot have selections`, field)
+
+        return {
+            kind: 'field',
+            included,
+            name,
+            field: field.name.value,
+            argumentsSignature,
+            type,
+            conditional,
+            forceNonNull,
+            overrideType,
+            location: getSourceLocation(field),
+            value: {
+                kind: 'enum',
+                type: schemaType.id,
+            },
+        }
+    }
+
+    if (!field.selectionSet) return invalidDocument(`Composite field "${parentType}.${name}" must have selections`, field)
 
     return {
-        kind: SELECTION_MODEL_KIND.FIELD,
-        name: selection.name.value,
-        responseName: selection.alias?.value ?? selection.name.value,
-        argumentsSignature: selection.arguments
-            ? selection.arguments.map(argument => print(argument)).sort().join(',')
-            : '',
-        diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
-        typeRef: selectionContext.resolvedDirectives.forceNonNull
-            ? makeNonNullTypeRef(typeRef)
-            : typeRef,
-        value: makeFieldValue(
-            selectionContext.fieldType,
+        kind: 'field',
+        included,
+        name,
+        field: field.name.value,
+        argumentsSignature,
+        type,
+        conditional,
+        forceNonNull,
+        overrideType,
+        location: getSourceLocation(field),
+        value: {
+            kind: 'composite',
+            type: schemaType.id,
+            possibleTypes: getSelectionTypes(schemaType.id, context.schema, field),
+            selections: compileSelectionSet(field.selectionSet, schemaType.id, variables, context),
+        },
+    }
+}
+
+export const compileSelectionSet = (
+    selectionSet: SelectionSetNode,
+    parentType: TypeId,
+    variables: VariableScope,
+    context: CompilationContext
+): ReadonlyArray<CompiledSelection> => {
+    const selections: CompiledSelection[] = []
+
+    for (const selection of selectionSet.selections) {
+        const state = compileSelectionState(selection, context, variables)
+
+        if (selection.kind === Kind.FRAGMENT_SPREAD) {
+            selections.push(compileFragmentSpread(
+                selection,
+                parentType,
+                state.included,
+                state.conditional,
+                context
+            ))
+            continue
+        }
+        if (selection.kind === Kind.INLINE_FRAGMENT) {
+            const compiled = compileInlineFragment(
+                selection,
+                parentType,
+                state.included,
+                state.conditional,
+                variables,
+                context
+            )
+            selections.push(compiled)
+            continue
+        }
+
+        const compiled = compileField(
             selection,
-            context,
-            diagnosticOwner
-        ),
-        conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
-        ...(directiveNames.length && { directiveNames }),
-    }
-}
-
-const makeFragmentSpreadSelectionModel = (
-    selection: Extract<SelectionNode, { kind: Kind.FRAGMENT_SPREAD }>,
-    context: ModelContext,
-    selectionContext: OfKind<typeof SELECTION_MODEL_KIND.FRAGMENT_SPREAD>
-): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.FRAGMENT_SPREAD }> | undefined => {
-    const spreadFragment = context.fragmentDefinitions.get(selection.name.value)
-    if (!spreadFragment) return
-    const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
-
-    return {
-        kind: SELECTION_MODEL_KIND.FRAGMENT_SPREAD,
-        name: selection.name.value,
-        diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
-        ...getFragmentTypeNames(spreadFragment, context.schema),
-        conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
-        ...(directiveNames.length && { directiveNames }),
-    }
-}
-
-const makeInlineFragmentSelectionModel = (
-    selection: Extract<SelectionNode, { kind: Kind.INLINE_FRAGMENT }>,
-    context: ModelContext,
-    selectionContext: OfKind<typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT>,
-    diagnosticOwner: string
-): Extract<SelectionModel, { kind: typeof SELECTION_MODEL_KIND.INLINE_FRAGMENT }> | undefined => {
-    const directiveNames = selection.directives?.map(directive => directive.name.value) ?? []
-    return {
-        kind: SELECTION_MODEL_KIND.INLINE_FRAGMENT,
-        diagnosticLocation: formatNodeLocation(selection, context.documentLocations),
-        ...(selection.typeCondition?.name.value && { typeCondition: selection.typeCondition.name.value }),
-        selections: makeSelectionModels(
-            [ ...selection.selectionSet.selections ],
-            selectionContext.fieldType.selections,
-            context,
-            diagnosticOwner
-        ),
-        conditional: isConditionalSelectionState(selectionContext.resolvedDirectives.state),
-        ...(directiveNames.length && { directiveNames }),
-    }
-}
-
-export const makeSelectionModel = (
-    selection: SelectionNode,
-    typeSelection: TypeSelectionNode | undefined,
-    context: ModelContext,
-    diagnosticOwner = 'selection set'
-): SelectionModel | undefined => {
-    const selectionContext = resolveSelectionContext(
-        selection,
-        typeSelection,
-        context.structuralDirectivePolicies
-    )
-
-    if (!selectionContext) return
-
-    if (selection.kind === Kind.FIELD && isSelectionContextOfKind(selectionContext, SELECTION_MODEL_KIND.FIELD)) {
-        return makeFieldSelectionModel(selection, context, selectionContext, diagnosticOwner)
+            parentType,
+            state.included,
+            state.conditional,
+            state.forceNonNull,
+            state.overrideType,
+            variables,
+            context
+        )
+        selections.push(compiled)
     }
 
-    if (
-        selection.kind === Kind.FRAGMENT_SPREAD
-        && isSelectionContextOfKind(selectionContext, SELECTION_MODEL_KIND.FRAGMENT_SPREAD)
-    ) {
-        return makeFragmentSpreadSelectionModel(selection, context, selectionContext)
-    }
+    if (context.typename !== 'abstract' || selections.some(selection => selection.kind === 'typename')) return selections
+    const type = context.schema.getType(parentType)
+    if (type.kind !== 'interface' && type.kind !== 'union') return selections
+    const possibleTypes = getSelectionTypes(parentType, context.schema, selectionSet)
+    if (!possibleTypes.some(type => context.schema.getType(type).kind === 'object')) return selections
 
-    /* v8 ignore next -- @preserve Covers V8's synthetic else branch for an inconsistent inline fragment type selection. */
-    if (
-        selection.kind === Kind.INLINE_FRAGMENT
-        && isSelectionContextOfKind(selectionContext, SELECTION_MODEL_KIND.INLINE_FRAGMENT)
-    ) {
-        return makeInlineFragmentSelectionModel(selection, context, selectionContext, diagnosticOwner)
-    }
-
-    /* v8 ignore next -- @preserve Type selections are built from the same AST selection kind. */
-    return
-}
-
-export const makeSelectionModels = (
-    selections: SelectionNode[] = [],
-    typesForSelectionsNode: WeakMap<SelectionNode, TypeSelectionNode>,
-    context: ModelContext,
-    diagnosticOwner = 'selection set'
-): SelectionModel[] => selections.reduce<SelectionModel[]>((result, selection) => {
-    const typeSelection = typesForSelectionsNode.get(selection)
-    const selectionModel = makeSelectionModel(selection, typeSelection, context, diagnosticOwner)
-
-    if (selectionModel) result.push(selectionModel)
-
-    return result
-}, [])
-
-export const makeSelectionsForFields = (
-    selections: readonly SelectionNode[] | undefined,
-    selectionTypes: WeakMap<SelectionNode, TypeSelectionNode> | undefined,
-    context: ModelContext,
-    diagnosticOwner = 'selection set'
-): SelectionModel[] => {
-    if (!selections || !selectionTypes) return []
-
-    return makeSelectionModels(
-        [ ...selections ],
-        selectionTypes,
-        context,
-        diagnosticOwner
-    )
+    // Keep the client-backed selection in IR so fragment expansion preserves its presence.
+    selections.unshift({
+        kind: 'typename',
+        implicit: true,
+        included: true,
+        name: '__typename',
+        field: '__typename',
+        argumentsSignature: '',
+        conditional: false,
+        forceNonNull: false,
+        location: getSourceLocation(selectionSet),
+    })
+    return selections
 }

@@ -1,0 +1,20 @@
+fragment Inner on Query {
+    user {
+        id
+    }
+}
+
+fragment BaseThroughInner on Query {
+    ...Inner
+}
+
+fragment TransitiveExtra on Query {
+    user {
+        name
+    }
+}
+
+query Transitive($details: Boolean!) {
+    ...BaseThroughInner
+    ...TransitiveExtra @include(if: $details)
+}

@@ -1,0 +1,6 @@
+#import "./NodeFields.graphql"
+
+fragment UserIdentity on User {
+    ...NodeFields
+    name
+}

@@ -1,0 +1,8 @@
+#import "../fragments/UserWithGroups.graphql"
+
+subscription userCreated {
+    userCreated {
+        ...UserWithGroups
+        createdAt
+    }
+}

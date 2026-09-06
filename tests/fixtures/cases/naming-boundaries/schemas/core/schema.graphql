@@ -1,0 +1,9 @@
+enum user_status {
+    active
+}
+
+type Query {
+    users: String!
+    status: user_status!
+    ok: Boolean!
+}

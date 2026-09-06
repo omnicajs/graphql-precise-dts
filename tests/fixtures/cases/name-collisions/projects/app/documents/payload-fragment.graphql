@@ -1,0 +1,9 @@
+fragment ViewerQueryPayload on User {
+    id
+}
+
+query Viewer {
+    user {
+        ...ViewerQueryPayload
+    }
+}

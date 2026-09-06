@@ -1,0 +1,13 @@
+enum UserStatus {
+    ACTIVE
+    DISABLED
+}
+
+type UserProfile {
+    id: ID!
+    status: UserStatus!
+}
+
+type Query {
+    users(status: UserStatus): [UserProfile!]!
+}

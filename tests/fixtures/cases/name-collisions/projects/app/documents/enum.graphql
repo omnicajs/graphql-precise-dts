@@ -1,0 +1,3 @@
+fragment Status on User {
+    status
+}

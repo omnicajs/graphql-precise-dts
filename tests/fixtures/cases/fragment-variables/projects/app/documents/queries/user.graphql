@@ -1,0 +1,5 @@
+#import "../fragments/User.graphql"
+
+query User($id: ID!, $details: Boolean!) {
+    ...UserById
+}

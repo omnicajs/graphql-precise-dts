@@ -1,0 +1,11 @@
+#import "../fragments/group.graphql"
+
+fragment SharedDetails on User {
+    id
+}
+
+query LocalDetails {
+    user {
+        ...SharedDetails
+    }
+}

@@ -1,0 +1,52 @@
+query SkippedFirst {
+    user(id: "1") {
+        id @skip(if: true)
+    }
+    user(id: "1") {
+        id
+    }
+}
+
+query SelectedFirst {
+    user(id: "1") {
+        id
+    }
+    user(id: "1") {
+        id @skip(if: true)
+    }
+}
+
+query BothSkipped {
+    user(id: "1") {
+        id @skip(if: true)
+    }
+    user(id: "1") {
+        id @skip(if: true)
+    }
+}
+
+query NestedSkippedFirst {
+    user(id: "1") {
+        friend @skip(if: true) {
+            name
+        }
+    }
+    user(id: "1") {
+        friend {
+            id
+        }
+    }
+}
+
+query NestedSelectedFirst {
+    user(id: "1") {
+        friend {
+            id
+        }
+    }
+    user(id: "1") {
+        friend @skip(if: true) {
+            name
+        }
+    }
+}

@@ -1,0 +1,7 @@
+#import "./runtime-import-fragment.graphql"
+
+query Viewer {
+    user {
+        ...viewerQuery
+    }
+}
