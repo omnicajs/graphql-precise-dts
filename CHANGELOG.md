@@ -2,11 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## Unreleased
+## [0.6.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.5.1...v0.6.0) (2026-09-07)
+
 
 ### ⚠ BREAKING CHANGES
 
-* The generator now requires Node.js `^22.14.0 || >=24.0.0`. Upgrade older Node.js installations before using the project API, CLI, or Codegen adapter. Node.js 23 is not supported.
+* The generator requires Node.js ^22.14.0 || >=24.0.0. Older versions and Node.js 23 are not supported.
+* **cli:** Default configuration discovery now uses graphql-dts.config.*. Rename existing configuration files or pass their paths through --config.
+* The package root exposes defineConfig and asynchronous
+generateDeclarations/checkDeclarations instead of the Codegen plugin.
+Codegen consumers use the ./codegen export. Project tree outputs contain
+file modules; aliased imports need a TypeScript paths fallback to the tree.
+* Codegen configuration now requires typesModule and explicit
+provider-document imports for external fragments. The plugin returns operation
+declarations without writing a schema tree; scalar, directive, and naming
+configuration follow the new typed contract.
+
+### Features
+
+* **cli:** Renamed the default configuration file ([c0d5c0b](https://github.com/omnicajs/graphql-precise-dts/commit/c0d5c0b002c0c0100cc9adfd697245cc6ef04715))
+* Project execution and CLI were added around the compiler ([0f3a33c](https://github.com/omnicajs/graphql-precise-dts/commit/0f3a33c2eb050238db6f6e1c7206ed3b2db85161))
+* Selection models were transformed into a schema snapshot compiler ([12c6d82](https://github.com/omnicajs/graphql-precise-dts/commit/12c6d82671a416ce35d9fb0a5ed12293814cc580))
+
+
+### Fixes
+
+* Declared and verified the minimum supported Node.js version ([a005f8f](https://github.com/omnicajs/graphql-precise-dts/commit/a005f8fd8937b9b24aaec7f06f36716c473e38ee))
 
 ### [0.5.1](https://github.com/omnicajs/graphql-precise-dts/compare/v0.5.0...v0.5.1) (2026-06-29)
 
