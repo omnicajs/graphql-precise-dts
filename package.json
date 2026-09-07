@@ -3,6 +3,9 @@
     "description": "GraphQL files type declaration generator",
     "version": "0.5.1",
     "license": "MIT",
+    "engines": {
+        "node": "^22.14.0 || >=24.0.0"
+    },
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
@@ -36,7 +39,8 @@
         "test:types:cases": "vitest --config vitest.cases.config.ts --typecheck.only run",
         "test:runtime": "vitest run",
         "test:cases": "vitest run tests/cases && yarn test:types:cases",
-        "test:package": "yarn build && node tests/package-entrypoints.mjs && node --test tests/package/codegen.node.mjs",
+        "test:package": "yarn build && yarn test:package:runtime",
+        "test:package:runtime": "node tests/package-entrypoints.mjs && node --test tests/package/codegen.node.mjs",
         "test:coverage": "vitest run --coverage",
         "check:peer-deps": "fix-peer-deps",
         "check:peer-deps:fix": "fix-peer-deps --fix",

@@ -15,6 +15,11 @@ requires that upper bound. CI installs each matrix compiler locally and runs
 type checks, runtime coverage, and built-package checks with TypeScript 5.5,
 5.8, 5.9, and 6.0 on Node.js 22 and 24.
 
+The published package supports Node.js `^22.14.0 || >=24.0.0`. A separate CI
+job builds on Node.js 24, then runs `yarn test:package:runtime` on exactly
+22.14.0 to check package exports, glob exclusions, CLI, workers, and Codegen
+without invoking the development build tools on the minimum runtime.
+
 Source code lives in `src/`; public scenarios and integration checks live in
 `tests/`. Declarations are generated in temporary test workspaces and compared
 with committed expectations in `tests/fixtures/cases/`. `tests/cases/` separately

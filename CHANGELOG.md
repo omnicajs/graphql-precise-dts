@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## Unreleased
+
+### ⚠ BREAKING CHANGES
+
+* The generator now requires Node.js `^22.14.0 || >=24.0.0`. Upgrade older Node.js installations before using the project API, CLI, or Codegen adapter. Node.js 23 is not supported.
+
 ### [0.5.1](https://github.com/omnicajs/graphql-precise-dts/compare/v0.5.0...v0.5.1) (2026-06-29)
 
 

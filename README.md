@@ -16,6 +16,9 @@ and GraphQL Code Generator adapter.
 
 ## Installation
 
+Requires Node.js 22.14.0 or later in the 22.x series, or Node.js 24.0.0 and
+later (`^22.14.0 || >=24.0.0`). Node.js 23 is not supported.
+
 ```bash
 yarn add -D @omnicajs/graphql-precise-dts
 yarn add @graphql-typed-document-node/core

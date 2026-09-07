@@ -6,6 +6,7 @@ import {
     readFileSync,
     rmSync,
     statSync,
+    writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import {
@@ -53,6 +54,7 @@ try {
         resolve(workspace, 'documents/viewer.graphql'),
         resolve(workspace, 'documents/viewer-copy.graphql')
     )
+    writeFileSync(resolve(workspace, 'documents/ignored.graphql'), 'invalid GraphQL')
 
     const codegenOutput = resolve(workspace, 'codegen/operations.d.ts')
     await generate({
@@ -158,7 +160,10 @@ try {
                 targets: {
                     core: {
                         schema: 'core',
-                        documents: { files: [ 'viewer.graphql', 'viewer-copy.graphql' ] },
+                        documents: { glob: {
+                            include: [ '**/*.graphql' ],
+                            exclude: [ '**/ignored.graphql' ],
+                        } },
                         outputs: { tree: { root: 'generated-workers' } },
                     },
                 },
@@ -166,6 +171,9 @@ try {
         },
     })
     const sequentialResult = await api.generateDeclarations(sequentialConfig)
+    assert.equal(existsSync(resolve(workspace, 'generated-workers/viewer.graphql.d.ts')), true)
+    assert.equal(existsSync(resolve(workspace, 'generated-workers/viewer-copy.graphql.d.ts')), true)
+    assert.equal(existsSync(resolve(workspace, 'generated-workers/ignored.graphql.d.ts')), false)
     const sequentialManifest = readFileSync(resolve(
         workspace,
         'generated-workers/.graphql-precise-dts-manifest.json'
@@ -188,7 +196,10 @@ try {
                 targets: {
                     core: {
                         schema: 'core',
-                        documents: { files: [ 'viewer.graphql', 'viewer-copy.graphql' ] },
+                        documents: { glob: {
+                            include: [ '**/*.graphql' ],
+                            exclude: [ '**/ignored.graphql' ],
+                        } },
                         outputs: { tree: { root: 'generated-workers' } },
                     },
                 },
