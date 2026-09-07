@@ -7,6 +7,7 @@ export type CliEnvironment = {
 export type CliOptions = {
     command: 'generate' | 'check' | 'list'
     configFile?: string
+    force?: boolean
 }
 
 export type CliHelp = {

@@ -8,7 +8,7 @@ each model and component.
 
 ## 1. Entrypoint and locks
 
-`generateDeclarations(config)` validates configuration, then acquires project
+`generateDeclarations(config, options?)` validates configuration, then acquires project
 locks in a stable order. Lock files live in `.graphql-precise-dts/locks/` relative
 to `config.root`. A lock contains a PID and a unique token; an active lock rejects
 a competing run, while a stale lock can be recovered. Cleanup in `finally`
@@ -191,12 +191,18 @@ already exist at that point.
 For an error-free plan, `publishDeclarationTrees` performs these steps:
 
 1. Prepare every tree and read previous manifests.
-2. Check the hashes of previously published files and the absence of unowned
-   files at planned paths. A conflict stops publication before the first write.
+2. Check the hashes of previously published files, unless `options.force` is
+   `true`. Always check the absence of unowned files at planned paths. A conflict
+   stops publication before the first write.
 3. Write files using a temporary file and `rename`. If contents match, skip the
    write and preserve the timestamp.
-4. Delete stale files owned by the previous publication.
+4. Delete stale files owned by the previous publication, including modified ones
+   when force is enabled.
 5. Write manifests last.
+
+The CLI exposes this invocation option as `generate --force`; `check` and `list`
+reject it. Force does not bypass error diagnostics, manifest validation, or
+ownership checks. It leaves the schema cache policy unchanged.
 
 This provides a preflight check for the entire publication and atomic replacement
 of individual files, not a single transaction. An I/O failure after writing has

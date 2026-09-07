@@ -28,6 +28,7 @@ export type {
     GeneratedAggregateOutput,
     GeneratedDeclarationOutput,
     GeneratedSchemaOutput,
+    GenerateDeclarationsOptions,
     GenerateDeclarationsResult,
     GenerationDiagnostic,
     GenerationOutput,

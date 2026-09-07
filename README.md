@@ -102,6 +102,19 @@ graphql-precise-dts list --config /workspace/config/graphql.ts
 
 `generate` publishes changed declarations and ownership manifests. `check` runs the same validation and rendering plan, compares it with the filesystem, and never creates, updates, or removes files. `list` prints configured project IDs in deterministic order.
 
+If switching branches or generator versions changes previously generated files,
+use `generate --force` to replace modified files recorded in the output manifests
+and delete recorded files that are no longer needed:
+
+```bash
+graphql-precise-dts generate --force --config graphql-dts.config.ts
+```
+
+Without `--force`, generation rejects files modified since the last publication.
+Unchanged stale files are cleaned up in either mode. Force does not overwrite
+files outside the manifests or bypass compilation errors. Keep the manifests;
+clearing the schema cache does not resolve output ownership conflicts.
+
 Schema snapshots are cached by default under `<root>/.graphql-precise-dts/cache` and invalidated by schema contents, schema semantics, generator version, GraphQL version, or cache format. Set `cache.directory` to relocate this persistent cache or `cache.enabled: false` to disable it. `check` can read a compatible cache entry but never creates or repairs one.
 
 Execution is sequential by default. Opt into a bounded worker-thread pool with `execution: { mode: 'parallel', maxWorkers: 2 }`; `maxWorkers` is required and positive in parallel mode. Schemas still run one at a time, while independent declaration bundles for the current target may run in parallel and are collected in deterministic source order. `generate` holds fail-fast project locks under `<root>/.graphql-precise-dts/locks` until publication completes.
@@ -119,6 +132,10 @@ const generation = await generateDeclarations(config)
 const check = await checkDeclarations(config)
 const projectIds = listProjects(config)
 ```
+
+The API equivalent of `generate --force` is
+`await generateDeclarations(config, { force: true })`. The option applies to one
+invocation; it is not part of the saved configuration.
 
 ## GraphQL Code Generator adapter
 

@@ -9,12 +9,17 @@ import yargs from 'yargs'
 type ParsedArguments = ArgumentsCamelCase<{
     config?: string
     help?: boolean
+    force?: boolean
 }>
 
 const createParser = () => yargs()
     .scriptName('graphql-precise-dts')
     .usage('$0 <command> [options]')
-    .command('generate', 'Generate and publish declaration files')
+    .command('generate', 'Generate and publish declaration files', parser => parser.option('force', {
+        description: 'Replace modified owned files and remove stale owned files',
+        type: 'boolean',
+        default: false,
+    }))
     .command('check', 'Check declaration files without writing')
     .command('list', 'List configured project IDs')
     .option('config', {
@@ -55,6 +60,7 @@ export const parseArguments = (
         resolve({
             command: options._[0] as CliOptions['command'],
             configFile: options.config,
+            force: options.force,
         })
     })
 })

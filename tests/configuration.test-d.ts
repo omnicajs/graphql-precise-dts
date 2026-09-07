@@ -1,4 +1,5 @@
 import type {
+    GenerateDeclarationsOptions,
     TsLiteralType,
     TsType,
 } from '@/index'
@@ -23,6 +24,7 @@ import {
     defineString,
     defineTuple,
     defineUnknown,
+    generateDeclarations,
     intersectionOf,
     makeNullable,
     unionOf,
@@ -39,6 +41,14 @@ const schema = {
 } as const
 
 describe('configuration public types', () => {
+    test('accepts an optional force flag for a generation invocation', () => {
+        expectTypeOf<Parameters<typeof generateDeclarations>[1]>()
+            .toEqualTypeOf<GenerateDeclarationsOptions | undefined>()
+        expectTypeOf({ force: true }).toExtend<GenerateDeclarationsOptions>()
+        expectTypeOf({}).toExtend<GenerateDeclarationsOptions>()
+        expectTypeOf({ force: 'true' }).not.toExtend<GenerateDeclarationsOptions>()
+    })
+
     test('preserves schema and project identities', () => {
         const config = defineConfig({
             root: '/workspace',
