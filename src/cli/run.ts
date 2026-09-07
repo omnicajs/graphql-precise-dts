@@ -43,7 +43,7 @@ export const runCli = async (
         }
 
         if (options.command === 'generate') {
-            const result = await generateDeclarations(config)
+            const result = await generateDeclarations(config, { force: options.force })
             if (result.diagnostics.length) {
                 environment.stderr(`${result.diagnostics.map(formatDiagnostic).join('\n')}\n`)
             }

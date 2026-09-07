@@ -27,6 +27,30 @@ failures can throw instead of producing a document diagnostic. Publication
 checks ownership before writes; writes are atomic per file, not a transaction
 across all output trees.
 
+## Modified output files
+
+`was modified after publication` means that a file's contents no longer match
+its hash in `.graphql-precise-dts-manifest.json`. This can happen after switching
+branches or running another generator version. It is an output ownership check,
+not a schema cache failure.
+
+To intentionally replace modified generated files and remove stale ones, run:
+
+```bash
+graphql-precise-dts generate --force --config graphql-dts.config.ts
+```
+
+The public API equivalent is `generateDeclarations(config, { force: true })`.
+Force applies to all manifest-owned files in the configured output trees,
+including operation declarations, aggregates, schema declarations, and enums.
+Files still needed are regenerated; obsolete files are removed even if modified.
+Unchanged stale files are removed during ordinary generation as well.
+
+Force does not overwrite files absent from the manifests, delete unrelated files,
+or publish a plan with error diagnostics. Keep the output manifests: removing
+only a manifest makes existing declarations unowned and prevents their replacement.
+`check` remains read-only and does not accept `--force`.
+
 ## Diagnostic codes
 
 | Code | Concern |

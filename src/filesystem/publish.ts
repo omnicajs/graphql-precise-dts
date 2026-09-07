@@ -20,7 +20,8 @@ import {
 
 export const publishDeclarationTrees = (
     root: string,
-    trees: ReadonlyArray<DeclarationTree>
+    trees: ReadonlyArray<DeclarationTree>,
+    force: boolean
 ): void => {
     const preparedTrees = prepareDeclarationTrees(root, trees)
     const plannedFiles = new Set(preparedTrees.flatMap(tree => tree.files.map(file => file.absoluteFile)))
@@ -30,7 +31,7 @@ export const publishDeclarationTrees = (
         for (const file of tree.previousManifest?.files ?? []) {
             const absoluteFile = resolveOwnedFile(tree.root, file.path, tree.manifestFile)
             ownedFiles.add(absoluteFile)
-            if (!existsSync(absoluteFile)) continue
+            if (force || !existsSync(absoluteFile)) continue
 
             const contentHash = makeContentHash(readFileSync(absoluteFile, 'utf8'))
             if (contentHash !== file.contentHash) {

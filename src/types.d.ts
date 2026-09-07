@@ -43,6 +43,11 @@ export type GenerationDiagnostic = CoreGenerationDiagnostic & { schemaId: string
     }
 )
 
+export type GenerateDeclarationsOptions = {
+    /** Replace modified manifest-owned files and remove stale owned files. */
+    force?: boolean
+}
+
 export type GenerateDeclarationsResult = {
     outputs: ReadonlyArray<GenerationOutput>
     diagnostics: ReadonlyArray<GenerationDiagnostic>

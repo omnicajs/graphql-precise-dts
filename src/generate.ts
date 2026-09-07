@@ -1,5 +1,5 @@
 import type { Config } from '@/config/types'
-import type { GenerateDeclarationsResult } from '@/types'
+import type { GenerateDeclarationsOptions, GenerateDeclarationsResult } from '@/types'
 
 import { validateConfig } from '@/config/validate'
 import { publishDeclarationTrees } from '@/filesystem/publish'
@@ -7,7 +7,8 @@ import { withProjectLocks } from '@/filesystem/locks'
 import { createDeclarationPlan } from '@/plan'
 
 export const generateDeclarations = (
-    config: Config
+    config: Config,
+    options: GenerateDeclarationsOptions = {}
 ): Promise<GenerateDeclarationsResult> => {
     validateConfig(config)
 
@@ -18,7 +19,7 @@ export const generateDeclarations = (
             const plan = await createDeclarationPlan(config, { writeCache: true })
 
             if (!plan.result.diagnostics.some(diagnostic => diagnostic.severity === 'error')) {
-                publishDeclarationTrees(config.root, plan.trees)
+                publishDeclarationTrees(config.root, plan.trees, options.force === true)
             }
 
             return plan.result

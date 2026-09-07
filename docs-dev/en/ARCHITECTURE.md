@@ -163,8 +163,10 @@ typename; their interface IDs describe selection applicability, not runtime name
   document. A compiled fragment is identified by `sourcePath` and its name.
 - An output file has one producer. Multiple targets may share a tree root when
   their output files do not collide.
-- Publication does not overwrite unowned files or files modified after the
-  generator wrote them. Only stale files from the previous manifest may be deleted.
+- Publication never overwrites unowned files. By default, it also rejects files
+  modified after the generator wrote them. `generateDeclarations(config,
+  { force: true })` allows replacing modified owned files and deleting modified
+  stale files. Only stale files from the previous manifest may be deleted.
 
 ## Execution and failure boundaries
 
