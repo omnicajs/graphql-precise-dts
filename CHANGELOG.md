@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.6.1](https://github.com/omnicajs/graphql-precise-dts/compare/v0.6.0...v0.6.1) (2026-09-07)
+
+
+### Features
+
+* Added forced regeneration of owned declaration files ([3038350](https://github.com/omnicajs/graphql-precise-dts/commit/3038350e7655557adc2845573a3258aabd9d99ce))
+
 ## [0.6.0](https://github.com/omnicajs/graphql-precise-dts/compare/v0.5.1...v0.6.0) (2026-09-07)
 
 
