@@ -11,6 +11,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  minimum-node:
+    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup build dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          node-version: 24.x
+          cache-key-suffix: minimum-node
+
+      - name: Checking for peer dependency conflicts
+        run: yarn check:peer-deps:fix
+
+      - name: Build with the development toolchain
+        run: yarn build
+
+      - name: Setup minimum supported Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.14.0
+
+      - name: Verify built package, glob exclusions, CLI, workers, and Codegen
+        run: yarn test:package:runtime
+
   test:
     timeout-minutes: 60
     runs-on: ubuntu-24.04
