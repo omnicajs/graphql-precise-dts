@@ -33,6 +33,7 @@ export type {
     GenerateDeclarationsResult,
     GenerationDiagnostic,
     GenerationOutput,
+    PublicationWarning,
 } from './types'
 export type {
     DiagnosticCode,

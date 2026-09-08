@@ -1,6 +1,8 @@
 import type {
     GenerateDeclarationsOptions,
+    GenerateDeclarationsResult,
     LocksConfig,
+    PublicationWarning,
     TsLiteralType,
     TsType,
 } from '@/index'
@@ -48,6 +50,8 @@ describe('configuration public types', () => {
         expectTypeOf({ force: true }).toExtend<GenerateDeclarationsOptions>()
         expectTypeOf({}).toExtend<GenerateDeclarationsOptions>()
         expectTypeOf({ force: 'true' }).not.toExtend<GenerateDeclarationsOptions>()
+        expectTypeOf<GenerateDeclarationsResult['warnings']>()
+            .toEqualTypeOf<ReadonlyArray<PublicationWarning> | undefined>()
     })
 
     test('preserves schema and project identities', () => {

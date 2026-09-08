@@ -49,6 +49,10 @@ export const runCli = async (
             }
             if (hasErrors(result.diagnostics)) return 1
 
+            for (const warning of result.warnings ?? []) {
+                environment.stderr(`WARNING ${warning.code} ${warning.root}: Output area contains undeclared files; preserved:\n${warning.files.join('\n')}\n`)
+            }
+
             environment.stdout(`Generated ${result.outputs.length} declaration files.\n`)
             return 0
         }

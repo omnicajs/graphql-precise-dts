@@ -96,6 +96,22 @@ describe('CLI application integration', () => {
         expect(await runCli(['check'], environment)).toBe(0)
     })
 
+    test('force adopts a legacy tree and warns about preserved undeclared files', async () => {
+        const output = resolve(root, 'generated/viewer.graphql.d.ts')
+        const extra = resolve(root, 'generated/legacy.graphql.d.ts')
+        mkdirSync(resolve(root, 'generated'), { recursive: true })
+        writeFileSync(output, 'legacy generated declaration')
+        writeFileSync(extra, 'legacy file no longer generated')
+
+        expect(await runCli(['generate', '--force'], environment)).toBe(0)
+        expect(stdout).toBe('Generated 1 declaration files.\n')
+        expect(stderr).toContain('WARNING dirty-output generated')
+        expect(stderr).toContain('generated/legacy.graphql.d.ts')
+        expect(readFileSync(output, 'utf8'))
+            .toBe(fixtureWorkspace.readFixture('cli/expected/app/viewer.graphql.d.ts'))
+        expect(readFileSync(extra, 'utf8')).toBe('legacy file no longer generated')
+    })
+
     test('requires a config option value', async () => {
         expect(await runCli(['generate', '--config'], environment)).toBe(1)
         expect(stderr).toBe('Error: Not enough arguments following: config\n')

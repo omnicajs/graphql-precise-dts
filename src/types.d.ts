@@ -44,13 +44,21 @@ export type GenerationDiagnostic = CoreGenerationDiagnostic & { schemaId: string
 )
 
 export type GenerateDeclarationsOptions = {
-    /** Replace modified manifest-owned files and remove stale owned files. */
+    /** Overwrite planned outputs, remove stale owned files, and warn about preserved unowned files. */
     force?: boolean
+}
+
+export type PublicationWarning = {
+    code: 'dirty-output'
+    root: string
+    files: ReadonlyArray<string>
 }
 
 export type GenerateDeclarationsResult = {
     outputs: ReadonlyArray<GenerationOutput>
     diagnostics: ReadonlyArray<GenerationDiagnostic>
+    /** Present when forced publication preserves undeclared files in output areas. */
+    warnings?: ReadonlyArray<PublicationWarning>
 }
 
 export type DeclarationDifference = {
