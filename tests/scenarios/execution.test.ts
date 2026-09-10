@@ -248,6 +248,52 @@ test('does not load or cache an unused schema', async () => {
     expect(existsSync(resolve(root, '.cache/unused-schema'))).toBe(false)
 })
 
+test.each(['relative', 'absolute'] as const)('uses a custom %s lock directory', async pathKind => {
+    const workspace = createFixtureWorkspace()
+    const root = resolve(workspace.root, 'selection-composition')
+    const directory = pathKind === 'relative'
+        ? 'generated/custom-locks/locks'
+        : resolve(workspace.root, 'external-locks')
+    const lockDirectory = resolve(root, directory)
+    const lockFile = resolve(lockDirectory, 'app.lock')
+    const config = defineConfig({
+        ...makeConfig('generated/custom-locks', '.cache/custom-locks', {
+            mode: 'parallel', maxWorkers: 2,
+        }),
+        root,
+        cache: { enabled: false },
+        locks: { directory },
+        execution: { mode: 'parallel', maxWorkers: 2 },
+    })
+
+    try {
+        await checkDeclarations(config)
+        expect(existsSync(lockDirectory)).toBe(false)
+
+        const generation = generateDeclarations(config)
+        expect(JSON.parse(readFileSync(lockFile, 'utf8'))).toEqual({
+            pid: process.pid,
+            token: expect.any(String),
+        })
+        const competingGeneration = generateDeclarations(config)
+        const [result] = await Promise.all([
+            generation,
+            expect(competingGeneration).rejects.toThrow('Project "app" is locked by another generator'),
+        ])
+
+        expect(result.outputs.length).toBeGreaterThan(0)
+        expect(result.diagnostics.filter(diagnostic => diagnostic.severity === 'error')).toEqual([])
+        expect(readdirSync(lockDirectory)).toEqual([])
+        expect(existsSync(resolve(root, '.graphql-precise-dts'))).toBe(false)
+
+        writeFileSync(lockFile, JSON.stringify({ pid: 2_000_000_000, token: 'stale' }))
+        await generateDeclarations(config)
+        expect(existsSync(lockFile)).toBe(false)
+    } finally {
+        workspace.dispose()
+    }
+})
+
 test('rejects a concurrent generator holding the same project lock', async () => {
     const root = resolve(fixturesRoot, 'selection-composition')
     const lockFile = resolve(root, '.graphql-precise-dts/locks/app.lock')

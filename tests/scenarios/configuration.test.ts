@@ -283,7 +283,17 @@ test.each([
         { enabled: 'yes' },
         'cache.enabled": expected a boolean',
     ],
-] as const)('rejects invalid execution or cache configuration at %j', (path, value, message) => {
+    [
+        [ 'locks' ],
+        { directory: 42 },
+        'locks.directory": expected a string',
+    ],
+    [
+        [ 'locks' ],
+        { enabled: false },
+        'locks.enabled": unknown property',
+    ],
+] as const)('rejects invalid execution, cache or locks configuration at %j', (path, value, message) => {
     expect(() => generateDeclarations(replaceConfigValue(
         makeRuntimeConfig(),
         path,

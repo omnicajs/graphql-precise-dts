@@ -2,6 +2,7 @@ import type {
     CacheConfig,
     Config,
     ExecutionConfig,
+    LocksConfig,
     ProjectsConfig,
     ResolveConfig,
     SchemaId,
@@ -14,10 +15,12 @@ export const defineConfig = <
     const TResolve extends ResolveConfig | undefined = undefined,
     const TExecution extends ExecutionConfig | undefined = undefined,
     const TCache extends CacheConfig | undefined = undefined,
+    const TLocks extends LocksConfig | undefined = undefined,
 >(config: Config<
     TSchemas,
     TProjects,
     TResolve,
     TExecution,
-    TCache
->): Config<TSchemas, TProjects, TResolve, TExecution, TCache> => config
+    TCache,
+    TLocks
+>): Config<TSchemas, TProjects, TResolve, TExecution, TCache, TLocks> => config

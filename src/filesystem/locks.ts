@@ -16,14 +16,14 @@ type ProjectLock = {
     token: string
 }
 
-const lockFile = (root: string, projectId: string): string => {
+const lockFile = (directory: string, projectId: string): string => {
     const safeProjectId = /^[A-Za-z0-9._-]+$/.test(projectId)
         && projectId !== '.'
         && projectId !== '..'
         ? projectId
         : Buffer.from(projectId).toString('base64url')
 
-    return resolve(root, '.graphql-precise-dts/locks', `${safeProjectId}.lock`)
+    return resolve(directory, `${safeProjectId}.lock`)
 }
 
 const readLockPid = (file: string): number | undefined => {
@@ -48,8 +48,8 @@ const isProcessAlive = (pid: number | undefined): boolean => {
     }
 }
 
-const createLock = (root: string, projectId: string): ProjectLock => {
-    const file = lockFile(root, projectId)
+const createLock = (directory: string, projectId: string): ProjectLock => {
+    const file = lockFile(directory, projectId)
     const token = randomUUID()
     mkdirSync(dirname(file), { recursive: true })
 
@@ -89,7 +89,7 @@ const releaseLock = (lock: ProjectLock): void => {
 }
 
 export const withProjectLocks = async <T>(
-    root: string,
+    directory: string,
     projectIds: ReadonlyArray<string>,
     action: () => Promise<T>
 ): Promise<T> => {
@@ -97,7 +97,7 @@ export const withProjectLocks = async <T>(
 
     try {
         for (const projectId of [ ...new Set(projectIds) ].sort()) {
-            locks.push(createLock(root, projectId))
+            locks.push(createLock(directory, projectId))
         }
 
         return await action()

@@ -1,5 +1,6 @@
 import type {
     GenerateDeclarationsOptions,
+    LocksConfig,
     TsLiteralType,
     TsType,
 } from '@/index'
@@ -55,6 +56,7 @@ describe('configuration public types', () => {
             cache: {
                 directory: '.cache/graphql',
             },
+            locks: { directory: '.cache/graphql-locks' },
             execution: {
                 mode: 'parallel',
                 maxWorkers: 2,
@@ -97,6 +99,8 @@ describe('configuration public types', () => {
         expectTypeOf(config.execution.mode).toEqualTypeOf<'parallel'>()
         expectTypeOf(config.execution.maxWorkers).toEqualTypeOf<number>()
         expectTypeOf(config.cache.directory).toEqualTypeOf<string>()
+        expectTypeOf(config.locks.directory).toEqualTypeOf<string>()
+        expectTypeOf({ directory: 42 }).not.toExtend<LocksConfig>()
         expectTypeOf(config.resolve.alias.src).toEqualTypeOf<string>()
         expectTypeOf<keyof typeof config.schemas>().toEqualTypeOf<'analytics' | 'core'>()
         expectTypeOf(config.schemas.core.typename).toEqualTypeOf<'abstract'>()

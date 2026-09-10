@@ -6,6 +6,7 @@ export type {
     FieldDirectivePolicy,
     DocumentSelector,
     ExecutionConfig,
+    LocksConfig,
     NamingPolicy,
     NamingStyle,
     TypenamePolicy,
