@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.6.2](https://github.com/omnicajs/graphql-precise-dts/compare/v0.6.1...v0.6.2) (2026-09-10)
+
+
+### Features
+
+* Added configurable project lock directory ([9488ae3](https://github.com/omnicajs/graphql-precise-dts/commit/9488ae3ee8ee036c79739e8c8a396fbf87803b42))
+
 ### [0.6.1](https://github.com/omnicajs/graphql-precise-dts/compare/v0.6.0...v0.6.1) (2026-09-07)
 
 
