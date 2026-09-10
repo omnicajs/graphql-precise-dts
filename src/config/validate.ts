@@ -253,6 +253,9 @@ const config: z.ZodType<Config> = z.strictObject({
         directory: string.optional(),
         enabled: z.boolean({ error: 'expected a boolean' }).optional(),
     }, { error: 'expected an object' }).optional(),
+    locks: z.strictObject({
+        directory: string.optional(),
+    }, { error: 'expected an object' }).optional(),
     execution: execution.optional(),
     resolve: resolveConfig.optional(),
 }, { error: 'expected an object' }).superRefine((value, context) => {

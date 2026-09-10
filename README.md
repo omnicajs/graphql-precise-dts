@@ -46,6 +46,7 @@ import { defineConfig } from '@omnicajs/graphql-precise-dts'
 export default defineConfig({
   root: import.meta.dirname,
   cache: { directory: '.cache/graphql-precise-dts' },
+  locks: { directory: '.cache/graphql-precise-dts-locks' },
   execution: { mode: 'sequential' },
   resolve: { alias: { src: '@app/graphql' } },
   schemas: {
@@ -117,7 +118,7 @@ clearing the schema cache does not resolve output ownership conflicts.
 
 Schema snapshots are cached by default under `<root>/.graphql-precise-dts/cache` and invalidated by schema contents, schema semantics, generator version, GraphQL version, or cache format. Set `cache.directory` to relocate this persistent cache or `cache.enabled: false` to disable it. `check` can read a compatible cache entry but never creates or repairs one.
 
-Execution is sequential by default. Opt into a bounded worker-thread pool with `execution: { mode: 'parallel', maxWorkers: 2 }`; `maxWorkers` is required and positive in parallel mode. Schemas still run one at a time, while independent declaration bundles for the current target may run in parallel and are collected in deterministic source order. `generate` holds fail-fast project locks under `<root>/.graphql-precise-dts/locks` until publication completes.
+Execution is sequential by default. Opt into a bounded worker-thread pool with `execution: { mode: 'parallel', maxWorkers: 2 }`; `maxWorkers` is required and positive in parallel mode. Schemas still run one at a time, while independent declaration bundles for the current target may run in parallel and are collected in deterministic source order. `generate` holds fail-fast project locks under `<root>/.graphql-precise-dts/locks` until publication completes. Set `locks.directory` to relocate these locks independently of the cache. Like `cache.directory`, relative paths are resolved from `root`, and absolute paths are used directly. Concurrent generators for the same project must use the same lock directory. Lock files are removed on completion, but the directory remains; `check` does not create locks.
 
 The same operations are available programmatically:
 

@@ -10,7 +10,9 @@ each model and component.
 
 `generateDeclarations(config, options?)` validates configuration, then acquires project
 locks in a stable order. Lock files live in `.graphql-precise-dts/locks/` relative
-to `config.root`. A lock contains a PID and a unique token; an active lock rejects
+to `config.root` by default. `locks.directory` overrides this location: relative
+paths resolve from `config.root`, while absolute paths are used directly.
+Concurrent runs for the same project must use the same directory. A lock contains a PID and a unique token; an active lock rejects
 a competing run, while a stale lock can be recovered. Cleanup in `finally`
 removes only the current run's lock if its token has not been replaced.
 

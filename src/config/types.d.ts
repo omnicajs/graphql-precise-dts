@@ -65,6 +65,10 @@ export type CacheConfig = {
     enabled?: boolean
 }
 
+export type LocksConfig = {
+    directory?: string
+}
+
 export type ExecutionConfig =
     | {
         mode?: 'sequential'
@@ -119,6 +123,7 @@ export type Config<
     TResolve extends ResolveConfig | undefined = ResolveConfig | undefined,
     TExecution extends ExecutionConfig | undefined = ExecutionConfig | undefined,
     TCache extends CacheConfig | undefined = CacheConfig | undefined,
+    TLocks extends LocksConfig | undefined = LocksConfig | undefined,
 > = {
     root: string
     schemas: TSchemas
@@ -126,3 +131,4 @@ export type Config<
 } & (TResolve extends ResolveConfig ? { resolve: TResolve } : { resolve?: undefined })
     & (TExecution extends ExecutionConfig ? { execution: TExecution } : { execution?: undefined })
     & (TCache extends CacheConfig ? { cache: TCache } : { cache?: undefined })
+    & (TLocks extends LocksConfig ? { locks: TLocks } : { locks?: undefined })
