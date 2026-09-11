@@ -56,7 +56,7 @@ const validateUsage = (
             usage.sourceLocation
         )
     }
-    if (!isVariableAllowed(variable, usage.location)) {
+    if (usage.location && !isVariableAllowed(variable, usage.location)) {
         return invalidDocument(
             `Variable "$${usage.name}" cannot be used for argument "${usage.argumentName}"`,
             usage.sourceLocation

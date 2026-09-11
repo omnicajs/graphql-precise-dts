@@ -1,6 +1,6 @@
 import type { Config, SchemaConfig } from '@/index'
 
-import { defineConfig, defineString } from '@/index'
+import { defineConfig, defineString, defineUnknown } from '@/index'
 import { richScalars } from './scalar-contract'
 
 type DeclarationCase = {
@@ -51,6 +51,23 @@ export const declarationCases: DeclarationCase[] = [
                 },
             },
         },
+    },
+    {
+        fixture: 'diagnostics', variant: 'standard', project: 'standard',
+        schema: { file: 'schemas/standard/schema.graphql', scalars: { JSON: defineUnknown() } },
+        expectedRoot: 'expected/standard',
+        files: [
+            'scalar-object-variable.graphql', 'scalar-list-variable.graphql',
+            'schema-introspection.graphql', 'type-introspection.graphql',
+            'typename-alias.graphql', 'typename-alias-fragment.graphql', 'typename-alias-abstract.graphql',
+            'typename-alias-sibling.graphql',
+            'typename-alias-repeated.graphql', 'typename-alias-repeated-reversed.graphql', 'typename-alias-repeated-nested.graphql',
+            'operation-directive.graphql', 'fragment-definition-directive.graphql', 'variable-definition-directive.graphql',
+            'introspection-details.graphql', 'definition-directive-variables.graphql', 'subscription-nested-directive.graphql',
+            'unreachable-fragment-fields.graphql',
+            'subscription-applicable-inline.graphql', 'subscription-applicable-spread.graphql',
+            'subscription-unreachable-directive.graphql',
+        ],
     },
     { fixture: 'fragment-heavy' },
     { fixture: 'fragment-providers' },

@@ -1,0 +1,10 @@
+query SiblingAlias {
+    dog {
+        __typename: name
+        ...DogFields
+    }
+}
+
+fragment DogFields on Dog {
+    id
+}

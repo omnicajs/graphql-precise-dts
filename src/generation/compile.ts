@@ -30,6 +30,7 @@ import { compileSelectionSet } from './selections'
 import { Kind } from 'graphql'
 import { collectRepeatedSelectionDiagnostics } from './diagnostics/repeated'
 import { compileVariables } from './variables'
+import { validateDirectives } from './directives'
 
 export type CompileResult =
     | { document: CompiledDocument; diagnostics: ReadonlyArray<GenerationDiagnostic> }
@@ -46,12 +47,15 @@ const compileOperation = (
     context: CompilationContext
 ): CompiledOperation => {
     if (!operation.name) return invalidDocument('Operation must have a name', operation)
-    if (operation.directives?.length) return unsupportedDocument('Operation directives are not supported yet', operation.directives[0])
 
     const rootType = context.schema.getRootType(operation.operation)
     if (!rootType) return invalidDocument(`Schema does not define a ${operation.operation} root type`, operation)
 
     const variables = compileVariables(operation.variableDefinitions!, context)
+    validateDirectives(operation.directives!, operation.operation.toUpperCase(), context, variables)
+    for (const definition of operation.variableDefinitions!) {
+        validateDirectives(definition.directives!, 'VARIABLE_DEFINITION', context, variables)
+    }
 
     return {
         kind: 'operation',
@@ -69,10 +73,9 @@ const compileFragment = (
     fragment: FragmentDefinitionNode,
     context: CompilationContext
 ): CompiledFragment => {
-    if (fragment.directives?.length) return unsupportedDocument('Fragment definition directives are not supported yet', fragment.directives[0])
-
     const type = fragment.typeCondition.name.value
     const variables = createEmptyVariableScope()
+    validateDirectives(fragment.directives!, 'FRAGMENT_DEFINITION', context, variables)
 
     return {
         kind: 'fragment',

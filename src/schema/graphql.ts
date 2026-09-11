@@ -103,7 +103,7 @@ const toInputValue = (
     }
 }
 
-const toField = (
+export const toSchemaField = (
     field: GraphQLField<unknown, unknown>
 ): SchemaField => ({
     name: field.name,
@@ -119,7 +119,7 @@ const getFields = (
     type: GraphQLObjectType | GraphQLInterfaceType
 ): ReadonlyArray<SchemaField> => Object.values(type.getFields())
     .sort(compareNames)
-    .map(toField)
+    .map(toSchemaField)
 
 const toEnumValue = (value: GraphQLEnumValue): SchemaEnumValue => ({
     name: value.name,

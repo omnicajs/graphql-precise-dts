@@ -1,0 +1,5 @@
+query TypeInfo {
+    __type(name: "Query") {
+        name
+    }
+}

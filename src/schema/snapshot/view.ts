@@ -9,6 +9,7 @@ import type {
 } from '@/schema/types'
 import type { SchemaSnapshot } from './types'
 import type { SchemaView } from '@/schema/view'
+import { introspectionFields, introspectionTypeMap } from '@/schema/introspection'
 
 export class SnapshotSchemaView implements SchemaView {
     private readonly types: ReadonlyMap<TypeId, SchemaType>
@@ -22,11 +23,11 @@ export class SnapshotSchemaView implements SchemaView {
     }
 
     public hasType(type: TypeId): boolean {
-        return this.types.has(type)
+        return this.types.has(type) || introspectionTypeMap.has(type)
     }
 
     public getType(type: TypeId): SchemaType {
-        return this.types.get(type)!
+        return (this.types.get(type) ?? introspectionTypeMap.get(type))!
     }
 
     public getInputType(type: TypeId): SchemaInputType {
@@ -38,6 +39,9 @@ export class SnapshotSchemaView implements SchemaView {
     }
 
     public getField(type: TypeId, field: string): SchemaField | undefined {
+        if (type === this.snapshot.rootTypes.query && introspectionFields.has(field)) {
+            return introspectionFields.get(field)
+        }
         const schemaType = this.getType(type)
         if (schemaType.kind !== 'object' && schemaType.kind !== 'interface') return
 

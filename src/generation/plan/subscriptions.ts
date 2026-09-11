@@ -4,6 +4,7 @@ import type {
     CompiledSelection,
 } from '../model'
 import type { FragmentIndex } from './fragments'
+import type { TypeId } from '@/schema/types'
 
 import { invalidDocument } from '../errors'
 import { resolve } from './fragments'
@@ -12,12 +13,21 @@ type RootField = Exclude<CompiledSelection, CompiledFragmentSpread | { kind: 'in
 
 const collectRootFields = (
     selections: ReadonlyArray<CompiledSelection>,
-    fragments: FragmentIndex
+    fragments: FragmentIndex,
+    rootType: TypeId
 ): ReadonlyArray<RootField> => selections.flatMap(selection => {
+    if (selection.conditionalDirective) {
+        return invalidDocument(
+            'Subscription root selections must not use @skip or @include',
+            selection.conditionalDirective
+        )
+    }
     if (selection.kind === 'inline-fragment') {
-        return collectRootFields(selection.selections, fragments)
+        if (!selection.possibleTypes.includes(rootType)) return []
+        return collectRootFields(selection.selections, fragments, rootType)
     }
     if (selection.kind !== 'fragment-spread') return [ selection ]
+    if (!selection.possibleTypes.includes(rootType)) return []
 
     const fragment = resolve(
         fragments,
@@ -26,7 +36,7 @@ const collectRootFields = (
         selection.location
     )
 
-    return collectRootFields(fragment.selections, fragments)
+    return collectRootFields(fragment.selections, fragments, rootType)
 })
 
 export const validateSubscription = (
@@ -35,7 +45,7 @@ export const validateSubscription = (
 ): void => {
     if (operation.operation !== 'subscription') return
 
-    const fields = collectRootFields(operation.selections, fragments)
+    const fields = collectRootFields(operation.selections, fragments, operation.rootType)
     const responseNames = new Set(fields.map(field => field.name))
     if (responseNames.size !== 1) {
         return invalidDocument(

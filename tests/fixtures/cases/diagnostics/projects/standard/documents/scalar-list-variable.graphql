@@ -1,0 +1,3 @@
+query ScalarVariable($text: String!) {
+    echo(value: [{ value: $text }])
+}

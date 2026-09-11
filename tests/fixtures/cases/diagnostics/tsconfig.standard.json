@@ -1,0 +1,100 @@
+{
+    "extends": "../../../cases/tsconfig.base.json",
+    "compilerOptions": {
+        "paths": {
+            "@app/graphql/schema": [
+                "./expected/standard/schema.d.ts"
+            ],
+            "definition-directive-variables.graphql": [
+                "./expected/standard/definition-directive-variables.graphql.d.ts"
+            ],
+            "fragment-definition-directive.graphql": [
+                "./expected/standard/fragment-definition-directive.graphql.d.ts"
+            ],
+            "introspection-details.graphql": [
+                "./expected/standard/introspection-details.graphql.d.ts"
+            ],
+            "operation-directive.graphql": [
+                "./expected/standard/operation-directive.graphql.d.ts"
+            ],
+            "scalar-list-variable.graphql": [
+                "./expected/standard/scalar-list-variable.graphql.d.ts"
+            ],
+            "scalar-object-variable.graphql": [
+                "./expected/standard/scalar-object-variable.graphql.d.ts"
+            ],
+            "schema-introspection.graphql": [
+                "./expected/standard/schema-introspection.graphql.d.ts"
+            ],
+            "subscription-nested-directive.graphql": [
+                "./expected/standard/subscription-nested-directive.graphql.d.ts"
+            ],
+            "type-introspection.graphql": [
+                "./expected/standard/type-introspection.graphql.d.ts"
+            ],
+            "typename-alias-abstract.graphql": [
+                "./expected/standard/typename-alias-abstract.graphql.d.ts"
+            ],
+            "typename-alias-fragment.graphql": [
+                "./expected/standard/typename-alias-fragment.graphql.d.ts"
+            ],
+            "typename-alias.graphql": [
+                "./expected/standard/typename-alias.graphql.d.ts"
+            ],
+            "variable-definition-directive.graphql": [
+                "./expected/standard/variable-definition-directive.graphql.d.ts"
+            ],
+            "typename-alias-sibling.graphql": [
+                "./expected/standard/typename-alias-sibling.graphql.d.ts"
+            ],
+            "typename-alias-repeated.graphql": [
+                "./expected/standard/typename-alias-repeated.graphql.d.ts"
+            ],
+            "typename-alias-repeated-reversed.graphql": [
+                "./expected/standard/typename-alias-repeated-reversed.graphql.d.ts"
+            ],
+            "typename-alias-repeated-nested.graphql": [
+                "./expected/standard/typename-alias-repeated-nested.graphql.d.ts"
+            ],
+            "unreachable-fragment-fields.graphql": [
+                "./expected/standard/unreachable-fragment-fields.graphql.d.ts"
+            ],
+            "subscription-applicable-inline.graphql": [
+                "./expected/standard/subscription-applicable-inline.graphql.d.ts"
+            ],
+            "subscription-applicable-spread.graphql": [
+                "./expected/standard/subscription-applicable-spread.graphql.d.ts"
+            ],
+            "subscription-unreachable-directive.graphql": [
+                "./expected/standard/subscription-unreachable-directive.graphql.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "expected/standard/schema.d.ts",
+        "expected/standard/definition-directive-variables.graphql.d.ts",
+        "expected/standard/fragment-definition-directive.graphql.d.ts",
+        "expected/standard/introspection-details.graphql.d.ts",
+        "expected/standard/operation-directive.graphql.d.ts",
+        "expected/standard/scalar-list-variable.graphql.d.ts",
+        "expected/standard/scalar-object-variable.graphql.d.ts",
+        "expected/standard/schema-introspection.graphql.d.ts",
+        "expected/standard/subscription-nested-directive.graphql.d.ts",
+        "expected/standard/type-introspection.graphql.d.ts",
+        "expected/standard/typename-alias-abstract.graphql.d.ts",
+        "expected/standard/typename-alias-fragment.graphql.d.ts",
+        "expected/standard/typename-alias.graphql.d.ts",
+        "expected/standard/variable-definition-directive.graphql.d.ts",
+        "expected/standard/typename-alias-sibling.graphql.d.ts",
+        "expected/standard/typename-alias-repeated.graphql.d.ts",
+        "expected/standard/typename-alias-repeated-reversed.graphql.d.ts",
+        "expected/standard/typename-alias-repeated-nested.graphql.d.ts",
+        "expected/standard/unreachable-fragment-fields.graphql.d.ts",
+        "expected/standard/subscription-applicable-inline.graphql.d.ts",
+        "expected/standard/subscription-applicable-spread.graphql.d.ts",
+        "expected/standard/subscription-unreachable-directive.graphql.d.ts"
+    ],
+    "include": [
+        "../../../cases/diagnostics/standard/*.test-d.ts"
+    ]
+}

@@ -34,13 +34,15 @@ const renderVariant = (
     schema: SchemaInput
 ): string => {
     const explicitTypename = typenames.find(selection => selection.name === '__typename')
-    const typename = types.some(type => schema.snapshot.types.find(candidate => candidate.id === type)!.kind === 'interface')
+    const typename = types.some(type => schema.snapshot.types.find(candidate => candidate.id === type)?.kind === 'interface')
         ? 'string'
         : types.map(type => `'${type}'`).join(' | ')
     const properties = [
-        explicitTypename
-            ? `__typename${explicitTypename.conditional ? '?' : ''}: ${typename};`
-            : `__typename?: ${typename};`,
+        ...(fields.some(field => field.name === '__typename') ? [] : [
+            explicitTypename
+                ? `__typename${explicitTypename.conditional ? '?' : ''}: ${typename};`
+                : `__typename?: ${typename};`,
+        ]),
         ...typenames
             .filter(selection => selection.name !== '__typename')
             .map(selection => `${selection.name}${selection.conditional ? '?' : ''}: ${selection.overrideType ?? typename};`),

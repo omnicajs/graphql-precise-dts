@@ -1,0 +1,3 @@
+query DefinitionDirective @meta {
+    echo
+}

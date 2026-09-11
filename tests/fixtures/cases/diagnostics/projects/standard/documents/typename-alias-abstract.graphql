@@ -1,0 +1,14 @@
+query AbstractAlias {
+    item {
+        ...ResponseAlias
+    }
+}
+
+fragment ResponseAlias on Item {
+    ... on L {
+        __typename: left
+    }
+    ... on R {
+        __typename: right
+    }
+}

@@ -1,0 +1,7 @@
+subscription NestedDirective($include: Boolean!) {
+    item {
+        ... on L @include(if: $include) {
+            left
+        }
+    }
+}

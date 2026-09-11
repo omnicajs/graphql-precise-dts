@@ -1,0 +1,7 @@
+subscription RootDirective {
+    ...Root @skip(if: false)
+}
+
+fragment Root on Subscription {
+    event
+}

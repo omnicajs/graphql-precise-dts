@@ -11,6 +11,7 @@ import type {
 } from './model'
 
 import { getNamedType } from '@/schema/ref'
+import { compileEnumValue } from './enums'
 import { unsupportedSchemaType } from './errors'
 import {
     getScalarType,
@@ -72,10 +73,7 @@ export const compileInputValue = (
     }
 
     if (schemaType.kind === 'enum') {
-        return {
-            kind: 'enum',
-            type: schemaType.id,
-        }
+        return compileEnumValue(schemaType)
     }
 
     if (ancestors.has(schemaType.id)) {

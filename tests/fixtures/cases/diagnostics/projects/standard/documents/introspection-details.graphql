@@ -1,0 +1,52 @@
+query IntrospectionDetails {
+    __schema {
+        types {
+            ...TypeMetadata
+        }
+        directives {
+            name
+            locations
+            args(includeDeprecated: true) {
+                ...InputMetadata
+            }
+        }
+    }
+}
+
+fragment TypeMetadata on __Type {
+    kind
+    name
+    specifiedByURL
+    isOneOf
+    fields(includeDeprecated: true) {
+        name
+        args(includeDeprecated: true) {
+            ...InputMetadata
+        }
+        type {
+            kind
+            name
+            ofType {
+                kind
+                name
+            }
+        }
+    }
+    inputFields(includeDeprecated: true) {
+        ...InputMetadata
+    }
+    enumValues(includeDeprecated: true) {
+        name
+        isDeprecated
+    }
+}
+
+fragment InputMetadata on __InputValue {
+    name
+    defaultValue
+    isDeprecated
+    type {
+        kind
+        name
+    }
+}

@@ -6,12 +6,11 @@ import type {
 import type { FragmentIndex } from './fragments'
 import type {
     SchemaTypeRef,
-    TypeId,
 } from '@/schema/types'
 
 import { invalidDocument } from '../errors'
 import { validateSelectionMerge } from '../merge'
-import { collectEffectiveSelections } from './effective'
+import { resolve } from './fragments'
 
 const typenameType: SchemaTypeRef = {
     kind: 'non-null',
@@ -53,19 +52,32 @@ const hasCompatibleTypeShape = (
     return left.type === (right as typeof left).type
 }
 
-const effectiveSelections = (
-    types: ReadonlyArray<TypeId>,
+type FieldSelection = CompiledField | CompiledTypename
+
+// Validation follows declared scopes, before concrete-type narrowing or pruning.
+const collectFields = (
     selections: ReadonlyArray<CompiledSelection>,
     fragments: FragmentIndex
-): ReadonlyArray<ReadonlyArray<CompiledField | CompiledTypename>> => types.map(type => (
-    collectEffectiveSelections(selections, type, fragments)
-))
+): ReadonlyArray<FieldSelection> => selections.flatMap(selection => {
+    if (selection.kind === 'inline-fragment') return collectFields(selection.selections, fragments)
+    if (selection.kind === 'fragment-spread') {
+        const fragment = resolve(fragments, selection.sourcePath, selection.name, selection.location)
+        return collectFields(fragment.selections, fragments)
+    }
+    return selection.kind === 'typename' && selection.implicit ? [] : [selection]
+})
 
-const validateResponseShape = (
+const validatePair = (
     left: CompiledField | CompiledTypename,
     right: CompiledField | CompiledTypename,
-    fragments: FragmentIndex
+    fragments: FragmentIndex,
+    inheritedExclusive = false
 ): void => {
+    const exclusive = inheritedExclusive || (
+        left.parentIsObject && right.parentIsObject && left.parentType !== right.parentType
+    )
+    if (!exclusive) validateSelectionMerge(left, right)
+
     const leftType = responseType(left)
     const rightType = responseType(right)
     const leftComposite = left.kind === 'field' && left.value.kind === 'composite'
@@ -84,76 +96,26 @@ const validateResponseShape = (
         || left.value.kind !== 'composite'
         || right.value.kind !== 'composite') return
 
-    const leftSelections = effectiveSelections(
-        left.value.possibleTypes,
-        left.value.selections,
-        fragments
-    )
-    const rightSelections = effectiveSelections(
-        right.value.possibleTypes,
-        right.value.selections,
-        fragments
-    )
-
-    for (const leftVariant of leftSelections) {
-        for (const rightVariant of rightSelections) {
-            validateResponseShapes(leftVariant, rightVariant, fragments)
-        }
-    }
-}
-
-const validateResponseShapes = (
-    left: ReadonlyArray<CompiledField | CompiledTypename>,
-    right: ReadonlyArray<CompiledField | CompiledTypename>,
-    fragments: FragmentIndex
-): void => {
-    for (const leftSelection of left) {
-        for (const rightSelection of right) {
-            if (rightSelection.name === leftSelection.name) {
-                validateResponseShape(leftSelection, rightSelection, fragments)
-            }
-        }
-    }
-}
-
-const validateVariantResponseShapes = (
-    selections: ReadonlyArray<CompiledField | CompiledTypename>,
-    fragments: FragmentIndex
-): void => {
-    for (const [ index, left ] of selections.entries()) {
-        for (const right of selections.slice(index + 1)) {
-            if (right.name !== left.name) continue
-
-            validateSelectionMerge(left, right)
-            validateResponseShape(left, right, fragments)
+    const leftFields = collectFields(left.value.selections, fragments)
+    const rightFields = collectFields(right.value.selections, fragments)
+    for (const leftField of leftFields) {
+        for (const rightField of rightFields) {
+            if (leftField.name === rightField.name) validatePair(leftField, rightField, fragments, exclusive)
         }
     }
 }
 
 export const validateSelections = (
-    types: ReadonlyArray<TypeId>,
     selections: ReadonlyArray<CompiledSelection>,
     fragments: FragmentIndex
 ): void => {
-    const variants = effectiveSelections(types, selections, fragments)
-
-    for (const effective of variants) {
-        validateVariantResponseShapes(effective, fragments)
-
-        for (const selection of effective) {
-            if (selection.kind === 'field' && selection.value.kind === 'composite') {
-                validateSelections(
-                    selection.value.possibleTypes,
-                    selection.value.selections,
-                    fragments
-                )
-            }
+    const fields = collectFields(selections, fragments)
+    for (const [index, left] of fields.entries()) {
+        for (const right of fields.slice(index + 1)) {
+            if (left.name === right.name) validatePair(left, right, fragments)
         }
-    }
-
-    for (const [ index, left ] of variants.entries()) {
-        for (const right of variants.slice(index + 1)) {
-            validateResponseShapes(left, right, fragments)
+        if (left.kind === 'field' && left.value.kind === 'composite') {
+            validateSelections(left.value.selections, fragments)
         }
     }
 }

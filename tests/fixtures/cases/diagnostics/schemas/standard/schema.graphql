@@ -1,0 +1,59 @@
+directive @meta(value: JSON) on QUERY | FRAGMENT_DEFINITION | VARIABLE_DEFINITION
+
+scalar JSON
+
+interface Left {
+    left: String
+}
+
+interface Right {
+    right: String
+}
+
+type L implements Left {
+    left: String
+}
+
+type R implements Right {
+    right: String
+}
+
+union Item = L | R
+
+interface Pet {
+    name: String
+}
+
+type Dog implements Pet {
+    id: ID!
+    name: String
+}
+
+type Cat implements Pet {
+    name: String
+    nickname: String
+}
+
+type Query {
+    echo(value: JSON, text: String): String
+    item: Item
+    dog: Dog
+    pet: Pet
+    nested: Query
+}
+
+interface Rootish {
+    common: String
+}
+
+type Other implements Rootish {
+    common: String
+    second: String
+}
+
+type Subscription implements Rootish {
+    common: String
+    first: String
+    event: String
+    item: Item
+}
