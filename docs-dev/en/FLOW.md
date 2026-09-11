@@ -193,9 +193,10 @@ already exist at that point.
 For an error-free plan, `publishDeclarationTrees` performs these steps:
 
 1. Prepare every tree and read previous manifests.
-2. Check the hashes of previously published files, unless `options.force` is
-   `true`. Always check the absence of unowned files at planned paths. A conflict
-   stops publication before the first write.
+2. Unless `options.force` is `true`, check the hashes of previously published
+   files and reject unowned files at planned paths. A conflict stops publication
+   before the first write. Force permits overwriting these planned paths and
+   scans output roots for undeclared files to preserve and report.
 3. Write files using a temporary file and `rename`. If contents match, skip the
    write and preserve the timestamp.
 4. Delete stale files owned by the previous publication, including modified ones
@@ -203,8 +204,11 @@ For an error-free plan, `publishDeclarationTrees` performs these steps:
 5. Write manifests last.
 
 The CLI exposes this invocation option as `generate --force`; `check` and `list`
-reject it. Force does not bypass error diagnostics, manifest validation, or
-ownership checks. It leaves the schema cache policy unchanged.
+reject it. Force does not bypass error diagnostics or manifest validation.
+Preserved undeclared files are excluded from the new manifest and returned in
+`result.warnings` as `dirty-output` records with `root` and sorted `files` paths.
+The CLI prints them to stderr without failing. Nested output roots are scanned
+separately and directory symlinks are not followed. The schema cache policy is unchanged.
 
 This provides a preflight check for the entire publication and atomic replacement
 of individual files, not a single transaction. An I/O failure after writing has

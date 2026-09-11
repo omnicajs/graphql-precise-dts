@@ -104,17 +104,19 @@ graphql-precise-dts list --config /workspace/config/graphql.ts
 `generate` publishes changed declarations and ownership manifests. `check` runs the same validation and rendering plan, compares it with the filesystem, and never creates, updates, or removes files. `list` prints configured project IDs in deterministic order.
 
 If switching branches or generator versions changes previously generated files,
-use `generate --force` to replace modified files recorded in the output manifests
-and delete recorded files that are no longer needed:
+use `generate --force` to overwrite planned output files even without an ownership
+manifest, and delete previously recorded files that are no longer needed:
 
 ```bash
 graphql-precise-dts generate --force --config graphql-dts.config.ts
 ```
 
 Without `--force`, generation rejects files modified since the last publication.
-Unchanged stale files are cleaned up in either mode. Force does not overwrite
-files outside the manifests or bypass compilation errors. Keep the manifests;
-clearing the schema cache does not resolve output ownership conflicts.
+Unchanged stale files are cleaned up in either mode. Force preserves files that
+are neither planned outputs nor recorded in the previous manifests, and prints
+`WARNING dirty-output` with their paths. These files are not added to the new
+manifests. Keep manifests to allow cleanup of obsolete generated files.
+Force does not bypass compilation errors or clear the schema cache.
 
 Schema snapshots are cached by default under `<root>/.graphql-precise-dts/cache` and invalidated by schema contents, schema semantics, generator version, GraphQL version, or cache format. Set `cache.directory` to relocate this persistent cache or `cache.enabled: false` to disable it. `check` can read a compatible cache entry but never creates or repairs one.
 
@@ -137,6 +139,9 @@ const projectIds = listProjects(config)
 The API equivalent of `generate --force` is
 `await generateDeclarations(config, { force: true })`. The option applies to one
 invocation; it is not part of the saved configuration.
+If undeclared files remain, the result includes `warnings`: a list of
+`{ code: 'dirty-output', root, files }` records with paths relative to the
+configuration root. The CLI prints them to stderr without failing generation.
 
 ## GraphQL Code Generator adapter
 

@@ -41,14 +41,23 @@ graphql-precise-dts generate --force --config graphql-dts.config.ts
 ```
 
 The public API equivalent is `generateDeclarations(config, { force: true })`.
-Force applies to all manifest-owned files in the configured output trees,
+Force overwrites all planned output paths, including files without a manifest:
 including operation declarations, aggregates, schema declarations, and enums.
-Files still needed are regenerated; obsolete files are removed even if modified.
+Files still needed are regenerated; obsolete manifest-owned files are removed even if modified.
 Unchanged stale files are removed during ordinary generation as well.
 
-Force does not overwrite files absent from the manifests, delete unrelated files,
-or publish a plan with error diagnostics. Keep the output manifests: removing
-only a manifest makes existing declarations unowned and prevents their replacement.
+Files that are neither planned nor recorded in a previous manifest are preserved
+and reported as `dirty-output` warnings. They are not claimed in the new manifest,
+so subsequent forced runs continue to report them. This includes source files
+that intentionally share an output directory, such as `schema.graphql`.
+Keep manifests to distinguish obsolete owned outputs from undeclared files.
+
+Publication warnings are returned separately from compilation diagnostics in the
+optional `result.warnings` array. Each record contains `code: 'dirty-output'`,
+`root`, and a sorted `files` list; paths are relative to the configuration root.
+Nested output roots are checked separately, and directory symlinks are reported
+without following them. The CLI prints these warnings to stderr and still exits
+successfully. Force never publishes a plan with error diagnostics.
 `check` remains read-only and does not accept `--force`.
 
 ## Diagnostic codes

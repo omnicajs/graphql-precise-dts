@@ -91,7 +91,7 @@ const releaseLock = (lock: ProjectLock): void => {
 export const withProjectLocks = async <T>(
     directory: string,
     projectIds: ReadonlyArray<string>,
-    action: () => Promise<T>
+    action: (lockFiles: ReadonlyArray<string>) => Promise<T>
 ): Promise<T> => {
     const locks: ProjectLock[] = []
 
@@ -100,7 +100,7 @@ export const withProjectLocks = async <T>(
             locks.push(createLock(directory, projectId))
         }
 
-        return await action()
+        return await action(locks.map(lock => lock.file))
     } finally {
         locks.reverse().forEach(releaseLock)
     }

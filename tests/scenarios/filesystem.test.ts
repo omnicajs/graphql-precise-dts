@@ -434,11 +434,16 @@ describe('experimental filesystem public API', () => {
         expect(existsSync(resolve(root, 'published/force/schema/enums.ts'))).toBe(false)
         expect(existsSync(resolve(root, 'published/force/app/queries/status.graphql.d.ts'))).toBe(false)
         expect(readFileSync(foreignFile, 'utf8')).toBe('not generated')
+        expect(result.warnings).toEqual([{
+            code: 'dirty-output',
+            root: 'published/force/schema',
+            files: ['published/force/schema/notes.txt'],
+        }])
         expect((await checkDeclarations(config)).differences).toEqual([])
         expect((await generateDeclarations(config)).diagnostics).toEqual([])
     })
 
-    test.each([false, true])('does not overwrite an unowned declaration with force=%s', async force => {
+    test('does not overwrite an unowned declaration without force', async () => {
         const root = resolve(fixturesRoot, 'publication')
         const outputFile = resolve(
             root,
@@ -467,7 +472,7 @@ describe('experimental filesystem public API', () => {
                     },
                 },
             },
-        }), { force })).rejects.toThrow(`Output file "${outputFile}" is not owned by the declaration tree`)
+        }))).rejects.toThrow(`Output file "${outputFile}" is not owned by the declaration tree`)
         expect(readFileSync(outputFile, 'utf8')).toBe('foreign declaration')
         expect(existsSync(resolve(
             root,
