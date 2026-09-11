@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.6.3](https://github.com/omnicajs/graphql-precise-dts/compare/v0.6.2...v0.6.3) (2026-09-11)
+
+
+### Fixes
+
+* Corrected GraphQL standard validation and declaration generation ([8d5d656](https://github.com/omnicajs/graphql-precise-dts/commit/8d5d656c68b923e9eda1d02c593b5e98602ba26d))
+
 ### [0.6.2](https://github.com/omnicajs/graphql-precise-dts/compare/v0.6.1...v0.6.2) (2026-09-10)
 
 
