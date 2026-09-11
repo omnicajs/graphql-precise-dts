@@ -60,19 +60,15 @@ const getBooleanIfValue = (directive: DirectiveNode): boolean | undefined => {
     return value?.kind === Kind.BOOLEAN ? value.value : undefined
 }
 
-export const compileSelectionState = (
-    selection: SelectionNode,
+export const validateDirectives = (
+    directives: ReadonlyArray<DirectiveNode>,
+    location: string,
     context: CompilationContext,
     variables: VariableScope
-): SelectionState => {
-    const state: SelectionState = {
-        included: true,
-        conditional: false,
-        forceNonNull: false,
-    }
+): void => {
     const appliedDirectives = new Set<string>()
 
-    for (const directive of selection.directives!) {
+    for (const directive of directives) {
         const name = directive.name.value
         const schemaDirective = context.schema.getDirectives().find(candidate => candidate.name === name)
         if (!schemaDirective) return invalidDocument(`Directive "@${name}" is not defined`, directive)
@@ -80,9 +76,9 @@ export const compileSelectionState = (
             return invalidDocument(`Directive "@${name}" is used more than once at this location`, directive)
         }
         appliedDirectives.add(name)
-        if (!schemaDirective.locations.includes(getDirectiveLocation(selection))) {
+        if (!schemaDirective.locations.includes(location)) {
             return invalidDocument(
-                `Directive "@${name}" cannot be used on ${getDirectiveLocation(selection)}`,
+                `Directive "@${name}" cannot be used on ${location}`,
                 directive
             )
         }
@@ -96,6 +92,23 @@ export const compileSelectionState = (
             directive
         )
 
+    }
+}
+
+export const compileSelectionState = (
+    selection: SelectionNode,
+    context: CompilationContext,
+    variables: VariableScope
+): SelectionState => {
+    const state: SelectionState = {
+        included: true,
+        conditional: false,
+        forceNonNull: false,
+    }
+    validateDirectives(selection.directives!, getDirectiveLocation(selection), context, variables)
+
+    for (const directive of selection.directives!) {
+        const name = directive.name.value
         const ifValue = getBooleanIfValue(directive)
         if ((name === 'include' && ifValue === false) || (name === 'skip' && ifValue === true)) {
             state.included = false

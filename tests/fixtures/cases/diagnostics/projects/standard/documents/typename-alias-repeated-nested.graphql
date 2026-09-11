@@ -1,0 +1,8 @@
+query NestedAlias {
+    nested {
+        pet { __typename: name }
+    }
+    nested {
+        pet { name }
+    }
+}

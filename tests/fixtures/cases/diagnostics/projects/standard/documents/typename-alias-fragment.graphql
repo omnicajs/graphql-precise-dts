@@ -1,0 +1,7 @@
+query FragmentAlias {
+    ...ResponseAlias
+}
+
+fragment ResponseAlias on Query {
+    __typename: echo
+}

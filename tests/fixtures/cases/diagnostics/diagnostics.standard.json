@@ -1,0 +1,17 @@
+[
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "typename-alias-repeated-nested.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "typename-alias-repeated-reversed.graphql"
+    },
+    {
+        "severity": "warning",
+        "code": "repeated-field-selection",
+        "sourceId": "typename-alias-repeated.graphql"
+    }
+]

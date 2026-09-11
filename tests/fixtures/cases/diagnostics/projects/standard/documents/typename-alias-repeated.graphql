@@ -1,0 +1,4 @@
+query RepeatedAlias {
+    pet { __typename: name }
+    pet { name }
+}

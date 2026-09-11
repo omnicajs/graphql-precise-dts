@@ -1,0 +1,17 @@
+query UnreachableFragmentFields {
+    dog {
+        id
+        ...DogFields
+    }
+}
+
+fragment DogFields on Dog {
+    ... on Pet {
+        ... on Cat { nickname }
+        ...CatFields
+    }
+}
+
+fragment CatFields on Cat {
+    name
+}

@@ -112,9 +112,13 @@ const mergeFragmentSpreads = (
 
 const mergeVariantSelections = (
     selections: ReadonlyArray<VariantSelection>
-): ReadonlyArray<VariantSelection> => mergeFragmentSpreads(
-    mergeSelections(selections)
-) as ReadonlyArray<VariantSelection>
+): ReadonlyArray<VariantSelection> => {
+    const aliasesTypename = selections.some(selection => selection.kind === 'field' && selection.name === '__typename')
+    const fields = aliasesTypename
+        ? selections.filter(selection => selection.kind !== 'typename' || !selection.implicit)
+        : selections
+    return mergeFragmentSpreads(mergeSelections(fields)) as ReadonlyArray<VariantSelection>
+}
 
 const planField = (
     field: CompiledField,
@@ -183,21 +187,20 @@ const expandCompositeOverlaps = (
         const spreadSelections = collectEffectiveSelections(
             [ selection ],
             type,
-            fragments,
-            false,
-            false
+            fragments
         )
         const otherSelections = collectEffectiveSelections(
             selections.filter((_, candidateIndex) => candidateIndex !== index),
             type,
-            fragments,
-            false,
-            false
+            fragments
         )
         const overlaps = spreadSelections.some(candidate => candidate.kind === 'field'
             && candidate.value.kind === 'composite'
             && hasCompositeSelection(otherSelections, candidate.name))
-        if (!overlaps) return [ selection ]
+        const aliasesTypename = [...spreadSelections, ...otherSelections].some(
+            candidate => candidate.kind === 'field' && candidate.name === '__typename'
+        )
+        if (!overlaps && !aliasesTypename) return [ selection ]
 
         expanded = true
         const fragment = resolveFragment(
@@ -239,7 +242,7 @@ export const planSelectionSet = (
     fragmentPath: ReadonlyArray<Pick<CompiledFragment, 'name' | 'sourcePath'>> = []
 ): PlannedSelectionSet => {
     validateCycles(selections, fragments, fragmentPath)
-    validateSelections(types, selections, fragments)
+    validateSelections(selections, fragments)
 
     return {
         variants: hasTypeSpecificSelections(types, selections, fragments)

@@ -13,10 +13,7 @@ import type {
     CompiledVariableUsage,
 } from './model'
 
-import {
-    invalidDocument,
-    unsupportedDocument,
-} from './errors'
+import { invalidDocument } from './errors'
 import {
     compileInputValue,
     requireInputType,
@@ -85,10 +82,6 @@ const compileVariable = (
     definition: VariableDefinitionNode,
     context: CompilationContext
 ): CompiledVariable => {
-    if (definition.directives?.length) {
-        unsupportedDocument('Variable directives are not supported yet', definition.directives[0])
-    }
-
     const type = toTypeRef(definition.type)
     const name = definition.variable.name.value
     const typeId = getNamedType(type)

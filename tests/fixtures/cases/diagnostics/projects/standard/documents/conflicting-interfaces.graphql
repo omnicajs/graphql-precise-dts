@@ -1,0 +1,10 @@
+query ConflictingInterfaces {
+    item {
+        ... on Left {
+            value: left
+        }
+        ... on Right {
+            value: right
+        }
+    }
+}

@@ -1,0 +1,4 @@
+query SkippedAlias {
+    pet { __typename: name @skip(if: true) }
+    pet { name }
+}

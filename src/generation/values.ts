@@ -15,7 +15,7 @@ export type ValueLocation = Pick<SchemaInputValue, 'defaultValue' | 'type'>
 
 export type VariableValueValidator = (
     variable: VariableNode,
-    location: ValueLocation,
+    location: ValueLocation | undefined,
     subject: string,
     requiresNonNullType: boolean
 ) => void
@@ -59,6 +59,26 @@ const validateScalar = (
     })()
 
     if (!valid) invalidLiteral(subject, type, value)
+}
+
+const validateScalarLiteral = (
+    value: ValueNode,
+    subject: string,
+    validateVariable?: VariableValueValidator
+): void => {
+    if (value.kind === Kind.VARIABLE) {
+        validateVariable!(value, undefined, subject, false)
+    } else if (value.kind === Kind.LIST) {
+        value.values.forEach(item => validateScalarLiteral(item, subject, validateVariable))
+    } else if (value.kind === Kind.OBJECT) {
+        const names = new Set<string>()
+        for (const field of value.fields) {
+            const name = field.name.value
+            if (names.has(name)) invalidDocument(`${subject} provides input field "${name}" more than once`, field)
+            names.add(name)
+            validateScalarLiteral(field.value, `${subject}.${name}`, validateVariable)
+        }
+    }
 }
 
 const validateInputObject = (
@@ -149,6 +169,7 @@ export const validateValue = (
 
     if (schemaType.kind === 'scalar') {
         validateScalar(value, schemaType.id, type, subject)
+        validateScalarLiteral(value, subject, validateVariable)
         return
     }
 

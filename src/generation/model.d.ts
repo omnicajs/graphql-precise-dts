@@ -50,6 +50,9 @@ export type CompiledCompositeValue = {
 }
 
 export type CompiledField = {
+    conditionalDirective?: SourceLocation
+    parentType: TypeId
+    parentIsObject: boolean
     kind: 'field'
     included: boolean
     name: string
@@ -64,6 +67,9 @@ export type CompiledField = {
 }
 
 export type CompiledTypename = {
+    conditionalDirective?: SourceLocation
+    parentType: TypeId
+    parentIsObject: boolean
     kind: 'typename'
     implicit?: boolean
     included: boolean
@@ -77,6 +83,7 @@ export type CompiledTypename = {
 }
 
 export type CompiledFragmentSpread = {
+    conditionalDirective?: SourceLocation
     kind: 'fragment-spread'
     included: boolean
     name: string
@@ -88,6 +95,7 @@ export type CompiledFragmentSpread = {
 }
 
 export type CompiledInlineFragment = {
+    conditionalDirective?: SourceLocation
     kind: 'inline-fragment'
     included: boolean
     type: TypeId
@@ -114,7 +122,7 @@ export type CompiledVariable = {
 
 export type CompiledVariableUsage = {
     name: string
-    location: Pick<SchemaInputValue, 'defaultValue' | 'type'>
+    location: Pick<SchemaInputValue, 'defaultValue' | 'type'> | undefined
     argumentName: string
     requiresNonNullType: boolean
     sourceLocation: SourceLocation

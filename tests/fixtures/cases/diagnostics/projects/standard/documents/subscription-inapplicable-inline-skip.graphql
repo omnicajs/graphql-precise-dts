@@ -1,0 +1,5 @@
+fragment RootFields on Rootish {
+    ... on Other @skip(if: false) { second }
+    ... on Subscription { first }
+}
+subscription ApplicableRoot { ...RootFields }

@@ -27,14 +27,9 @@ const mergePresence = (
     existing: SelectionPresence,
     duplicate: SelectionPresence
 ): SelectionPresence => ({
-    included: existing.included || duplicate.included,
-    conditional: existing.included && duplicate.included
-        ? existing.conditional && duplicate.conditional
-        : existing.included
-            ? existing.conditional
-            : duplicate.included
-                ? duplicate.conditional
-                : false,
+    // Excluded selections have already been removed by the variant planner.
+    included: true,
+    conditional: existing.conditional && duplicate.conditional,
 })
 
 const mergeFields = (
@@ -67,10 +62,12 @@ const mergeFields = (
         value: {
             ...narrowedValue,
             possibleTypes,
-            selections: mergeSelections([
+            // The child planner expands fragments and resolves implicit typenames
+            // before merging this selection set, just as it does at the root.
+            selections: [
                 ...applyParentPresence(existingValue.selections, existing),
                 ...applyParentPresence(duplicateValue.selections, duplicate),
-            ]),
+            ],
         },
     }
 }

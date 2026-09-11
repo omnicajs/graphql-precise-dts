@@ -37,8 +37,10 @@ import {
     hasScalarMapping,
 } from './scalars'
 import { Kind } from 'graphql'
+import { compileEnumValue } from './enums'
 const compileTypename = (
     field: FieldNode,
+    parent: Pick<CompiledField, 'parentType' | 'parentIsObject'>,
     included: boolean,
     conditional: boolean,
     forceNonNull: boolean,
@@ -49,6 +51,7 @@ const compileTypename = (
 
     return {
         kind: 'typename',
+        ...parent,
         included,
         name: field.alias?.value ?? field.name.value,
         field: '__typename',
@@ -132,14 +135,12 @@ const compileField = (
     variables: VariableScope,
     context: CompilationContext
 ): CompiledField | CompiledTypename => {
-    if (field.name.value === '__typename') {
-        return compileTypename(field, included, conditional, forceNonNull, overrideType)
+    const parent = {
+        parentType,
+        parentIsObject: context.schema.getType(parentType).kind === 'object',
     }
-    if (field.alias?.value === '__typename') {
-        return invalidDocument(
-            'Aliasing a field to "__typename" is not supported because this name is reserved',
-            field
-        )
+    if (field.name.value === '__typename') {
+        return compileTypename(field, parent, included, conditional, forceNonNull, overrideType)
     }
 
     const schemaField = context.schema.getField(parentType, field.name.value)
@@ -166,6 +167,7 @@ const compileField = (
 
         return {
             kind: 'field',
+            ...parent,
             included,
             name,
             field: field.name.value,
@@ -187,6 +189,7 @@ const compileField = (
 
         return {
             kind: 'field',
+            ...parent,
             included,
             name,
             field: field.name.value,
@@ -196,10 +199,7 @@ const compileField = (
             forceNonNull,
             overrideType,
             location: getSourceLocation(field),
-            value: {
-                kind: 'enum',
-                type: schemaType.id,
-            },
+            value: compileEnumValue(schemaType),
         }
     }
 
@@ -207,6 +207,7 @@ const compileField = (
 
     return {
         kind: 'field',
+        ...parent,
         included,
         name,
         field: field.name.value,
@@ -235,15 +236,19 @@ export const compileSelectionSet = (
 
     for (const selection of selectionSet.selections) {
         const state = compileSelectionState(selection, context, variables)
+        const directive = selection.directives!.find(directive => (
+            directive.name.value === 'skip' || directive.name.value === 'include'
+        ))
+        const conditionalDirective = directive ? getSourceLocation(directive) : undefined
 
         if (selection.kind === Kind.FRAGMENT_SPREAD) {
-            selections.push(compileFragmentSpread(
+            selections.push({ ...compileFragmentSpread(
                 selection,
                 parentType,
                 state.included,
                 state.conditional,
                 context
-            ))
+            ), conditionalDirective })
             continue
         }
         if (selection.kind === Kind.INLINE_FRAGMENT) {
@@ -255,7 +260,7 @@ export const compileSelectionSet = (
                 variables,
                 context
             )
-            selections.push(compiled)
+            selections.push({ ...compiled, conditionalDirective })
             continue
         }
 
@@ -269,10 +274,10 @@ export const compileSelectionSet = (
             variables,
             context
         )
-        selections.push(compiled)
+        selections.push({ ...compiled, conditionalDirective })
     }
 
-    if (context.typename !== 'abstract' || selections.some(selection => selection.kind === 'typename')) return selections
+    if (context.typename !== 'abstract' || selections.some(selection => selection.kind === 'typename' || (selection.kind === 'field' && selection.name === '__typename'))) return selections
     const type = context.schema.getType(parentType)
     if (type.kind !== 'interface' && type.kind !== 'union') return selections
     const possibleTypes = getSelectionTypes(parentType, context.schema, selectionSet)
@@ -281,6 +286,8 @@ export const compileSelectionSet = (
     // Keep the client-backed selection in IR so fragment expansion preserves its presence.
     selections.unshift({
         kind: 'typename',
+        parentType,
+        parentIsObject: false,
         implicit: true,
         included: true,
         name: '__typename',

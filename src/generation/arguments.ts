@@ -75,7 +75,7 @@ export const validateInputArguments = (
 
         const validateVariable: VariableValueValidator = (
             node,
-            location: ValueLocation,
+            location: ValueLocation | undefined,
             _variableSubject,
             requiresNonNullType
         ) => {

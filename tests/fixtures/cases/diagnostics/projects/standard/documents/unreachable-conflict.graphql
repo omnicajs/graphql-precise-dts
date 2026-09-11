@@ -1,0 +1,10 @@
+query UnreachableConflict {
+    dog {
+        ... on Pet {
+            ... on Cat {
+                value: name
+                value: nickname
+            }
+        }
+    }
+}

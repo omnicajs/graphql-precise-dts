@@ -4,6 +4,14 @@ Directives are validated against the schema: the definition, location,
 repeatability, arguments, and variable usage must be valid. A policy describes
 an already declared directive; configuration does not add schema definitions.
 
+Directives on operation, fragment, and variable definitions are also validated,
+including variable usages in their arguments. Custom response-shape policies
+apply only to field selections, fragment spreads, and inline fragments.
+
+Subscription root selections cannot use `@skip` or `@include`, including on
+root-level fragment spreads and inline fragments. Conditional selections below
+the root field remain supported.
+
 ## Built-in selection presence
 
 | Directive | Selection behavior |

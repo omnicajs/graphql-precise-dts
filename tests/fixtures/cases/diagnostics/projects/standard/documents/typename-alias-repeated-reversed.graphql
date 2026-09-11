@@ -1,0 +1,4 @@
+query ReversedAlias {
+    pet { name }
+    pet { __typename: name }
+}

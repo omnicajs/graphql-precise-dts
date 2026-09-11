@@ -10,32 +10,19 @@ import { resolve } from './fragments'
 
 export type EffectiveSelection = CompiledField | CompiledTypename
 
-const withConditional = <TSelection extends EffectiveSelection>(
-    selection: TSelection,
-    inheritedConditional: boolean
-): TSelection => inheritedConditional && !selection.conditional
-        ? { ...selection, conditional: true }
-        : selection
-
 export const collectEffectiveSelections = (
     selections: ReadonlyArray<CompiledSelection>,
     type: TypeId,
-    fragments: FragmentIndex,
-    inheritedConditional = false,
-    includeExcluded = true
+    fragments: FragmentIndex
 ): ReadonlyArray<EffectiveSelection> => selections.flatMap(selection => {
-    if (!includeExcluded && !selection.included) return []
-
-    const conditional = inheritedConditional || selection.conditional
+    if (!selection.included) return []
 
     if (selection.kind === 'inline-fragment') {
         return selection.possibleTypes.includes(type)
             ? collectEffectiveSelections(
                 selection.selections,
                 type,
-                fragments,
-                conditional,
-                includeExcluded
+                fragments
             )
             : []
     }
@@ -52,13 +39,11 @@ export const collectEffectiveSelections = (
         return collectEffectiveSelections(
             fragment.selections,
             type,
-            fragments,
-            conditional,
-            includeExcluded
+            fragments
         )
     }
 
-    return [ withConditional(selection, inheritedConditional) ]
+    return [ selection ]
 })
 
 export const hasTypeSpecificSelections = (

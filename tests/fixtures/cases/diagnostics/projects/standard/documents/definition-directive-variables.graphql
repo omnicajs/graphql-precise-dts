@@ -1,0 +1,7 @@
+query DirectiveVariables($text: String!, $other: String!) @meta(value: { text: $text }) {
+    ...F
+}
+
+fragment F on Query @meta(value: { text: $other }) {
+    echo
+}

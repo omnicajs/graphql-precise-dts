@@ -1,0 +1,3 @@
+query UndefinedScalarVariable {
+    echo(value: { nested: [$missing] })
+}

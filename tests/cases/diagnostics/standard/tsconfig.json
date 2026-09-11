@@ -1,0 +1,3 @@
+{
+    "extends": "../../../fixtures/cases/diagnostics/tsconfig.standard.json"
+}

@@ -1,0 +1,5 @@
+subscription RootDirective {
+    ... @include(if: true) {
+        event
+    }
+}

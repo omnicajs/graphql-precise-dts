@@ -16,6 +16,7 @@ import {
     generateDeclarations,
 } from '@/index'
 import { createFixtureWorkspace } from '../fixtures/workspace'
+import { createStandardFixture } from '../fixtures/standard'
 import {
     existsSync,
     mkdtempSync,
@@ -30,6 +31,7 @@ import {
 
 const fixtureWorkspace = createFixtureWorkspace()
 const fixturesRoot = fixtureWorkspace.root
+const { generate: generateStandard, referenceErrors } = createStandardFixture(fixtureWorkspace)
 const documentsRoot = mkdtempSync(join(tmpdir(), 'graphql-precise-dts-diagnostics-'))
 
 afterAll(() => {
@@ -185,6 +187,33 @@ describe('experimental generation diagnostics through the public API', () => {
         expect(result.outputs[0]?.content).toContain(
             'user?: {\n\t\t__typename?: \'User\';\n\t\tid?: string;\n\t\tscore?: number;'
         )
+    })
+
+    // https://spec.graphql.org/September2025/#sec-Field-Selection-Merging
+    test('rejects conflicting aliases on disjoint interface scopes', async () => {
+        const file = 'conflicting-interfaces.graphql'
+        expect(referenceErrors(file)).toEqual([
+            'Fields "value" conflict because "left" and "right" are different fields. Use different aliases on the fields to fetch both if this was intentional.',
+        ])
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual(expect.arrayContaining([
+            expect.objectContaining({ severity: 'error', code: 'invalid-document', sourceId: file }),
+        ]))
+        expect(result.outputs).toEqual([])
+    })
+
+    // Every selection set must validate, even if concrete-type narrowing removes it.
+    // https://spec.graphql.org/September2025/#sec-Field-Selection-Merging
+    test('validates conflicting fields inside a runtime-unreachable inline fragment', async () => {
+        const file = 'unreachable-conflict.graphql'
+        expect([...new Set(referenceErrors(file))]).toEqual([
+            'Fields "value" conflict because "name" and "nickname" are different fields. Use different aliases on the fields to fetch both if this was intentional.',
+        ])
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual(expect.arrayContaining([
+            expect.objectContaining({ severity: 'error', code: 'invalid-document', sourceId: file }),
+        ]))
+        expect(result.outputs).toEqual([])
     })
 
     test('counts a variable used only by a statically skipped fragment spread', async () => {
@@ -403,6 +432,60 @@ describe('experimental generation diagnostics through the public API', () => {
         })
     })
 
+    // https://spec.graphql.org/September2025/#sec-Single-Root-Field
+    test.each([
+        ['field', 'subscription-field-directive.graphql'],
+        ['inline fragment', 'subscription-inline-directive.graphql'],
+        ['fragment spread', 'subscription-spread-directive.graphql'],
+    ])('rejects subscription root directives on %s selections', async (_kind, file) => {
+        // GraphQL September 2025, 5.2.4.1 CollectSubscriptionFields explicitly
+        // prohibits @skip and @include, even when their arguments are constants.
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual(expect.arrayContaining([
+            expect.objectContaining({ severity: 'error', code: 'invalid-document', sourceId: file }),
+        ]))
+        expect(result.outputs).toEqual([])
+    })
+
+    test.each([
+        'subscription-applicable-inline.graphql',
+        'subscription-applicable-spread.graphql',
+        'subscription-unreachable-directive.graphql',
+    ])('counts only applicable subscription root fields: %s', async file => {
+        expect(referenceErrors(file)).toEqual([])
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual([])
+        expect(result.outputs).toEqual([{
+            sourceId: file,
+            content: fixtureWorkspace.readFixture(`diagnostics/expected/standard/${file}.d.ts`),
+        }])
+    })
+
+    test.each([
+        'subscription-inapplicable-inline-skip.graphql',
+        'subscription-inapplicable-inline-include.graphql',
+        'subscription-inapplicable-spread-skip.graphql',
+        'subscription-inapplicable-spread-include.graphql',
+    ])('rejects directives on inapplicable subscription root fragments: %s', async file => {
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual([{
+            severity: 'error', code: 'invalid-document', sourceId: file,
+            message: 'Subscription root selections must not use @skip or @include',
+        }])
+        expect(result.outputs).toEqual([])
+    })
+
+    test('allows a conditional selection below a subscription root field', async () => {
+        const file = 'subscription-nested-directive.graphql'
+        expect(referenceErrors(file)).toEqual([])
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual([])
+        expect(result.outputs).toEqual([{
+            sourceId: file,
+            content: fixtureWorkspace.readFixture(`diagnostics/expected/standard/${file}.d.ts`),
+        }])
+    })
+
     test('accepts one subscription root field selected through named and inline fragments', async () => {
         const result = await generate(`
             fragment SubscriptionField on Subscription {
@@ -478,10 +561,10 @@ describe('experimental generation diagnostics through the public API', () => {
 
     test.each([
         [ '{ node(id: "1") { id } }', 'invalid-document', 'Operation must have a name' ],
-        [ 'query Named @skip(if: true) { date }', 'unsupported-document', 'Operation directives are not supported yet' ],
+        [ 'query Named @skip(if: true) { date }', 'invalid-document', 'Directive "@skip" cannot be used on QUERY' ],
         [ 'mutation MissingRoot { __typename }', 'invalid-document', 'Schema does not define a mutation root type' ],
         [ 'subscription MissingRoot { __typename }', 'invalid-document', 'Schema does not define a subscription root type' ],
-        [ 'fragment UserFields on User @custom(if: true) { id }', 'unsupported-document', 'Fragment definition directives are not supported yet' ],
+        [ 'fragment UserFields on User @custom(if: true) { id }', 'invalid-document', 'Directive "@custom" cannot be used on FRAGMENT_DEFINITION' ],
         [ 'schema { query: Query }', 'unsupported-document', 'Definition of kind "SchemaDefinition" is not executable' ],
         [ 'query Same { __typename } query Same { __typename }', 'invalid-document', 'Definition "Same" is declared more than once in the document' ],
         [ 'fragment Same on User { id } fragment Same on User { status }', 'invalid-document', 'Definition "Same" is declared more than once in the document' ],
@@ -499,7 +582,6 @@ describe('experimental generation diagnostics through the public API', () => {
         [ 'query WrongLocation($id: ID!) { node(id: $id) { ...UserFields @fieldOnly } } fragment UserFields on User { id }', 'invalid-document', 'Directive "@fieldOnly" cannot be used on FRAGMENT_SPREAD' ],
         [ 'query TypenameArguments { __typename(unexpected: true) }', 'invalid-document', 'Field "__typename" does not define arguments' ],
         [ 'query TypenameSelections { __typename { nested } }', 'invalid-document', 'Field "__typename" cannot have selections' ],
-        [ 'query ReservedTypenameAlias { __typename: date }', 'invalid-document', 'Aliasing a field to "__typename" is not supported because this name is reserved' ],
         [ 'query ScalarSelections { date { nested } }', 'invalid-document', 'Scalar field "Query.date" cannot have selections' ],
         [ 'query EnumSelections($id: ID!) { node(id: $id) { ... on User { status { nested } } } }', 'invalid-document', 'Enum field "User.status" cannot have selections' ],
         [ 'query UnionField { result { id } }', 'invalid-document', 'Type "SearchResult" does not define field "id"' ],
@@ -508,9 +590,9 @@ describe('experimental generation diagnostics through the public API', () => {
         [ 'query ConflictingArguments { value: user(id: "1") { id } value: user(id: "2") { id } }', 'invalid-document', 'Selections for response name "value" provide different arguments' ],
         [ 'query ConflictingTypename($id: ID!) { node(id: $id) { value: __typename value: id } }', 'invalid-document', 'Selections for response name "value" target different fields "__typename" and "id"' ],
         [ 'query InlineConflict($id: ID!) { node(id: $id) { value: id ... on User { value: status } } }', 'invalid-document', 'Selections for response name "value" target different fields "id" and "status"' ],
-        [ 'query AbstractShapeConflict { result { ... on User { value: score } ... on Group { value: label } } }', 'invalid-document', 'Selections for response name "value" have incompatible return types "String!" and "Int!"' ],
-        [ 'query AbstractListShapeConflict { result { ... on User { entity: related { id } } ... on Group { entity: owner { id } } } }', 'invalid-document', 'Selections for response name "entity" have incompatible return types "User!" and "[User!]!"' ],
-        [ 'query NestedAbstractShapeConflict { result { ... on User { entity: owner { value: id } } ... on Group { entity: owner { value: score } } } }', 'invalid-document', 'Selections for response name "value" have incompatible return types "Int!" and "ID!"' ],
+        [ 'query AbstractShapeConflict { result { ... on User { value: score } ... on Group { value: label } } }', 'invalid-document', 'Selections for response name "value" have incompatible return types "Int!" and "String!"' ],
+        [ 'query AbstractListShapeConflict { result { ... on User { entity: related { id } } ... on Group { entity: owner { id } } } }', 'invalid-document', 'Selections for response name "entity" have incompatible return types "[User!]!" and "User!"' ],
+        [ 'query NestedAbstractShapeConflict { result { ... on User { entity: owner { value: id } } ... on Group { entity: owner { value: score } } } }', 'invalid-document', 'Selections for response name "value" have incompatible return types "ID!" and "Int!"' ],
         [ 'query NullableShapeConflict { node(id: "1") { value ... on User { value } } }', 'invalid-document', 'Selections for response name "value" have incompatible return types "Int" and "Int!"' ],
         [ 'query ReversedNullableShapeConflict { node(id: "1") { ... on User { value } value } }', 'invalid-document', 'Selections for response name "value" have incompatible return types "Int!" and "Int"' ],
         [ 'query FragmentConflict($id: ID!) { node(id: $id) { value: id ...Conflict } } fragment Conflict on User { value: status }', 'invalid-document', 'Selections for response name "value" target different fields "id" and "status"' ],
@@ -551,7 +633,7 @@ describe('experimental generation diagnostics through the public API', () => {
         [ 'query WrongListShape($id: ID) { users(ids: $id) { id } }', 'invalid-document', 'Variable "$id" cannot be used for argument "ids"' ],
         [ 'query NullDefault($id: ID = null) { node(id: $id) { id } }', 'invalid-document', 'Variable "$id" cannot be used for argument "id"' ],
         [ 'query MissingArgument { node { id } }', 'invalid-document', 'Required argument "id" is missing' ],
-        [ 'query VariableDirective($id: ID! @skip(if: true)) { node(id: $id) { id } }', 'unsupported-document', 'Variable directives are not supported yet' ],
+        [ 'query VariableDirective($id: ID! @skip(if: true)) { node(id: $id) { id } }', 'invalid-document', 'Directive "@skip" cannot be used on VARIABLE_DEFINITION' ],
         [ 'query DuplicateVariable($id: ID!, $id: ID!) { node(id: $id) { id } }', 'invalid-document', 'Variable "$id" is defined more than once' ],
         [ 'query UnusedVariable($id: ID) { __typename }', 'invalid-document', 'Variable "$id" is never used in operation "UnusedVariable"' ],
         [ 'query WrongScalarDefault($id: ID = true) { node(id: $id) { id } }', 'invalid-document', 'Variable "$id" default value is not a valid literal for input type "ID"' ],
@@ -950,6 +1032,46 @@ describe('experimental generation diagnostics through the public API', () => {
 
         expect(result.diagnostics).toEqual([])
         expect(result.outputs).toHaveLength(1)
+    })
+
+    // https://spec.graphql.org/September2025/#sec-All-Variables-Used
+    test.each([
+        ['object', 'scalar-object-variable.graphql'],
+        ['list', 'scalar-list-variable.graphql'],
+    ])('counts variables nested inside a custom scalar %s literal', async (_kind, file) => {
+        expect(referenceErrors(file)).toEqual([])
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual([])
+        expect(result.outputs).toEqual([{
+            sourceId: file,
+            content: fixtureWorkspace.readFixture(`diagnostics/expected/standard/${file}.d.ts`),
+        }])
+    })
+
+    // https://spec.graphql.org/September2025/#sec-All-Variable-Uses-Defined
+    test('rejects an undefined variable nested inside a custom scalar literal', async () => {
+        const file = 'scalar-undefined-variable.graphql'
+        expect(referenceErrors(file)).toEqual([
+            'Variable "$missing" is not defined by operation "UndefinedScalarVariable".',
+        ])
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual(expect.arrayContaining([
+            expect.objectContaining({ severity: 'error', code: 'invalid-document', sourceId: file }),
+        ]))
+        expect(result.outputs).toEqual([])
+    })
+
+    // https://spec.graphql.org/September2025/#sec-Input-Object-Field-Uniqueness
+    test('rejects duplicate object fields inside a custom scalar literal', async () => {
+        const file = 'scalar-duplicate-field.graphql'
+        expect(referenceErrors(file)).toEqual([
+            'There can be only one input field named "key".',
+        ])
+        const result = await generateStandard(file)
+        expect(result.diagnostics).toEqual(expect.arrayContaining([
+            expect.objectContaining({ severity: 'error', code: 'invalid-document', sourceId: file }),
+        ]))
+        expect(result.outputs).toEqual([])
     })
 
     test('accepts nested variables and input-field defaults', async () => {
