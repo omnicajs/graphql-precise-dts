@@ -3,6 +3,22 @@
 [![npm version](https://img.shields.io/npm/v/%40omnicajs%2Fgraphql-precise-dts)](https://www.npmjs.com/package/@omnicajs/graphql-precise-dts)
 [![codecov](https://codecov.io/gh/omnicajs/graphql-precise-dts/graph/badge.svg)](https://codecov.io/gh/omnicajs/graphql-precise-dts)
 
+## Why this package?
+
+GraphQL documents are the source of truth for an operation: they specify both
+what the client sends and the shape it can receive. This package lets them stay
+the source of truth for TypeScript too. It generates a parallel `.graphql.d.ts`
+declaration tree, so TypeScript can type an import of the original document as a
+`TypedDocumentNode` without replacing that document with generated TypeScript.
+
+```ts
+import FetchUser from './queries/fetch-user.graphql'
+```
+
+Application source refers directly to `fetch-user.graphql` through an ordinary
+ESM import. That keeps each operation a separate source module and preserves
+its standard import graph for static analysis.
+
 `@omnicajs/graphql-precise-dts` generates precise TypeScript declarations for
 GraphQL operations and fragments. One compiler serves the project API, CLI,
 and GraphQL Code Generator adapter.
