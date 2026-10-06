@@ -16,7 +16,7 @@ const createParser = () => yargs()
     .scriptName('graphql-precise-dts')
     .usage('$0 <command> [options]')
     .command('generate', 'Generate and publish declaration files', parser => parser.option('force', {
-        description: 'Replace modified owned files and remove stale owned files',
+        description: 'Overwrite planned outputs, remove stale owned files, and warn about undeclared files',
         type: 'boolean',
         default: false,
     }))

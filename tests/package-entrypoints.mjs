@@ -234,9 +234,16 @@ try {
     assert.equal(protectedGeneration.status, 1)
     assert.match(protectedGeneration.stderr, /was modified after publication/)
 
+    rmSync(manifest)
+    const unownedOutput = resolve(workspace, 'generated/legacy.graphql.d.ts')
+    writeFileSync(unownedOutput, 'untracked legacy declaration')
+
     const forcedGeneration = execute('generate', '--force')
     assert.equal(forcedGeneration.error, undefined)
     assert.equal(forcedGeneration.status, 0, forcedGeneration.stderr)
+    assert.match(forcedGeneration.stderr, /WARNING dirty-output generated/)
+    assert.match(forcedGeneration.stderr, /generated\/legacy\.graphql\.d\.ts/)
+    assert.equal(readFileSync(unownedOutput, 'utf8'), 'untracked legacy declaration')
     assert.equal(
         readFileSync(output, 'utf8'),
         readFileSync(resolve(fixture, 'expected/app/viewer.graphql.d.ts'), 'utf8')

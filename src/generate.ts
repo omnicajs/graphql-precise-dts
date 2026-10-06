@@ -16,11 +16,12 @@ export const generateDeclarations = (
     return withProjectLocks(
         resolve(config.root, config.locks?.directory ?? '.graphql-precise-dts/locks'),
         Object.keys(config.projects),
-        async () => {
+        async lockFiles => {
             const plan = await createDeclarationPlan(config, { writeCache: true })
 
             if (!plan.result.diagnostics.some(diagnostic => diagnostic.severity === 'error')) {
-                publishDeclarationTrees(config.root, plan.trees, options.force === true)
+                const warnings = publishDeclarationTrees(config.root, plan.trees, options.force === true, lockFiles)
+                if (warnings.length) return { ...plan.result, warnings }
             }
 
             return plan.result
